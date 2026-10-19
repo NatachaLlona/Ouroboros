@@ -89,7 +89,7 @@ def load_config(root=PROJECT_ROOT):
     auth = config.setdefault("auth", {})
     if not isinstance(auth, dict):
         raise ConfigurationError("auth must be a JSON object")
-    for field, default in (("issuer", "foundation"), ("audience", "foundation-api")):
+    for field, default in (("issuer", "ouroboros"), ("audience", "ouroboros-api")):
         auth.setdefault(field, default)
         if not isinstance(auth[field], str) or not auth[field].strip() or any(not char.isprintable() for char in auth[field]):
             raise ConfigurationError(f"auth.{field} must be a nonblank printable string")
@@ -124,6 +124,20 @@ def load_config(root=PROJECT_ROOT):
         infrastructure.setdefault(field, "")
         if not isinstance(infrastructure[field], str):
             raise ConfigurationError(f"infrastructure.{field} must be a string")
+    from app.datetimes import zone_name
+    for field in ('application_timezone', 'default_display_timezone'):
+        config.setdefault(field, 'Europe/Lisbon')
+        try:
+            zone_name(config[field])
+        except (ValueError, TypeError):
+            raise ConfigurationError(field + ' must be a valid IANA timezone') from None
+    audit = config.setdefault('audit', {})
+    if not isinstance(audit, dict):
+        raise ConfigurationError('audit must be an object')
+    for field in ('request_body_max_bytes', 'response_body_max_bytes', 'mutation_max_bytes', 'query_max_bytes'):
+        audit.setdefault(field, 8192)
+        if type(audit[field]) is not int or not 256 <= audit[field] <= 1048576:
+            raise ConfigurationError('audit capture limits must be integers from 256 to 1048576 bytes')
     validate_logging(config.get("logging"))
     return config
 

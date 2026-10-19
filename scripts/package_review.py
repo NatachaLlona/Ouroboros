@@ -1,4 +1,4 @@
-"""Package public Foundation source and sanitized QA reports for review.
+"""Package public Ouroboros source and sanitized QA reports for review.
 
 Run after scripts/run_checks.py. Explicit source allowlists exclude local
 configuration, secrets, logs, Git history and personal Postman YAML/metadata.
@@ -15,16 +15,20 @@ def main():
     files = {ROOT / name for name in (
         'AGENTS.md', 'NEXTGENERATION.md', 'README.md', '.gitignore',
         '.app.config.example', 'compose.yaml', 'requirements.txt',
-        'requirements-dev.txt', 'start.py', 'postman/Foundation.postman_collection.json')}
+        'requirements-dev.txt', 'requirements-review.txt', 'start.py', 'postman/Ouroboros.postman_collection.json')}
     for directory, patterns in (
-        ('app', ('*.py',)), ('tests', ('*.py', '*.schema.json')),
+        ('app', ('*.py', '*.json')), ('tests', ('*.py', '*.schema.json')),
         ('scripts', ('*.py',)), ('sql', ('*.sql',)), ('qa', ('*.json',)),
         ('docs', ('*.md',)), ('.github/workflows', ('*.yml', '*.yaml')),
     ):
         for pattern in patterns:
             files.update((ROOT / directory).rglob(pattern))
     files.update(ROOT / 'reports' / name for name in ('summary.md', 'results.json', 'junit.xml'))
-    output = ROOT / 'reports/Foundation-final-review.zip'
+    for name in ('performance.json','pagination-plans.json','bandit.json','ruff.json','dependency-audit.json','dependency-dev-audit.json'):
+        report = ROOT / 'reports' / name
+        if report.is_file():
+            files.add(report)
+    output = ROOT / 'reports/Ouroboros-final-review.zip'
     output.parent.mkdir(exist_ok=True)
     with ZipFile(output, 'w', ZIP_DEFLATED) as archive:
         for path in sorted(files):
@@ -33,11 +37,11 @@ def main():
             relative = path.resolve().relative_to(ROOT)
             if '__pycache__' in relative.parts:
                 continue
-            archive.write(path, 'Foundation/' + relative.as_posix())
+            archive.write(path, 'Ouroboros/' + relative.as_posix())
     with ZipFile(output) as archive:
         if archive.testzip() is not None:
             raise ValueError('Review ZIP integrity check failed')
-    print('Created reports/Foundation-final-review.zip from public allowlisted files')
+    print('Created reports/Ouroboros-final-review.zip from public allowlisted files')
 
 
 if __name__ == '__main__':

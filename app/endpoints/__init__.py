@@ -1,1 +1,1 @@
-"""Foundation API components."""
+"""Ouroboros API components."""

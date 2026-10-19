@@ -1,4 +1,4 @@
-"""Explicit per-workspace Compose identity; never infer Foundation for a copy."""
+"""Explicit per-workspace Compose identity; never infer Ouroboros for a copy."""
 from pathlib import Path
 import re
 from app.config import ConfigurationError, PROJECT_ROOT

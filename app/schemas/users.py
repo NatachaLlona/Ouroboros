@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, StrictStr, field_validator
 
-Role = Literal["administrator", "standard"]
+Role = Literal["administrator", "supervisor", "standard"]
 
 
 class UserCreate(BaseModel):

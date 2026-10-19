@@ -9,6 +9,8 @@ from app.auth import require_scopes
 from app.logger import log_event
 from app.pagination import Page, pagination
 from app.schemas.users import PasswordChange, PasswordReset, PublicUser, RoleUpdate, UserCreate
+from app.ordering import UserOrder, OrderDirection
+from fastapi import Query
 
 router = APIRouter(tags=["users"])
 Administrator = Annotated[dict, Security(require_scopes, scopes=["users:manage"])]
@@ -22,7 +24,7 @@ def change_own_password(payload: PasswordChange, request: Request,
     Args:
         payload: Secret current/new credentials; the entire body is log-excluded.
         request: Request carrying the account repository.
-        actor: Validated subject/version; both profiles can change their password.
+        actor: Validated subject/version; all three profiles can change their password.
 
     Returns:
         An empty 204 after the atomic hash/version transaction commits.
@@ -84,25 +86,30 @@ def create_user(payload: UserCreate, request: Request, actor: Administrator):
         Public metadata of the persisted account, without credentials.
     """
     hashed = PASSWORD_HASHER.hash(payload.password.get_secret_value())
-    user = request.app.state.auth.users.create_managed(int(actor["sub"]), payload.username, hashed, payload.role)
+    user = request.app.state.auth.users.create_managed(int(actor["sub"]), payload.username, hashed, payload.role,
+                                                      credential_version=actor['credential_version'])
     log_event("INFO", "API user created", {"administrator_id": int(actor["sub"]), "user_id": user["id"],
                                           "previous_role": None, "new_role": user["role"]})
     return user
 
 
 @router.get("/users", response_model=Page[PublicUser])
-def list_users(request: Request, actor: Administrator, paging: Annotated[dict, Depends(pagination)]):
-    """List public accounts ordered by ID; only page/page_size are supported.
+def list_users(request: Request, actor: Administrator, paging: Annotated[dict, Depends(pagination)],
+               order_by: Annotated[UserOrder, Query(description='Public scalar ordering field; ties use ID ascending.', examples=['id', 'username'])] = 'id',
+               order_direction: OrderDirection = 'asc'):
+    """List public accounts with whitelisted scalar ordering, defaulting to ID.
 
     Args:
         request: Request carrying the database-backed account repository.
         actor: Current active administrator verified by shared authorization.
         paging: Shared validated one-based page and bounded page size.
+        order_by: Public scalar field, never a private credential column.
+        order_direction: asc or desc, with NULLS LAST and ID tie-breaks.
 
     Returns:
         A public-only collection envelope from one database statement snapshot.
     """
-    return request.app.state.auth.users.page(**paging)
+    return request.app.state.auth.users.page(**paging, order_by=order_by, order_direction=order_direction)
 
 
 @router.put("/users/{id}/role", response_model=PublicUser)
@@ -123,7 +130,8 @@ def replace_role(payload: RoleUpdate, request: Request, actor: Administrator,
         UserManagementError: If the transaction rejects a missing target,
             revoked actor or demotion of the last active administrator.
     """
-    user, previous = request.app.state.auth.users.change_role(int(actor["sub"]), id, payload.role)
+    user, previous = request.app.state.auth.users.change_role(int(actor["sub"]), id, payload.role,
+                                                            credential_version=actor['credential_version'])
     log_event("INFO", "API user role changed", {"administrator_id": int(actor["sub"]), "user_id": id,
                                                "previous_role": previous, "new_role": user["role"]})
     return user

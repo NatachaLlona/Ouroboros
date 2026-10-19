@@ -1,5 +1,7 @@
 # 🔌 **API contracts and authorization**
 
+The [catalogue CRUD guide](CATALOGUE_API.md) specifies all **77 catalogue route forms**, the three-role matrix, every filter/order field, response equivalence, atomic partial/full PUT and confirmed deletion. Standard has no catalogue access; supervisor has individual catalogue access; administrator alone can DELETE all. Every list, including `/test` and `/users`, supports `order_by` and `order_direction` enums with NULLS LAST and ID tie-breaks.
+
 See the running instance's **`/docs`** for the exact OpenAPI schema. The main application and isolated manual QA examples use **http://localhost:6969** and PostgreSQL host port **6669**, internal port **5432**. Use alternate free ports only when the defaults are occupied, without stopping existing services. [QA setup](QA_SETUP.md) explains the explicitly suggested disposable credentials and every UI action.
 
 | Method / path | Authentication / input | Result |
@@ -53,3 +55,13 @@ Migration **004_add_credential_version.sql** adds a per-account BIGINT version, 
 PUT `/users/me/password` requires the caller's current password and a different nonempty new password, both represented by SecretStr. The token identifies the target; extra identity fields are 422. A row lock rechecks active state/version and verifies Argon2id before replacing the hash and incrementing the version in the same transaction. Competing changes using one version yield exactly one success, with the other stale token rejected. No master credential, administrator override or global signing-key rotation is involved.
 
 After commit all earlier tokens of **that account** are invalid, including the changing token; old-password login is 401, new-password login succeeds, and other accounts' tokens remain valid. Logout/re-authorize in Swagger using the new password. The **entire endpoint body is omitted** from DEBUG logs, including malformed JSON and rejected requests. Success records the exact **API password changed** INFO event with user_id and request context. The [QA cases 8.1–8.5](QA_TEST_PLAN.md) and Postman folder 40–60 verify both profiles, negative cases, revocation and concurrency.
+
+## 🧾 Audit, UTC dates and filtered bulk operations
+
+See [the phase contract guide](AUDIT_DATETIME_BULK.md) for migrations 007–008, exact columns, central audit transaction guarantees and outage/crash gaps, versioned error envelopes, UTC/source/display timezone rules, immutable creation dates, and administrator previews/confirmed filtered mutations. The current catalogue has 77 route forms plus two read-only audit routes. Supervisor has individual CRUD and audit reads; standard has neither; administrator alone bulk mutates. Historical creation dates/context stay NULL. No automatic audit retention or durable replay is provided.
+
+For manual QA use owned disposable storage and fresh private accounts. Inspect Swagger controls, complete a GET-to-PUT round trip with original display, preview a filtered change, confirm it explicitly only in disposable storage, and query its X-Interaction-ID in api_audit_logs. Verify standardized codes/header/log/audit correspondence, whole token/password body omissions and restricted audit reads. Record actual UI/Postman JavaScript evidence separately. Never enable destructive examples against normal data.
+
+## 🪜 Classification tiers and complete test CRUD
+
+Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.

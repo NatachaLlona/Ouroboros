@@ -27,7 +27,7 @@ class QATraceabilityTests(unittest.TestCase):
 
     def test_collection_traceability_and_empty_credentials(self):
         catalog = load_catalog()
-        collection = json.loads((ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+        collection = json.loads((ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         def visit(items):
             for item in items:
                 if "item" in item: yield from visit(item["item"])

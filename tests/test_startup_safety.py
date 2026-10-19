@@ -94,12 +94,17 @@ class StartupSafetyTests(unittest.TestCase):
                     start_postgres(config["database"],root/"unused-secret",root,project="unit-project")
                 self.assertEqual(command.call_count,2)
 
-    def test_current_local_identity_and_volume_name_remain_foundation(self):
-        # Read only public identity settings; never output the local account preferences.
-        config={"infrastructure":{"project_name":"foundation","workspace":str(PROJECT_ROOT)}}
-        self.assertEqual(require_infrastructure(config),"foundation")
+    def test_current_local_identity_and_volume_name_are_ouroboros(self):
+        # Read only the tracked template, never another project's local preferences.
+        config=json.loads((PROJECT_ROOT/".app.config.example").read_text(encoding="utf-8"))
+        self.assertEqual(require_infrastructure(config),"ouroboros")
+        self.assertEqual(config["auth"]["issuer"],"ouroboros")
+        self.assertEqual(config["auth"]["audience"],"ouroboros-api")
+        self.assertEqual(config["database"]["name"],"")
+        self.assertEqual(config["database"]["user"],"")
         compose=(PROJECT_ROOT/"compose.yaml").read_text()
         self.assertIn("postgres_data:/var/lib/postgresql/data",compose)
+        self.assertIn("OUROBOROS_DB_SECRET_FILE",compose)
         self.assertNotIn("name: foundation",compose)
 
 

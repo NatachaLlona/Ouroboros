@@ -24,7 +24,7 @@ def integer_query(value):
     return value
 
 
-PageNumber = Annotated[int, Query(ge=1, description="One-based page after filtering, ordered by ascending ID. Count includes every matching record.", examples=[1, 2]), BeforeValidator(integer_query)]
+PageNumber = Annotated[int, Query(ge=1, description="One-based page after filtering and selected ordering. Count includes every matching record.", examples=[1, 2]), BeforeValidator(integer_query)]
 PageSize = Annotated[int, Query(ge=10, le=50, description="Maximum records per page (10–50); count is computed before pagination.", examples=[50, 10]), BeforeValidator(integer_query)]
 
 

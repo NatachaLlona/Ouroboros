@@ -44,9 +44,9 @@ def main(root=PROJECT_ROOT):
     Migrations and first-administrator recovery occur only after successful
     database master authentication. Cleanup attempts every owned resource.
     """
-    fallback = logging.Logger("foundation.bootstrap", logging.INFO)
+    fallback = logging.Logger("ouroboros.bootstrap", logging.INFO)
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(levelname)s foundation.bootstrap: %(message)s"))
+    handler.setFormatter(logging.Formatter("%(levelname)s ouroboros.bootstrap: %(message)s"))
     fallback.addHandler(handler)
     logger = database = auth = application = migration_connection = None
     password = None
@@ -54,9 +54,11 @@ def main(root=PROJECT_ROOT):
     exit_code = 0
     try:
         config = load_config(root)
+        from app.errors import load_error_codes
+        load_error_codes()
         stage = "logger_initialization"
         logger = ApplicationLogger(config["logging"], root=root)
-        logger.log({"message": "Foundation preparation started"})
+        logger.log({"message": "Ouroboros preparation started"})
         stage = "infrastructure_identity"
         project = require_infrastructure(config, root)
         logger.log({"message": "Configuration loaded and validated"})
@@ -91,7 +93,7 @@ def main(root=PROJECT_ROOT):
         auth = AuthService(config["auth"], load_signing_secret(root), users)
         stage = "application_creation"
         application = create_app(config, database, auth, logger)
-        logger.log({"message": "Foundation preparation completed"})
+        logger.log({"message": "Ouroboros preparation completed"})
         stage = "api_server"
         run_api(application, config)
     except (ConfigurationError, DatabaseError, ResourceCleanupError, UserManagementError) as error:
@@ -101,7 +103,7 @@ def main(root=PROJECT_ROOT):
             detail["cleanup_failures"] = error.failures
         report_diagnostic(logger, fallback, str(error), detail)
         exit_code = 1
-    except KeyboardInterrupt as error:
+    except KeyboardInterrupt:
         serving = stage == "api_server"
         report_diagnostic(logger, fallback,
                           "Application stopped by user" if serving else "Startup cancelled by user",
@@ -113,7 +115,7 @@ def main(root=PROJECT_ROOT):
         exit_code = 1
     except (Exception, SystemExit) as error:
         report_diagnostic(logger, fallback,
-                          "Foundation startup failed; inspect the safe stage diagnostics in the log",
+                          "Ouroboros startup failed; inspect the safe stage diagnostics in the log",
                           {"stage": stage, **error_details(error)})
         exit_code = 1
     finally:

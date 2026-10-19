@@ -1,4 +1,4 @@
-name: Foundation QA checks
+name: Ouroboros QA checks
 
 'on':
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: foundation-qa-reports
+          name: ouroboros-qa-reports
           path: |
             reports/summary.md
             reports/results.json

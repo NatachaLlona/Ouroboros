@@ -8,10 +8,10 @@ from app.config import PROJECT_ROOT
 
 class PostmanTests(unittest.TestCase):
     def test_collection_schema_and_safe_defaults(self):
-        collection=json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+        collection=json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         schema=json.loads((PROJECT_ROOT/"tests/schemas/postman-v2.1.schema.json").read_text())
         jsonschema.validate(collection,schema)
-        self.assertEqual(len(collection["item"]),12)
+        self.assertEqual(len(collection["item"]),16)
         variables={item["key"]:item["value"] for item in collection["variable"]}
         for key, value in variables.items():
             if key != "base_url": self.assertEqual(value,"",key)
@@ -23,7 +23,7 @@ class PostmanTests(unittest.TestCase):
             self.assertTrue(item["event"][0]["script"]["exec"])
 
     def test_distinct_requests_and_visible_pagination(self):
-        collection=json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+        collection=json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         def visit(items):
             for item in items:
                 if "item" in item: yield from visit(item["item"])
@@ -43,15 +43,15 @@ class PostmanTests(unittest.TestCase):
         readme=(PROJECT_ROOT/"README.md").read_text(encoding="utf-8")
         section=readme.split("<!-- postman-json:start -->",1)[1].split("<!-- postman-json:end -->",1)[0]
         embedded=section.split("```json\n",1)[1].split("\n```",1)[0]
-        actual=(PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8").strip()
+        actual=(PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8").strip()
         self.assertEqual(embedded,actual)
 
 
     def test_ouroboros_filters_and_scripts(self):
-        collection=json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+        collection=json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         items=collection["item"]
-        self.assertEqual(items[5]["request"]["url"],"{{base_url}}/test?value=%25Ouroboros%25")
-        self.assertEqual(items[6]["request"]["url"],"{{base_url}}/test?id={{test_id}}&value=%25Ouroboros%25")
+        self.assertTrue(items[5]["request"]["url"]["raw"].startswith("{{base_url}}/test?value=%25Ouroboros%25&"))
+        self.assertTrue(items[6]["request"]["url"]["raw"].startswith("{{base_url}}/test?id={{test_id}}&value=%25Ouroboros%25&"))
         self.assertEqual(json.loads(items[2]["request"]["body"]["raw"])["value"],"Ouroboros est\u00e1 vivo! \U0001f40d\U0001f4bb")
         for index in (4,5,6):
             self.assertEqual(items[index]["request"]["auth"]["type"],"bearer")
@@ -65,12 +65,12 @@ class PostmanTests(unittest.TestCase):
     def test_optional_list_params_and_single_encoding(self):
         from itertools import product
         from urllib.parse import urlencode, parse_qs
-        collection=json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+        collection=json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         request=collection["item"][3]["request"]
         self.assertEqual(request["method"],"GET")
         self.assertEqual(request["auth"]["type"],"bearer")
-        self.assertEqual(request["url"]["raw"],"{{base_url}}/test")
-        query=request["url"]["query"]
+        self.assertEqual(request["url"]["raw"],"{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc")
+        query=[item for item in request["url"]["query"] if item["key"] in ('id', 'value')]
         self.assertEqual([(item["key"],item["value"],item["disabled"]) for item in query],
                          [("id","{{test_id}}",True),("value","%Ouroboros%",True)])
         for flags in product((False,True),repeat=2):

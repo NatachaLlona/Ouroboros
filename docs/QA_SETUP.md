@@ -1,6 +1,8 @@
 ## 🧭 **Read this first**
 
-This guide is for a Windows tester with no prior Foundation, Python, Docker, OAuth2 or Git experience. **Use a separate QA folder and database. Never test against the owner's normal installation.** A green automated report verifies code/HTTP checks, not the appearance or behavior of a desktop interface. Record manual evidence separately. Expected **400, 401, 403, 409 and 422 are PASS** when the case asks for them.
+For catalogue CRUD scenarios **14.1–14.7**, use the [resource/filter/permission matrix](CATALOGUE_API.md) and new canonical Postman folders. Administrator creates supervisor explicitly; standard still has no catalogue access. All collection GETs now show ordering enums. DELETE examples are skipped by default: only in disposable data, explicitly select the request, set the private local catalogue_destructive_opt_in=isolated, and for DELETE all change confirm=false to true. Never run that flow against normal records. POST/PUT/GET expose the same complete record; copy a GET body to PUT with unchanged metadata and server-controlled added_at. Troubleshooting and exact status expectations are in the CRUD guide.
+
+This guide is for a Windows tester with no prior Ouroboros, Python, Docker, OAuth2 or Git experience. **Use a separate QA folder and database. Never test against the owner's normal installation.** A green automated report verifies code/HTTP checks, not the appearance or behavior of a desktop interface. Record manual evidence separately. Expected **400, 401, 403, 409 and 422 are PASS** when the case asks for them.
 
 ### 🧰 **Programs and terms**
 
@@ -18,11 +20,11 @@ An **API** accepts requests at URLs. **Swagger** is the interactive web page at 
 
 1. Ask the developer for the exact revision/source package being tested. Record that public revision with your evidence. Obtain access to the private repository if cloning it. Do not download another developer's configuration, secrets or database volume.
 2. Open PowerShell. A terminal is a window where you enter the commands shown below. Open Docker Desktop and wait until its Engine is running in **Linux containers** mode.
-3. Put the supplied source in a **new** folder, such as `C:\Dev\Foundation-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Foundation-QA`. Do not type that placeholder literally. Do not copy `.app.config`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
+3. Put the supplied source in a **new** folder, such as `C:\Dev\Ouroboros-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Ouroboros-QA`. Do not type that placeholder literally. Do not copy `.app.config`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
 4. Enter these commands from the new folder. Stop and ask for help if any command shows an error; a missing program is **BLOCKED preparation**, not a successful test.
 
 ```powershell
-cd C:\Dev\Foundation-QA
+cd C:\Dev\Ouroboros-QA
 python --version
 docker version
 docker compose version
@@ -48,9 +50,9 @@ This build choice is supported by [PyYAML's distribution setup](https://github.c
 | Field | QA example | Meaning |
 | --- | --- | --- |
 | `host` / `port` | `localhost` / `6969` | QA API / Swagger port |
-| `infrastructure.project_name` | `foundation-qa-manual-yourinitials` | Replace the suffix with your own unique lowercase name |
+| `infrastructure.project_name` | `ouroboros-qa-manual-yourinitials` | Replace the suffix with your own unique lowercase name |
 | `infrastructure.workspace` | empty string | Bound to this new directory on first startup |
-| `database.name` / `database.user` | `foundation_qa` / `foundation_qa` | QA database / its new master role |
+| `database.name` / `database.user` | `ouroboros_qa` / `ouroboros_qa` | QA database / its new master role |
 | `database.port` | `6669` | QA PostgreSQL port on Windows; container still uses 5432 |
 | `api_users.last_api_username` | empty string | Convenience only; not an account |
 | `logging.level` | `DEBUG` | Includes sanitized body diagnostics; later compare INFO |
@@ -67,9 +69,9 @@ Keep this terminal open while testing. **Do not paste passwords into commands, r
 
 | Prompt | Exact action in this fresh QA installation |
 | --- | --- |
-| Keep configured database? | Press Enter to keep `foundation_qa`; choosing another name is independent of the master user |
-| Keep configured master user? | Press Enter to keep `foundation_qa` |
-| Master database password | Suggested for disposable QA only: `FoundationQA-Database-2026!`; enter it manually, with asterisks expected. Reuse it on every restart of this volume |
+| Keep configured database? | Press Enter to keep `ouroboros_qa`; choosing another name is independent of the master user |
+| Keep configured master user? | Press Enter to keep `ouroboros_qa` |
+| Master database password | Suggested for disposable QA only: `OuroborosQA-Database-2026!`; enter it manually, with asterisks expected. Reuse it on every restart of this volume |
 | New API administrator username | Suggested API name: `admin`; enter it manually; this is not the master user |
 | API administrator password | Suggested for disposable QA only: `AdminPassword-2026!`; enter/store it locally |
 
@@ -86,7 +88,7 @@ If instead you see **promote/create**, this database already contains API users 
 
 ### 📮 **Import Postman once and configure local values**
 
-1. Postman Desktop → **Import → Files** → select **postman/Foundation.postman_collection.json** from this QA folder. This is the sole canonical **Collection v2.1**. Do not import the YAML directory; three historical List all entries YAML copies contain old assertions. Do not delete personal YAML/customizations.
+1. Postman Desktop → **Import → Files** → select **postman/Ouroboros.postman_collection.json** from this QA folder. This is the sole canonical **Collection v2.1**. Do not import the YAML directory; three historical List all entries YAML copies contain old assertions. Do not delete personal YAML/customizations.
 2. To update an older import, retain your private environment/custom requests first, then choose replacement if offered. Otherwise archive/remove only the identified old imported collection and import this JSON once. Avoid two same-named active imports.
 3. Create a **private local environment**, select it, and set `base_url=http://localhost:6969`. Set credentials only locally and mark passwords sensitive. A placeholder such as `{{admin_username}}` must resolve before sending. Do not share/sync/export secrets.
 4. Basic requests 01–08 use `api_username`/`api_password`, captured `access_token` and `test_id`. Run 02 then 03 before filters. Request 04 has **Params** `id` and `value` unchecked: neither = unfiltered page, one = that filter, both = AND. Keep `%Ouroboros%` raw in Params; the transmitted URL must have `%25Ouroboros%25`, not `%2525`.
@@ -110,10 +112,10 @@ Press **Ctrl+C** in the application terminal to stop the API; PostgreSQL remains
 ```powershell
 $qaConfig = Get-Content -Raw -Encoding UTF8 .app.config | ConvertFrom-Json
 $qaProject = $qaConfig.infrastructure.project_name
-$env:FOUNDATION_DB_NAME = $qaConfig.database.name
-$env:FOUNDATION_DB_USER = $qaConfig.database.user
-$env:FOUNDATION_DB_PORT = [string]$qaConfig.database.port
-$env:FOUNDATION_DB_SECRET_FILE = (Resolve-Path .secrets/postgres_password).Path
+$env:OUROBOROS_DB_NAME = $qaConfig.database.name
+$env:OUROBOROS_DB_USER = $qaConfig.database.user
+$env:OUROBOROS_DB_PORT = [string]$qaConfig.database.port
+$env:OUROBOROS_DB_SECRET_FILE = (Resolve-Path .secrets/postgres_password).Path
 docker compose -p $qaProject stop postgres
 docker compose -p $qaProject start --wait postgres
 ```
@@ -150,11 +152,11 @@ This command checks Python/dependencies/Docker, provisions **randomly named disp
 | SKIP | A check was intentionally omitted/unavailable; optional default-port checks may skip occupied ports |
 | MANUAL | Human/interface evidence is required; no automated PASS is claimed |
 
-The command returns nonzero if mandatory automation fails, is blocked or skips. `--unit-only` is an intentionally **partial** diagnostic run and returns nonzero; `--preflight-only` checks tools only and is never QA approval. A successful automated run is **not full QA sign-off** while manual evidence is missing. Fixed-port checks are optional and reported separately; occupied services are never stopped. On interruption or external machine failure, inspect ownership before cleanup; never delete resources by a broad Foundation name prefix.
+The command returns nonzero if mandatory automation fails, is blocked or skips. `--unit-only` is an intentionally **partial** diagnostic run and returns nonzero; `--preflight-only` checks tools only and is never QA approval. A successful automated run is **not full QA sign-off** while manual evidence is missing. Fixed-port checks are optional and reported separately; occupied services are never stopped. On interruption or external machine failure, inspect ownership before cleanup; never delete resources by a broad Ouroboros name prefix.
 
 ### ☁️ **Run and read GitHub Actions**
 
-After a maintainer publishes the workflow to the repository's default branch, open the repository → **Actions → Foundation QA checks → Run workflow**, select the intended branch/revision, and run. You need permission to run repository workflows. Open that run: preparation, scenarios and reports are separate visible steps. On the run's **Summary**, review the same scenario IDs and totals. Under **Artifacts**, download **foundation-qa-reports**, unzip it and open summary.md/results.json/junit.xml. Attach only sanitized evidence to your QA record. See [GitHub's manual-run guide](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow) and [artifact guide](https://docs.github.com/en/actions/tutorials/store-and-share-data).
+After a maintainer publishes the workflow to the repository's default branch, open the repository → **Actions → Ouroboros QA checks → Run workflow**, select the intended branch/revision, and run. You need permission to run repository workflows. Open that run: preparation, scenarios and reports are separate visible steps. On the run's **Summary**, review the same scenario IDs and totals. Under **Artifacts**, download **ouroboros-qa-reports**, unzip it and open summary.md/results.json/junit.xml. Attach only sanitized evidence to your QA record. See [GitHub's manual-run guide](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow) and [artifact guide](https://docs.github.com/en/actions/tutorials/store-and-share-data).
 
 **A local workflow file is not evidence of a GitHub execution.** Record the actual run URL/revision/result before signing off pipeline behavior. Artifacts are attempted even after failure; a failed dependency/tool installation can prevent report creation, which must be recorded as blocked preparation.
 
@@ -178,11 +180,11 @@ Do not infer PASS from a written instruction. If a case cannot be performed safe
 
 ### 🔐 **Concrete disposable QA credentials and own-password changes**
 
-These are **public suggestions for a disposable local QA installation only**, never production defaults, automatic account creation or existing private credentials. Enter them yourself in terminal/UI prompts. The database/master are both suggested as **foundation_qa**; API users are separate accounts even though they use this same isolated database.
+These are **public suggestions for a disposable local QA installation only**, never production defaults, automatic account creation or existing private credentials. Enter them yourself in terminal/UI prompts. The database/master are both suggested as **ouroboros_qa**; API users are separate accounts even though they use this same isolated database.
 
 | Account / purpose | Suggested username | Suggested password (enter locally) |
 | --- | --- | --- |
-| PostgreSQL QA database / master | foundation_qa | FoundationQA-Database-2026! |
+| PostgreSQL QA database / master | ouroboros_qa | OuroborosQA-Database-2026! |
 | First API administrator | admin | AdminPassword-2026! |
 | New API standard account (omit role when creating) | default | DefaultPassword-2026! |
 | Administrator after own-password change | admin | AdminPassword-Updated-2026! |
@@ -201,3 +203,13 @@ For the optional manual race set standard_next_password_a=DefaultPassword-RaceA-
 ### 🔀 **Alternative ports only when the defaults are occupied**
 
 If 6969 or 6669 is occupied, do **not** stop that service. In your fresh QA configuration choose free alternatives, e.g. API **6971** and database host **6671**, retain container **5432**, and set Postman base_url=http://localhost:6971. Open http://localhost:6971/docs instead. Keep the unique QA project/volume/workspace identity. This is a troubleshooting alternative, not the main path and not a reason to modify the normal installation. Automated checks always use available ports; the optional standard-port case is separately SKIP when occupied.
+
+## 🧾 Audit, UTC dates and filtered bulk operations
+
+See [the phase contract guide](AUDIT_DATETIME_BULK.md) for migrations 007–008, exact columns, central audit transaction guarantees and outage/crash gaps, versioned error envelopes, UTC/source/display timezone rules, immutable creation dates, and administrator previews/confirmed filtered mutations. The current catalogue has 77 route forms plus two read-only audit routes. Supervisor has individual CRUD and audit reads; standard has neither; administrator alone bulk mutates. Historical creation dates/context stay NULL. No automatic audit retention or durable replay is provided.
+
+For manual QA use owned disposable storage and fresh private accounts. Inspect Swagger controls, complete a GET-to-PUT round trip with original display, preview a filtered change, confirm it explicitly only in disposable storage, and query its X-Interaction-ID in api_audit_logs. Verify standardized codes/header/log/audit correspondence, whole token/password body omissions and restricted audit reads. Record actual UI/Postman JavaScript evidence separately. Never enable destructive examples against normal data.
+
+## 🪜 Classification tiers and complete test CRUD
+
+Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.

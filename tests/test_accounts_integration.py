@@ -386,7 +386,7 @@ class AccountIntegrationTests(unittest.TestCase):
             # Replay every administrative request definition without pretending to
             # execute Postman's JavaScript sandbox.
             import re
-            collection = json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+            collection = json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
             variables = {"base_url": "http://testserver", "admin_username": admin.username, "admin_password": self.first_password,
                          "standard_username": "collection_standard", "standard_password": secrets.token_urlsafe(24),
                          "additional_admin_username": "collection_admin", "additional_admin_password": secrets.token_urlsafe(24)}
@@ -394,7 +394,7 @@ class AccountIntegrationTests(unittest.TestCase):
                 return re.sub(r"\{\{([^}]+)\}\}", lambda match: variables[match[1]], value)
             for item in collection["item"][8]["item"]:
                 spec = item["request"]
-                url = expand(spec["url"])
+                url = expand(spec["url"]["raw"] if isinstance(spec["url"], dict) else spec["url"])
                 options = {}
                 if spec["auth"]["type"] == "bearer":
                     options["headers"] = {"Authorization": "Bearer "+expand(spec["auth"]["bearer"][0]["value"])}

@@ -130,7 +130,7 @@ class InfrastructureTests(unittest.TestCase):
              patch("start.configure_api_credentials"), patch("start.APIUserStore"), patch("start.AuthService"), patch("start.load_signing_secret", return_value="unit-signing-key" * 4), \
              patch("start.run_api"), contextlib.redirect_stderr(output):
             self.assertEqual(main(), 0)
-        self.assertIn("Foundation preparation completed", output.getvalue())
+        self.assertIn("Ouroboros preparation completed", output.getvalue())
 
     def test_execution_from_another_directory(self):
         # Copy the real entry point and modules to avoid modifying local configuration.

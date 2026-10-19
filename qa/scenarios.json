@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "title": "Foundation QA scenario catalogue",
+  "title": "Ouroboros QA scenario catalogue",
   "scenarios": [
     {
       "id": "1.1",
@@ -12,7 +12,7 @@
       ],
       "actor": "First administrator unless specified",
       "steps": [
-        "Follow the Windows setup commands; set unique identity, QA ports, foundation_qa and foundation_qa without a password in JSON.",
+        "Follow the Windows setup commands; set unique identity, QA ports, ouroboros_qa and ouroboros_qa without a password in JSON.",
         "Run start.py; keep or change the database independently of keeping/changing the master username; then enter the correct QA master password.",
         "Cancel once with Ctrl+C before completion, then restart; inspect only your QA configuration and logs."
       ],
@@ -45,7 +45,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -86,7 +86,7 @@
             "presence": "required"
           },
           {
-            "message": "Foundation preparation started",
+            "message": "Ouroboros preparation started",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -119,7 +119,7 @@
             "presence": "optional"
           },
           {
-            "message": "Foundation preparation completed",
+            "message": "Ouroboros preparation completed",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -166,7 +166,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -207,7 +207,7 @@
             "presence": "required"
           },
           {
-            "message": "Foundation preparation started",
+            "message": "Ouroboros preparation started",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -240,7 +240,7 @@
             "presence": "optional"
           },
           {
-            "message": "Foundation preparation completed",
+            "message": "Ouroboros preparation completed",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -287,7 +287,7 @@
         "test_startup_safety.StartupSafetyTests.test_broken_reporter_does_not_stop_cleanup",
         "test_startup_safety.StartupSafetyTests.test_workspace_binding_and_explicit_identity",
         "test_startup_safety.StartupSafetyTests.test_other_workspace_container_cannot_be_reused",
-        "test_startup_safety.StartupSafetyTests.test_current_local_identity_and_volume_name_remain_foundation",
+        "test_startup_safety.StartupSafetyTests.test_current_local_identity_and_volume_name_are_ouroboros",
         "test_startup_safety.StartupSafetyTests.test_unowned_volume_without_container_is_not_adopted",
         "test_startup_safety.StartupSafetyTests.test_logger_attempts_all_handler_closures",
         "test_startup_safety.StartupSafetyTests.test_migration_failure_is_not_masked_by_connection_cleanup"
@@ -299,7 +299,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -340,7 +340,7 @@
             "presence": "required"
           },
           {
-            "message": "Foundation preparation started",
+            "message": "Ouroboros preparation started",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -373,7 +373,7 @@
             "presence": "optional"
           },
           {
-            "message": "Foundation preparation completed",
+            "message": "Ouroboros preparation completed",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -435,7 +435,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -476,7 +476,7 @@
             "presence": "required"
           },
           {
-            "message": "Foundation preparation started",
+            "message": "Ouroboros preparation started",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -509,7 +509,7 @@
             "presence": "optional"
           },
           {
-            "message": "Foundation preparation completed",
+            "message": "Ouroboros preparation completed",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -567,7 +567,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -608,7 +608,7 @@
             "presence": "required"
           },
           {
-            "message": "Foundation preparation started",
+            "message": "Ouroboros preparation started",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -641,7 +641,7 @@
             "presence": "optional"
           },
           {
-            "message": "Foundation preparation completed",
+            "message": "Ouroboros preparation completed",
             "level": "INFO",
             "category": "application",
             "method": "*",
@@ -753,7 +753,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -950,7 +950,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -1115,7 +1115,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -1289,7 +1289,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -1455,7 +1455,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -1634,7 +1634,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -1773,7 +1773,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -1910,7 +1910,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2021,7 +2021,7 @@
       "actor": "First administrator unless specified",
       "steps": [
         "Logout in Swagger (or use Postman No Auth), GET /health and expect 200 with status ok.",
-        "Use the QA-only Compose stop command above while keeping the API running; repeat GET /health for 503/status unavailable.",
+        "Use the QA-only Compose stop command above while keeping the API running; repeat GET /health for 503/DATABASE_UNAVAILABLE.",
         "Start that same QA container with --wait; health must recover to 200 without a new database."
       ],
       "requests": [
@@ -2030,7 +2030,7 @@
           "endpoint": "/health",
           "parameters_headers": "No Authorization",
           "body": "None",
-          "expected": "200 {\"status\":\"ok\"}; during outage 503 {\"status\":\"unavailable\"}"
+          "expected": "200 {\"status\":\"ok\"}; during outage 503 standardized DATABASE_UNAVAILABLE error"
         }
       ],
       "expected": "Public health reports actual database readiness: 200, then 503, then 200; no backend secrets in errors.",
@@ -2047,7 +2047,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2174,7 +2174,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2307,7 +2307,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2414,7 +2414,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2559,7 +2559,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2675,7 +2675,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2811,7 +2811,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -2932,7 +2932,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3068,7 +3068,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3180,7 +3180,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3262,7 +3262,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3341,7 +3341,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3433,7 +3433,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3510,7 +3510,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3585,7 +3585,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [],
         "forbidden_data": [
           "plaintext current/new/master passwords",
@@ -3607,7 +3607,7 @@
       ],
       "actor": "Authorized repository user",
       "steps": [
-        "After a maintainer publishes this exact revision/workflow to the default branch, open GitHub Actions > Foundation QA checks > Run workflow.",
+        "After a maintainer publishes this exact revision/workflow to the default branch, open GitHub Actions > Ouroboros QA checks > Run workflow.",
         "Select the revision, wait for preparation/tests/report steps, inspect matching IDs/totals and download foundation-qa-reports from Artifacts.",
         "Record the actual run URL/revision/result and verify reports are sanitized. If not published or not run, mark this case BLOCKED/not run rather than PASS."
       ],
@@ -3621,7 +3621,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [],
         "forbidden_data": [
           "plaintext current/new/master passwords",
@@ -3663,7 +3663,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -3741,7 +3741,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [],
         "forbidden_data": [
           "plaintext current/new/master passwords",
@@ -3784,7 +3784,7 @@
       "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [],
         "forbidden_data": [
           "plaintext current/new/master passwords",
@@ -3837,7 +3837,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -4022,7 +4022,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -4208,7 +4208,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -4409,7 +4409,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -4592,7 +4592,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -4762,7 +4762,7 @@
       "requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -4864,7 +4864,7 @@
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -4968,7 +4968,7 @@
       "requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
-        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Foundation preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
+        "locate": "Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the file with the newest LastWriteTime after this startup). List with Get-ChildItem logs/application_*.log | Sort-Object LastWriteTime -Descending; confirm Ouroboros preparation started in that execution. Copy X-Interaction-ID from EACH response and Ctrl+F that exact 24-digit string in the file. It changes per request and is NOT the user ID or test record ID. Do not require a fixed timestamp, source line or random ID. DEBUG events are absent in INFO mode; required request events apply only when this case actually sends that method/path. Runner-only/static cases have no application request to match; startup events use a blank interaction field.",
         "events": [
           {
             "message": "HTTP request received",
@@ -5036,6 +5036,1758 @@
           "Bearer tokens/Authorization",
           "connection strings and parser input/context",
           "the ENTIRE /users/me/password body at every level"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "13.1",
+      "name": "Catalogue schema and empty migration replay",
+      "objective": "Exactly eleven catalogue tables plus test, api_users and foundation_migrations; all catalogue counts zero; replay preserves tracking records.",
+      "prerequisites": [
+        "Use only the runner-owned UUID disposable cluster; never the normal database",
+        "See docs/CATALOGUE.md for the complete schema"
+      ],
+      "actor": "Developer with access to disposable QA infrastructure",
+      "steps": [
+        "Apply all migrations in a fresh disposable PostgreSQL database. List public tables and count every catalogue table. Rerun migrate and compare version/checksum/applied_at."
+      ],
+      "requests": [],
+      "expected": "Exactly eleven catalogue tables plus test, api_users and foundation_migrations; all catalogue counts zero; replay preserves tracking records.",
+      "tests": [
+        "test_catalogue.CatalogueTests.test_01_exact_empty_schema_and_migration_replay"
+      ],
+      "type": "both",
+      "integration": true,
+      "depends_on": [],
+      "required": true,
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "No application log required for direct SQL fixture checks",
+        "locate": "Direct SQL checks produce unittest/runner results, not application HTTP events. Inspect sanitized reports/results.json by scenario ID; do not invent request IDs or database SQL audit logs.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Connection strings",
+          "Normal database contents"
+        ]
+      }
+    },
+    {
+      "id": "13.2",
+      "name": "Catalogue automatic identities and immutable metadata",
+      "objective": "Each independent sequence starts at 1; fixed fantasy/prefix and seven-digit IDs are supplied automatically; identity mutation fails; tag rename keeps its ID.",
+      "prerequisites": [
+        "Use only the runner-owned UUID disposable cluster; never the normal database",
+        "See docs/CATALOGUE.md for the complete schema"
+      ],
+      "actor": "Developer with access to disposable QA infrastructure",
+      "steps": [
+        "Insert domain fields into each table in dependency order. Read the four metadata columns. Attempt UPDATE of ID, sequence DEFAULT, prefix and fantasy name. Rename a tag."
+      ],
+      "requests": [],
+      "expected": "Each independent sequence starts at 1; fixed fantasy/prefix and seven-digit IDs are supplied automatically; identity mutation fails; tag rename keeps its ID.",
+      "tests": [
+        "test_catalogue.CatalogueTests.test_02_automatic_metadata_independent_sequences_and_immutability"
+      ],
+      "type": "both",
+      "integration": true,
+      "depends_on": [],
+      "required": true,
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "No application log required for direct SQL fixture checks",
+        "locate": "Direct SQL checks produce unittest/runner results, not application HTTP events. Inspect sanitized reports/results.json by scenario ID; do not invent request IDs or database SQL audit logs.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Connection strings",
+          "Normal database contents"
+        ]
+      }
+    },
+    {
+      "id": "13.3",
+      "name": "Catalogue long identifiers and non-reused numbers",
+      "objective": "No deleted number reused; WK9999999, WK10000000 and WK10000001 are distinct and untruncated; invalid metadata is rejected.",
+      "prerequisites": [
+        "Use only the runner-owned UUID disposable cluster; never the normal database",
+        "See docs/CATALOGUE.md for the complete schema"
+      ],
+      "actor": "Developer with access to disposable QA infrastructure",
+      "steps": [
+        "In disposable resources only, delete an unreferenced work then insert another. Restart only its sequence at 9999999 and insert three works. Try explicit invalid fixed metadata and identity values."
+      ],
+      "requests": [],
+      "expected": "No deleted number reused; WK9999999, WK10000000 and WK10000001 are distinct and untruncated; invalid metadata is rejected.",
+      "tests": [
+        "test_catalogue.CatalogueTests.test_03_long_ids_gaps_and_fixed_insert_metadata"
+      ],
+      "type": "both",
+      "integration": true,
+      "depends_on": [],
+      "required": true,
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "No application log required for direct SQL fixture checks",
+        "locate": "Direct SQL checks produce unittest/runner results, not application HTTP events. Inspect sanitized reports/results.json by scenario ID; do not invent request IDs or database SQL audit logs.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Connection strings",
+          "Normal database contents"
+        ]
+      }
+    },
+    {
+      "id": "13.4",
+      "name": "Catalogue fields Unicode and numeric constraints",
+      "objective": "Required fields enforced, optional fields accepted, Unicode/long text preserved, decimal prices exact, independent flags accepted, invalid numeric/name values rejected.",
+      "prerequisites": [
+        "Use only the runner-owned UUID disposable cluster; never the normal database",
+        "See docs/CATALOGUE.md for the complete schema"
+      ],
+      "actor": "Developer with access to disposable QA infrastructure",
+      "steps": [
+        "Attempt empty inserts for every table. Insert supplied Unicode titles, friendly names and long English synopsis/descriptions. Exercise all platform boolean combinations, nullable prices, decimal prices, duration and episode count; try invalid snake_case and nonpositive counts."
+      ],
+      "requests": [],
+      "expected": "Required fields enforced, optional fields accepted, Unicode/long text preserved, decimal prices exact, independent flags accepted, invalid numeric/name values rejected.",
+      "tests": [
+        "test_catalogue.CatalogueTests.test_04_required_optional_numeric_unicode_and_long_text"
+      ],
+      "type": "both",
+      "integration": true,
+      "depends_on": [],
+      "required": true,
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "No application log required for direct SQL fixture checks",
+        "locate": "Direct SQL checks produce unittest/runner results, not application HTTP events. Inspect sanitized reports/results.json by scenario ID; do not invent request IDs or database SQL audit logs.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Connection strings",
+          "Normal database contents"
+        ]
+      }
+    },
+    {
+      "id": "13.5",
+      "name": "Catalogue foreign keys same-work provenance and safe deletion",
+      "objective": "All foreign keys hold on insert/update, cross-work availability/origins fail, and referenced history/context cannot be cascaded away.",
+      "prerequisites": [
+        "Use only the runner-owned UUID disposable cluster; never the normal database",
+        "See docs/CATALOGUE.md for the complete schema"
+      ],
+      "actor": "Developer with access to disposable QA infrastructure",
+      "steps": [
+        "Create two works and an availability on the first. Try assigning it to the second watchlist/history. Repeat with work-tag origins. Probe every FK with missing IDs and try deleting referenced rows."
+      ],
+      "requests": [],
+      "expected": "All foreign keys hold on insert/update, cross-work availability/origins fail, and referenced history/context cannot be cascaded away.",
+      "tests": [
+        "test_catalogue.CatalogueTests.test_05_foreign_keys_same_work_and_restrictive_deletion"
+      ],
+      "type": "both",
+      "integration": true,
+      "depends_on": [],
+      "required": true,
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "No application log required for direct SQL fixture checks",
+        "locate": "Direct SQL checks produce unittest/runner results, not application HTTP events. Inspect sanitized reports/results.json by scenario ID; do not invent request IDs or database SQL audit logs.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Connection strings",
+          "Normal database contents"
+        ]
+      }
+    },
+    {
+      "id": "13.6",
+      "name": "Catalogue reusable tags and repeated experiences",
+      "objective": "Only duplicate category pairs are rejected; ordered associations remain distinct; repeated experiences/associations accepted; exclusive tag choice and at-most-one origin enforced.",
+      "prerequisites": [
+        "Use only the runner-owned UUID disposable cluster; never the normal database",
+        "See docs/CATALOGUE.md for the complete schema"
+      ],
+      "actor": "Developer with access to disposable QA infrastructure",
+      "steps": [
+        "Associate tags with multiple categories and vice versa; repeat a pair. Create forward/inverse tag relationships and verify no automatic work tags. Repeat availability/watchlist/history/direct and origin-tag associations. Try neither/both tag choices and both origins."
+      ],
+      "requests": [],
+      "expected": "Only duplicate category pairs are rejected; ordered associations remain distinct; repeated experiences/associations accepted; exclusive tag choice and at-most-one origin enforced.",
+      "tests": [
+        "test_catalogue.CatalogueTests.test_06_many_to_many_ordered_relationships_and_repeated_experiences"
+      ],
+      "type": "both",
+      "integration": true,
+      "depends_on": [],
+      "required": true,
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "No application log required for direct SQL fixture checks",
+        "locate": "Direct SQL checks produce unittest/runner results, not application HTTP events. Inspect sanitized reports/results.json by scenario ID; do not invent request IDs or database SQL audit logs.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Connection strings",
+          "Normal database contents"
+        ]
+      }
+    },
+    {
+      "id": "13.7",
+      "name": "Catalogue restart persistence",
+      "objective": "Data and migration checksum/timestamp records survive restart without recreation or seed insertion.",
+      "prerequisites": [
+        "Use only the runner-owned UUID disposable cluster; never the normal database",
+        "See docs/CATALOGUE.md for the complete schema"
+      ],
+      "actor": "Developer with access to disposable QA infrastructure",
+      "steps": [
+        "Commit a work in the disposable fixture, stop/start only its PostgreSQL service, rerun migration, and read the work and migration tracking."
+      ],
+      "requests": [],
+      "expected": "Data and migration checksum/timestamp records survive restart without recreation or seed insertion.",
+      "tests": [
+        "test_catalogue.CatalogueTests.test_07_restart_preserves_records_and_checksums"
+      ],
+      "type": "both",
+      "integration": true,
+      "depends_on": [],
+      "required": true,
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "No application log required for direct SQL fixture checks",
+        "locate": "Direct SQL checks produce unittest/runner results, not application HTTP events. Inspect sanitized reports/results.json by scenario ID; do not invent request IDs or database SQL audit logs.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Connection strings",
+          "Normal database contents"
+        ]
+      }
+    },
+    {
+      "id": "14.1",
+      "name": "Catalogue CRUD and full record round trips",
+      "objective": "Original CRUD route forms work for every resource; persisted representations are identical, invalid echoes rejected, and sequence allocation continues after deletion.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "In fresh isolated QA, authorize as supervisor. Run CAT Create in dependency order for all eleven resource folders. Save each full response and ID.",
+        "Run Get created ID, Partial PUT and Full record PUT; compare ID/metadata/defaults/timestamps with persisted responses and collection items.",
+        "Submit {} and an unknown property to PUT; change each immutable value and added_at; expect 422. GET/PUT/DELETE a missing ID; expect 404.",
+        "As administrator try DELETE collection with absent/false confirm and with filter/page properties; expect 422. As supervisor try confirm=true; expect 403.",
+        "On disposable data only, explicitly enable deletion and delete leaves before parents; verify empty 204, 404 afterward, and administrator empty-table deleted_count=0."
+      ],
+      "requests": [],
+      "expected": "Original CRUD route forms work for every resource; persisted representations are identical, invalid echoes rejected, and sequence allocation continues after deletion.",
+      "tests": [
+        "test_catalogue_api.CatalogueAPITests.test_01_all_resources_crud_record_round_trips_and_deletes"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "CAT works - Create",
+        "CAT works - Get created ID",
+        "CAT works - Partial PUT",
+        "CAT works - Full record PUT",
+        "CAT platforms - Create",
+        "CAT platforms - Get created ID",
+        "CAT platforms - Partial PUT",
+        "CAT platforms - Full record PUT",
+        "CAT work_availabilities - Create",
+        "CAT work_availabilities - Get created ID",
+        "CAT work_availabilities - Partial PUT",
+        "CAT work_availabilities - Full record PUT",
+        "CAT tags - Create",
+        "CAT tags - Get created ID",
+        "CAT tags - Partial PUT",
+        "CAT tags - Full record PUT",
+        "CAT tag_categories - Create",
+        "CAT tag_categories - Get created ID",
+        "CAT tag_categories - Partial PUT",
+        "CAT tag_categories - Full record PUT",
+        "CAT tag_category_relationships - Create",
+        "CAT tag_category_relationships - Get created ID",
+        "CAT tag_category_relationships - Partial PUT",
+        "CAT tag_category_relationships - Full record PUT",
+        "CAT tag_relationships - Create",
+        "CAT tag_relationships - Get created ID",
+        "CAT tag_relationships - Partial PUT",
+        "CAT tag_relationships - Full record PUT",
+        "CAT work_classifications - Create",
+        "CAT work_classifications - Get created ID",
+        "CAT work_classifications - Partial PUT",
+        "CAT work_classifications - Full record PUT",
+        "CAT watchlist_entries - Create",
+        "CAT watchlist_entries - Get created ID",
+        "CAT watchlist_entries - Partial PUT",
+        "CAT watchlist_entries - Full record PUT",
+        "CAT watch_history - Create",
+        "CAT watch_history - Get created ID",
+        "CAT watch_history - Partial PUT",
+        "CAT watch_history - Full record PUT",
+        "CAT work_tags - Create",
+        "CAT work_tags - Get created ID",
+        "CAT work_tags - Partial PUT",
+        "CAT work_tags - Full record PUT"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "14.2",
+      "name": "Catalogue partial updates nulls and relationship constraints",
+      "objective": "Partial updates preserve omissions, nullable clearing is explicit, and complete-record validation plus PostgreSQL constraints enforce all relationship rules.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Create the disposable graph from 14.1. PUT only an English long Unicode synopsis; verify omitted title/language unchanged. Clear synopsis with null; try title=null and an unknown field (422).",
+        "Copy each response to PUT; test invalid snake_case, negative prices, nonpositive duration/episodes and timezone-free timestamps (422).",
+        "For work_tags switch from tag to relationship by sending id_tags=null plus id_tag_relationships. Sending both or neither (after merge) must be 422; both origins must be 422.",
+        "Create another work and attempt cross-work availability/origin assignments (409). Missing foreign IDs and duplicate tag/category pairs return 409. Repeated availabilities/watchlist/history/work_tags remain allowed."
+      ],
+      "requests": [],
+      "expected": "Partial updates preserve omissions, nullable clearing is explicit, and complete-record validation plus PostgreSQL constraints enforce all relationship rules.",
+      "tests": [
+        "test_catalogue_api.CatalogueAPITests.test_02_partial_null_validation_relationships_and_repetitions"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "14.3",
+      "name": "Catalogue filters ordering and stable pagination",
+      "objective": "Every filter is explicit, text wildcards are unmodified, all public scalar fields order correctly, and count/page items use one snapshot.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "In each resource GET use editable Postman Params for each supported filter and confirm AND behavior. Leave unused fields unchecked; empty text remains a real filter.",
+        "Test exact IDs/FKs/technical names and independent true/false booleans. For text use dragon, dragon%, dr_gon, literal\\_under, 100\\% pure and empty text; injection text is data.",
+        "Select every public field in order_by in both asc and desc. Compare NULLS LAST and permanent-ID ascending tie-breaks. Create at least 13 equal-sort rows; page_size=10 across pages must not repeat IDs.",
+        "Try order_by=password_hash, invalid direction, page=0, page=1.0 and page_size 9/51 (422). Request an empty high page and verify original count."
+      ],
+      "requests": [],
+      "expected": "Every filter is explicit, text wildcards are unmodified, all public scalar fields order correctly, and count/page items use one snapshot.",
+      "tests": [
+        "test_catalogue_api.CatalogueAPITests.test_03_filters_patterns_order_fields_and_pagination"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "CAT works - List filters and pagination",
+        "CAT works - Order descending",
+        "CAT works - Filter created ID",
+        "CAT platforms - List filters and pagination",
+        "CAT platforms - Order descending",
+        "CAT platforms - Filter created ID",
+        "CAT work_availabilities - List filters and pagination",
+        "CAT work_availabilities - Order descending",
+        "CAT work_availabilities - Filter created ID",
+        "CAT tags - List filters and pagination",
+        "CAT tags - Order descending",
+        "CAT tags - Filter created ID",
+        "CAT tag_categories - List filters and pagination",
+        "CAT tag_categories - Order descending",
+        "CAT tag_categories - Filter created ID",
+        "CAT tag_category_relationships - List filters and pagination",
+        "CAT tag_category_relationships - Order descending",
+        "CAT tag_category_relationships - Filter created ID",
+        "CAT tag_relationships - List filters and pagination",
+        "CAT tag_relationships - Order descending",
+        "CAT tag_relationships - Filter created ID",
+        "CAT work_classifications - List filters and pagination",
+        "CAT work_classifications - Order descending",
+        "CAT work_classifications - Filter created ID",
+        "CAT watchlist_entries - List filters and pagination",
+        "CAT watchlist_entries - Order descending",
+        "CAT watchlist_entries - Filter created ID",
+        "CAT watch_history - List filters and pagination",
+        "CAT watch_history - Order descending",
+        "CAT watch_history - Filter created ID",
+        "CAT work_tags - List filters and pagination",
+        "CAT work_tags - Order descending",
+        "CAT work_tags - Filter created ID"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "14.4",
+      "name": "Supervisor authorization and current token transitions",
+      "objective": "All three roles work from current database role/state/version; old test-only tokens do not block supervisor catalogue permission.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Use isolated fresh accounts: administrator creates standard by default and supervisor explicitly. Log in each role; keep the original tokens.",
+        "Run the original catalogue CRUD forms as standard (403) and without authentication (401). Supervisor can GET/POST/PUT/DELETE by ID but cannot DELETE all, administer users or reset others (403).",
+        "Promote standard to supervisor as administrator; original standard token now accesses catalogue. Demote it; that same token loses access. Demoting the last active administrator to supervisor returns 409.",
+        "As supervisor change its own password with current confirmation; old tokens become 401. Existing test endpoints remain available with granted test scopes."
+      ],
+      "requests": [],
+      "expected": "All three roles work from current database role/state/version; old test-only tokens do not block supervisor catalogue permission.",
+      "tests": [
+        "test_catalogue_api.CatalogueAPITests.test_04_roles_existing_tokens_administration_and_passwords"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "CAT - Catalogue login",
+        "CAT roles - Create supervisor",
+        "CAT roles - Login supervisor",
+        "CAT roles - Login standard",
+        "CAT roles - Supervisor catalogue read",
+        "CAT roles - Supervisor DELETE ALL rejected",
+        "CAT roles - Standard catalogue rejected",
+        "CAT roles - Promote standard to supervisor",
+        "CAT roles - Promoted existing token reads catalogue",
+        "CAT roles - Demote supervisor to standard",
+        "CAT roles - Demoted existing token rejected"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "14.5",
+      "name": "Atomic catalogue deletion and safe destructive audit",
+      "objective": "Delete all either commits its actual count or rolls back entirely; restrictive FKs and sequence continuity hold, with safe audit evidence.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "On disposable resources only create referenced and unreferenced works. Administrator DELETE /works?confirm=true must return 409 and preserve both rows.",
+        "Delete an unreferenced ID (204), verify a missing ID (404), then insert again and compare sequence/ID continuation. Do not use TRUNCATE or reset sequences.",
+        "Find Catalogue records deleted with actor_id/resource/target_id/deleted_count/outcome=committed and the matching interaction ID. Rejections log Catalogue deletion rejected with outcome=rejected/status, never a committed count.",
+        "Inspect safe HTTP/log evidence only; no SQL, stack text, credentials, tokens or hashes may be exposed."
+      ],
+      "requests": [],
+      "expected": "Delete all either commits its actual count or rolls back entirely; restrictive FKs and sequence continuity hold, with safe audit evidence.",
+      "tests": [
+        "test_catalogue_api.CatalogueAPITests.test_05_atomic_deletion_audit_secrecy_and_sequence_continuity"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "CAT works - Delete by ID (opt-in)",
+        "CAT works - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT platforms - Delete by ID (opt-in)",
+        "CAT platforms - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT work_availabilities - Delete by ID (opt-in)",
+        "CAT work_availabilities - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT tags - Delete by ID (opt-in)",
+        "CAT tags - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT tag_categories - Delete by ID (opt-in)",
+        "CAT tag_categories - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT tag_category_relationships - Delete by ID (opt-in)",
+        "CAT tag_category_relationships - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT tag_relationships - Delete by ID (opt-in)",
+        "CAT tag_relationships - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT work_classifications - Delete by ID (opt-in)",
+        "CAT work_classifications - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT watchlist_entries - Delete by ID (opt-in)",
+        "CAT watchlist_entries - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT watch_history - Delete by ID (opt-in)",
+        "CAT watch_history - ADMIN DELETE ALL (opt-in isolated only)",
+        "CAT work_tags - Delete by ID (opt-in)",
+        "CAT work_tags - ADMIN DELETE ALL (opt-in isolated only)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "Catalogue records deleted",
+            "level": "INFO",
+            "category": "request",
+            "method": "DELETE",
+            "endpoint": "/works/{id}",
+            "context_fields": [
+              "actor_id",
+              "resource",
+              "target_id",
+              "deleted_count",
+              "outcome"
+            ],
+            "context_values": {
+              "outcome": "committed",
+              "deleted_count": 1,
+              "resource": "works"
+            },
+            "statuses": [
+              204
+            ],
+            "presence": "required"
+          },
+          {
+            "message": "Catalogue deletion rejected",
+            "level": "WARNING",
+            "category": "request",
+            "method": "DELETE",
+            "endpoint": "*",
+            "context_fields": [
+              "actor_id",
+              "resource",
+              "target_id",
+              "outcome",
+              "status"
+            ],
+            "context_values": {
+              "outcome": "rejected",
+              "status": 409
+            },
+            "statuses": [
+              409
+            ],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "14.6",
+      "name": "Concurrent partial updates and transactional authorization",
+      "objective": "Concurrent independent fields survive, privileged writes cannot pass a stale role check, and consistent locking prevents demotion/write races.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Run two simultaneous PUT requests to one work, one changing title and the other synopsis. Verify both independent changes persist.",
+        "Use the mapped disposable automated test to force demotion after request authentication but before deletion. Supervisor ID deletion and administrator DELETE all must be rejected after privilege loss.",
+        "Review lock ordering: membership advisory lock, actor row/version, catalogue row. Verify user administration rechecks the actor/version and last-administrator protection remains enforced."
+      ],
+      "requests": [],
+      "expected": "Concurrent independent fields survive, privileged writes cannot pass a stale role check, and consistent locking prevents demotion/write races.",
+      "tests": [
+        "test_catalogue_api.CatalogueAPITests.test_06_concurrent_updates_and_transactional_privilege_rechecks"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "14.7",
+      "name": "Catalogue OpenAPI enums and inherited list ordering",
+      "objective": "OpenAPI and Postman contracts are explicit and synchronized; automated schema checks do not claim visual Swagger or Postman execution.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Inspect /openapi.json: all eleven GET collections expose every filter plus page/page_size/order_by/order_direction. order_by and direction are real enums, as are roles.",
+        "In Swagger visually confirm dropdowns, defaults, examples and nullable schemas; authorize once, reuse authorization, logout/re-authorize when switching accounts. Record this visual part separately.",
+        "Compare POST, PUT, GET-by-ID and collection-item response schema references. Inspect all inherited /test and /users ordering fields; private hash/version/scopes must not be sortable.",
+        "In the canonical Postman JSON verify all filters in editable Params, optional fields unchecked, valid defaults, empty credentials, synchronized README JSON and skipped-by-default DELETE all with confirm=false. Actual JS sandbox execution requires separate evidence."
+      ],
+      "requests": [],
+      "expected": "OpenAPI and Postman contracts are explicit and synchronized; automated schema checks do not claim visual Swagger or Postman execution.",
+      "tests": [
+        "test_catalogue_api.CatalogueAPITests.test_07_inherited_ordering_and_openapi_response_equivalence"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.1",
+      "name": "Central audit lifecycle and safe errors",
+      "objective": "Central audit lifecycle and safe errors",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Create/read/update each catalogue resource with supervisor; inspect created_at UTC and generated source zone. Echo complete GET records unchanged in PUT.",
+        "Send unknown route, unsupported method, unauthenticated/standard-denied requests and malformed catalogue input. Expect safe standardized errors with the header interaction ID.",
+        "Query each interaction via supervisor/admin GET api_audit_logs. Verify success/failure, actual status, actor snapshots, target, error_code and matching technical log. Standard audit reads and all audit writes must fail."
+      ],
+      "requests": [],
+      "expected": "All stated contracts hold in owned disposable storage; GUI evidence remains separately pending.",
+      "tests": [
+        "test_next_phase.NextPhaseTests.test_audit_creation_roundtrip_and_errors",
+        "test_next_phase.NextPhaseTests.test_unknown_routes_auth_and_internal_error_codes"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "NEXT - Audit filters and ordering",
+        "NEXT - Standard audit denied"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.2",
+      "name": "Audit outage and atomic mutation evidence",
+      "objective": "Audit outage and atomic mutation evidence",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "In the owned disposable test harness inject entry audit outage; attempt catalogue/test/password changes and verify 503 with no committed business change. Health remains diagnosable.",
+        "Inject failure in the transactional audit writer after entry commits; verify complete rollback and persistent rejected-attempt evidence.",
+        "Inject finalization failure after a successful mutation; verify committed differences remain in the in_progress audit row. Match sanitized fallback phase/code/interaction ID; no recursion or delivery guarantee."
+      ],
+      "requests": [],
+      "expected": "All stated contracts hold in owned disposable storage; GUI evidence remains separately pending.",
+      "tests": [
+        "test_next_phase.NextPhaseTests.test_audit_atomicity_outage_and_finalization"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.3",
+      "name": "Audit privacy capture bounds and access summaries",
+      "objective": "Audit privacy capture bounds and access summaries",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Submit nested serialized secret data through disposable /test and inspect sanitized request/response/differences and technical logs; no plaintext secret may remain.",
+        "Submit JSON exceeding the configured capture limit and verify unchanged HTTP behavior, omitted bounded bodies/differences and truncation reasons.",
+        "Call token and password routes with valid and malformed input. Entire request/response bodies must be omitted. Query audits and verify their own response body is omitted with returned/matched count summaries."
+      ],
+      "requests": [],
+      "expected": "All stated contracts hold in owned disposable storage; GUI evidence remains separately pending.",
+      "tests": [
+        "test_next_phase.NextPhaseTests.test_bounded_privacy_and_read_access"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.4",
+      "name": "Filtered bulk confirmation previews and rollback",
+      "objective": "Filtered bulk confirmation previews and rollback",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "For all eleven resources preview DELETE with an exact ID and creation-date bounds; expect matched_count without domain changes or confirmation.",
+        "As administrator preview and execute a filtered PUT then DELETE in owned storage. Missing/false confirm rejects; no filters selects all rows; counts include unchanged PUT targets. Zero matches returns zero.",
+        "Reject unknown filters, page, order_by, display_timezone, empty bodies and immutable fields. Supervisor must be denied bulk access.",
+        "Force restrictive FK deletion and resulting-record validation failures; verify every targeted row and transactional audit mutation count rolls back. Sequence continuity remains intact."
+      ],
+      "requests": [],
+      "expected": "All stated contracts hold in owned disposable storage; GUI evidence remains separately pending.",
+      "tests": [
+        "test_next_phase.NextPhaseTests.test_bulk_confirmation_preview_and_transaction",
+        "test_next_phase.NextPhaseTests.test_bulk_rollback_zero_matches_and_all_resource_previews"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "NEXT - Supervisor bulk PUT denied",
+        "NEXT - Missing bulk confirmation",
+        "NEXT - Unknown filter rejected",
+        "NEXT works - PUT preview",
+        "NEXT works - PUT filtered actual (opt-in)",
+        "NEXT works - DELETE preview",
+        "NEXT works - DELETE filtered actual (opt-in)",
+        "NEXT platforms - PUT preview",
+        "NEXT platforms - PUT filtered actual (opt-in)",
+        "NEXT platforms - DELETE preview",
+        "NEXT platforms - DELETE filtered actual (opt-in)",
+        "NEXT work_availabilities - PUT preview",
+        "NEXT work_availabilities - PUT filtered actual (opt-in)",
+        "NEXT work_availabilities - DELETE preview",
+        "NEXT work_availabilities - DELETE filtered actual (opt-in)",
+        "NEXT tags - PUT preview",
+        "NEXT tags - PUT filtered actual (opt-in)",
+        "NEXT tags - DELETE preview",
+        "NEXT tags - DELETE filtered actual (opt-in)",
+        "NEXT tag_categories - PUT preview",
+        "NEXT tag_categories - PUT filtered actual (opt-in)",
+        "NEXT tag_categories - DELETE preview",
+        "NEXT tag_categories - DELETE filtered actual (opt-in)",
+        "NEXT tag_category_relationships - PUT preview",
+        "NEXT tag_category_relationships - PUT filtered actual (opt-in)",
+        "NEXT tag_category_relationships - DELETE preview",
+        "NEXT tag_category_relationships - DELETE filtered actual (opt-in)",
+        "NEXT tag_relationships - PUT preview",
+        "NEXT tag_relationships - PUT filtered actual (opt-in)",
+        "NEXT tag_relationships - DELETE preview",
+        "NEXT tag_relationships - DELETE filtered actual (opt-in)",
+        "NEXT work_classifications - PUT preview",
+        "NEXT work_classifications - PUT filtered actual (opt-in)",
+        "NEXT work_classifications - DELETE preview",
+        "NEXT work_classifications - DELETE filtered actual (opt-in)",
+        "NEXT watchlist_entries - PUT preview",
+        "NEXT watchlist_entries - PUT filtered actual (opt-in)",
+        "NEXT watchlist_entries - DELETE preview",
+        "NEXT watchlist_entries - DELETE filtered actual (opt-in)",
+        "NEXT watch_history - PUT preview",
+        "NEXT watch_history - PUT filtered actual (opt-in)",
+        "NEXT watch_history - DELETE preview",
+        "NEXT watch_history - DELETE filtered actual (opt-in)",
+        "NEXT work_tags - PUT preview",
+        "NEXT work_tags - PUT filtered actual (opt-in)",
+        "NEXT work_tags - DELETE preview",
+        "NEXT work_tags - DELETE filtered actual (opt-in)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.5",
+      "name": "UTC source context historical dates and DST",
+      "objective": "UTC source context historical dates and DST",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Upgrade a populated migration-006 disposable database. Verify unknown created_at/source context remain NULL; new insert with explicit NULL creation time receives an automatic timestamp.",
+        "Check inclusive from/exclusive to creation bounds, AND filters, NULL exclusion, invalid/naive ranges and unknown display timezone rejection.",
+        "Create watched_at with explicit Lisbon offset/zone; verify UTC canonical value, retained source metadata and original display round trip. Change/clear date and confirm companion updates. Numeric offsets must not infer IANA geography."
+      ],
+      "requests": [],
+      "expected": "All stated contracts hold in owned disposable storage; GUI evidence remains separately pending.",
+      "tests": [
+        "test_next_phase.NextPhaseTests.test_source_timezone_and_bounds",
+        "test_next_phase.NextPhaseTests.test_migration_preserves_unknown_historical_context"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "NEXT - Original timezone presentation"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.6",
+      "name": "ASGI stream cancellation and response boundary evidence",
+      "objective": "ASGI stream cancellation and response boundary evidence",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Run the owned ASGI harness for normal streaming, internal error before/after headers, cancellation before/after headers and failed send.",
+        "Verify exact forwarded bytes, bounded capture flags, one response start maximum, actual accepted status/null, failure code, context cleanup and finalized audit attempt."
+      ],
+      "requests": [],
+      "expected": "Mapped boundary assertions pass; inspect manual evidence separately.",
+      "tests": [
+        "test_audit_boundaries.AuditBoundaryTests.test_streams_cancellation_and_actual_headers"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.7",
+      "name": "Error catalogue and sensitive capture validation",
+      "objective": "Error catalogue and sensitive capture validation",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Copy only the public error catalogue to temporary storage. Corrupt version/structure/duplicate keys and verify safe configuration failure without echoing contents.",
+        "Verify sensitive body capture retains no bytes and reports whole-body omission."
+      ],
+      "requests": [],
+      "expected": "Mapped boundary assertions pass; inspect manual evidence separately.",
+      "tests": [
+        "test_audit_boundaries.AuditBoundaryTests.test_catalogue_validation_and_sensitive_capture"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "15.8",
+      "name": "DST folds gaps and original UTC fallback",
+      "objective": "DST folds gaps and original UTC fallback",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Reject naive ambiguous local input and nonexistent Lisbon zone/offset pairs; accept distinct offset-aware fold instants.",
+        "Verify original display uses known source offset without geographic inference, and explicitly indicates UTC fallback when source context is unknown."
+      ],
+      "requests": [],
+      "expected": "Mapped boundary assertions pass; inspect manual evidence separately.",
+      "tests": [
+        "test_audit_boundaries.AuditBoundaryTests.test_dst_offsets_unknown_original_and_no_geographic_inference"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "16.1",
+      "name": "Classification tier migration preserves existing records",
+      "objective": "Classification tier migration preserves existing records",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Run the focused owned harness in TIERS_AND_TEST_CRUD.md; it builds empty, nine-row and gapped migration-008 databases before applying009/010.",
+        "Compare every existing classification field/ID and relationships before/after; dense1..9 tiers equal sequence, gaps use contiguous ranks without sequence reset. Inspect the persisted column strategy comment and startup safe inspection event.",
+        "Replay migrations; verify unchanged data/checksums. Historical test text retains NULL creation context. Never run destructive fixtures on normal storage."
+      ],
+      "requests": [],
+      "expected": "Every stated invariant holds in owned disposable storage; normal rows are never replaced. GUI execution remains separate.",
+      "tests": [
+        "test_remaining_phase.RemainingPhaseTests.test_01_backfill_empty_nine_and_gaps_preserves_records"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "16.2",
+      "name": "Classification append insert move and bounded shift evidence",
+      "objective": "Classification append insert move and bounded shift evidence",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "In fresh disposable storage POST classifications without tier (append), then with tier1, a middle tier and N+1. GET defaults to tierASC with contiguous positions.",
+        "PUT a classification tier up/down/unchanged; omit tier while editing description and copy a full GET record to PUT. IDs/sequence/creation fields must remain unchanged.",
+        "Reject null/boolean/fraction/nonpositive/out-of-range tier, immutable edits and bulk tier payloads; the latter returns individual-PUT guidance with no mutation.",
+        "Look up the reorder X-Interaction-ID in audit logs; verify primary target/diff, moved old/new tier, affected count and bounded shifted records in the same request."
+      ],
+      "requests": [],
+      "expected": "Every stated invariant holds in owned disposable storage; normal rows are never replaced. GUI execution remains separate.",
+      "tests": [
+        "test_remaining_phase.RemainingPhaseTests.test_02_append_insert_move_validation_and_shift_audit"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "REMAIN - Classification bulk tier rejected",
+        "REMAIN - Classification explicit tier insert (opt-in)",
+        "REMAIN - Classification move tier (opt-in)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "16.3",
+      "name": "Classification deletion compaction and restrictive rollback",
+      "objective": "Classification deletion compaction and restrictive rollback",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "In disposable data create ordered classifications and reference one from watched history. Individual/bulk deletion of referenced records returns409 and leaves every position unchanged.",
+        "Delete an unreferenced first/middle/last record; tiers close the gap. Filtered collection DELETE with confirm=true compacts survivors preserving relative order.",
+        "DELETE all on an unreferenced list leaves it empty; insert again and verify IDs/sequence continue. Preview does not reorder records. Inspect aggregate shift audit counts."
+      ],
+      "requests": [],
+      "expected": "Every stated invariant holds in owned disposable storage; normal rows are never replaced. GUI execution remains separate.",
+      "tests": [
+        "test_remaining_phase.RemainingPhaseTests.test_03_delete_compaction_references_and_atomic_rollback"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "16.4",
+      "name": "Concurrent classification ordering and bounded audit summaries",
+      "objective": "Concurrent classification ordering and bounded audit summaries",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Run concurrent inserts at tier1, moves and deletes in the owned harness; inspect all responses and final tier list for duplicates/gaps or lost records.",
+        "Verify membership->actor->list->record lock order and deferred uniqueness at commit; rejected operations roll back their shifts.",
+        "Exercise a256-byte mutation capture limit with a large shifted sample: core moved ID/old/new tiers and affected count remain while omitted samples are explicit."
+      ],
+      "requests": [],
+      "expected": "Every stated invariant holds in owned disposable storage; normal rows are never replaced. GUI execution remains separate.",
+      "tests": [
+        "test_remaining_phase.RemainingPhaseTests.test_04_concurrent_ordering_and_small_audit_limit"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "16.5",
+      "name": "Complete test CRUD integer identity and representation",
+      "objective": "Complete test CRUD integer identity and representation",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "For fresh standard/supervisor/admin accounts POST test Unicode text, GET integer ID, partial PUT and complete GET-record PUT; compare full canonical representations and display conversion.",
+        "Reject empty/unknown/immutable/null-value updates. Long and empty TEXT remain supported; new creation dates are automatic UTC, historical unknown dates stay NULL.",
+        "DELETE by ID returns empty204; repeated GET is404. Inspect OpenAPI matching POST/GET/PUT response schemas and current test:read/test:write permissions."
+      ],
+      "requests": [],
+      "expected": "Every stated invariant holds in owned disposable storage; normal rows are never replaced. GUI execution remains separate.",
+      "tests": [
+        "test_remaining_phase.RemainingPhaseTests.test_05_complete_test_crud_roles_and_roundtrip"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "REMAIN - Test create full record",
+        "REMAIN - Test get integer ID",
+        "REMAIN - Test partial PUT",
+        "REMAIN - Test full GET record PUT",
+        "REMAIN - Test supervisor update",
+        "REMAIN - Test delete integer ID (opt-in)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "16.6",
+      "name": "Test bulk predicates previews confirmation and current scopes",
+      "objective": "Test bulk predicates previews confirmation and current scopes",
+      "prerequisites": [
+        "Owned disposable QA database and fresh role accounts only",
+        "Read docs/CATALOGUE_API.md"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Create disposable test values containing percent/underscore/backslash; verify original escaped ILIKE patterns, exact IDs and inclusive/exclusive creation bounds with AND semantics.",
+        "As admin preview filtered PUT/DELETE then execute with confirm=true. Standard/supervisor bulk requests are403; missing confirmation, unknown/page/order/display query keys and invalid ranges are422.",
+        "Verify all matching rows are targeted without a page limit, zero matches returnszero, updated_count includes unchanged matches, and sequence does not reset after deletes.",
+        "Change role/scopes or revoke credentials between authentication and the mutation lock; verify current authority is rechecked, old token cannot write and no mutation commits. Inspect central transactional audit evidence."
+      ],
+      "requests": [],
+      "expected": "Every stated invariant holds in owned disposable storage; normal rows are never replaced. GUI execution remains separate.",
+      "tests": [
+        "test_remaining_phase.RemainingPhaseTests.test_06_test_bulk_filters_preview_and_current_permissions"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "REMAIN - Test complete filters and dates",
+        "REMAIN - Test standard bulk denied",
+        "REMAIN - Test PUT preview",
+        "REMAIN - Test PUT filtered actual (opt-in)",
+        "REMAIN - Test DELETE preview",
+        "REMAIN - Test DELETE filtered actual (opt-in)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
         ],
         "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
       }

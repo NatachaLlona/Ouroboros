@@ -5,7 +5,6 @@ import json
 import logging
 import sys
 import secrets
-from datetime import datetime
 from pathlib import Path
 
 from app.config import LEVELS, PROJECT_ROOT, validate_logging
@@ -13,6 +12,7 @@ from app.request_context import request_context
 from app.log_safety import redact
 from app.console import prepare_console, LevelColorFormatter
 from app.cleanup import cleanup_actions, ResourceCleanupError
+from app.datetimes import utcnow, from_timestamp
 
 
 def clean(value):
@@ -25,14 +25,14 @@ def clean(value):
 
 class EventFormatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
-        return datetime.fromtimestamp(record.created).astimezone().isoformat(timespec="milliseconds")
+        return from_timestamp(record.created).isoformat(timespec="milliseconds")
 
     def format(self, record):
         record.datetime = self.formatTime(record)
         return clean(super().format(record))
 
 
-RUN_ID = datetime.now().astimezone().strftime("%H%M%S") + "_" + secrets.token_hex(4)
+RUN_ID = utcnow().strftime("%H%M%S") + "_" + secrets.token_hex(4)
 
 
 class DailyFileHandler(logging.Handler):
@@ -45,7 +45,7 @@ class DailyFileHandler(logging.Handler):
         self.directory.mkdir(parents=True, exist_ok=True)
 
     def emit(self, record):
-        day = datetime.fromtimestamp(record.created).astimezone().date().isoformat()
+        day = from_timestamp(record.created).date().isoformat()
         if self.day != day:
             if self.stream is not None:
                 self.stream.close()
@@ -67,7 +67,7 @@ class DailyFileHandler(logging.Handler):
 
 class ApplicationLogger:
     """Accept JSON-compatible event dictionaries; callers must omit secrets."""
-    def __init__(self, config, component="foundation", root=PROJECT_ROOT, stream=None):
+    def __init__(self, config, component="ouroboros", root=PROJECT_ROOT, stream=None):
         validate_logging(config)
         self.root = Path(root).resolve()
         self.config = dict(config)

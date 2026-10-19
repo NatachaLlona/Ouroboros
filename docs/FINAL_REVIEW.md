@@ -1,3 +1,5 @@
+> **Historical Foundation evidence.** This inherited review does not describe the current Ouroboros phase. Use current sanitized reports and [the catalogue guide](CATALOGUE.md).
+
 # 🔎 **Foundation final review — 2026-10-19**
 
 Foundation retains its name and reusable project structure. No commit or push was performed. The working tree already contained substantial earlier work; this review preserves it and does not alter private Postman files, normal configuration, secrets, logs or application data.

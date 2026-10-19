@@ -1,6 +1,13 @@
-# Foundation
+# Ouroboros
 
-Foundation is a reusable Python base project that provides a consistent, maintainable starting point for new applications.
+Ouroboros is a relational entertainment-consumption catalogue across books, films, series, and other media. It records works, platform availability, watchlist entries, consumption experiences, classifications, and dynamic tags. 🐍
+
+Built from **Foundation**, it retains authentication, password change/reset, health checks, logging and QA infrastructure. Migrations **005–010** add eleven catalogue resources, supervisor permissions, central auditing, UTC/source context, filtered administrator bulk operations, independent classification tiers and complete integer-ID test CRUD. Existing records are preserved without catalogue seeds. See the [catalogue model](docs/CATALOGUE.md), [CRUD API guide](docs/CATALOGUE_API.md), [tier/test contracts](docs/TIERS_AND_TEST_CRUD.md) and [performance/security review](docs/REMAINING_PHASE_REVIEW.md). Frontend, advanced search and AI remain planned.
+
+
+## 🧾 Audit and safe bulk operations
+
+Migrations 007–008 add creation/source timezone context, a persistent central audit trail, standardized error codes, administrator filtered bulk PUT/DELETE with previews, and supervisor/admin audit reads. Canonical timestamps are UTC; historical unknown creation dates stay NULL. Read the [audit, datetime and bulk guide](docs/AUDIT_DATETIME_BULK.md) for guarantees, limits and contracts. No audit retention or durable replay service is implemented.
 
 ## 📚 **Documentation and QA delivery**
 
@@ -20,7 +27,9 @@ Foundation is a reusable Python base project that provides a consistent, maintai
 
 The runner checks prerequisites, creates only disposable isolated infrastructure, runs mapped tests, and writes sanitized **reports/summary.md**, **reports/results.json** and **reports/junit.xml** (ignored by Git). It prints the same scenario IDs/names as the QA plan and separate test/scenario totals. **PASS** requires every mapped automated check; **FAIL**, **BLOCKED**, **SKIP** and **MANUAL** remain distinct. Missing mandatory tools/tests/preparation returns nonzero. `--unit-only` is a partial diagnostic run, not approval. Automated success does not establish manual/interface QA approval.
 
-The local [GitHub Actions workflow](.github/workflows/qa-checks.yml) uses the same runner, manual dispatch, Docker isolation and sanitized artifacts. After publication, use **Actions → Foundation QA checks → Run workflow**; [QA setup](docs/QA_SETUP.md) explains logs/artifact download. **Creating the workflow does not mean it ran on GitHub.** Actual Swagger, Postman sandbox, physical terminal and hosted pipeline evidence remain separate manual scenarios.
+The local [GitHub Actions workflow](.github/workflows/qa-checks.yml) uses the same runner, manual dispatch, Docker isolation and sanitized artifacts. After publication, use **Actions → Ouroboros QA checks → Run workflow**; [QA setup](docs/QA_SETUP.md) explains logs/artifact download. **Creating the workflow does not mean it ran on GitHub.** Actual Swagger, Postman sandbox, physical terminal and hosted pipeline evidence remain separate manual scenarios.
+
+The feature branch **`feat/initial-tables` must be reviewed before any merge into `main`**. Commits, pushes, and merges require the owner’s explicit request.
 
 ## Setup and run
 
@@ -34,9 +43,9 @@ python -m venv .venv
 .\.venv\Scripts\python.exe start.py
 ```
 
-The commands above invoke the virtual environment interpreter explicitly, so activation is optional. Use bare `python start.py` only when that interpreter is already selected or activated. The entry point also works when launched by absolute path from another directory. For a fresh checkout, set a unique `infrastructure.project_name` in local `.app.config` before running; the example leaves it blank intentionally. Existing Foundation configuration keeps its established identity.
+The commands above invoke the virtual environment interpreter explicitly, so activation is optional. Use bare `python start.py` only when that interpreter is already selected or activated. The entry point also works when launched by absolute path from another directory. The example selects Compose identity `ouroboros` and fresh JWT issuer/audience `ouroboros` / `ouroboros-api`. Startup binds it to this workspace. For another copy, choose a unique identity and free ports before launching.
 
-On first run, Foundation creates `.app.config` from `.app.config.example` without overwriting existing settings. If the infrastructure identity is blank, startup stops with a clear configuration error: edit the generated local file and select a unique project name before retrying. It first displays the configured database and asks whether to keep it or enter another, independently displays and confirms the master user, and then requests the master password. Missing names/users are prompted directly. Selecting another database does not select another master user automatically. Password input displays one asterisk per character, supports Backspace, and cancels with Ctrl+C or Escape. Use an interactive terminal, such as the VS Code terminal; do not send the password as a command argument.
+On first run, Ouroboros creates `.app.config` from `.app.config.example` without overwriting existing settings. If the infrastructure identity is blank, startup stops with a clear configuration error: edit the generated local file and select a unique project name before retrying. It first displays the configured database and asks whether to keep it or enter another, independently displays and confirms the master user, and then requests the master password. Missing names/users are prompted directly. Selecting another database does not select another master user automatically. Password input displays one asterisk per character, supports Backspace, and cancels with Ctrl+C or Escape. Use an interactive terminal, such as the VS Code terminal; do not send the password as a command argument.
 
 These are master database credentials, not API accounts. Names use 1-63 lowercase letters, digits, or underscores and cannot begin with a digit. The database password is never stored in JSON or logs. API password hashes are stored only in PostgreSQL `public.api_users`, using Argon2id; neither password nor hash is logged. Local configuration stores only `api_users.last_api_username` as a convenience preference, not proof of identity.
 
@@ -49,7 +58,7 @@ Startup checks Docker, prepares PostgreSQL, validates master credentials, applie
 - `database.startup_timeout` defaults to 120 seconds, `connect_timeout` to 10 seconds, and `statement_timeout` to 30 seconds. Increase startup timeout if the first image download is slow.
 - Logging defaults to `DEBUG` (select `INFO` to suppress debug details), writes to stderr and UTF-8 files under `logs/`, and supports configurable fields and output directory. General startup events use category `application` and a blank 24-character interaction field.
 
-Compose pins `postgres:17.11-bookworm` and stores data in the named `foundation_postgres_data` volume. Migration `001_create_test.sql` creates `public.test` with an automatically generated BIGINT primary key and an unlimited TEXT value. Migration records and checksums are stored in `public.foundation_migrations`. Startup inserts no demonstration records.
+Compose pins `postgres:17.11-bookworm` and stores data in the named `ouroboros_postgres_data` volume. Migration `001_create_test.sql` creates `public.test` with an automatically generated BIGINT primary key and an unlimited TEXT value. Migration records and checksums are stored in `public.foundation_migrations`. Startup inserts no demonstration records.
 
 Existing data is preserved on subsequent runs. Selecting a different database reuses the same PostgreSQL instance. Startup authenticates the selected master against the `postgres` maintenance database, checks for the target database, and creates it only if missing and the role has CREATEDB/superuser permission. Identifier composition is safe; previous databases remain intact. Choosing another master validates an existing role; it never creates roles, rotates passwords, or grants permissions. Creation failures explain the missing permission and stop without deleting data. Container initialization variables remain those of the original container; they do not provision a database in an already initialized volume.
 
@@ -67,7 +76,9 @@ Migration **002_create_api_users.sql** adds `public.api_users`, separate from Po
 | `scopes` | TEXT[] NOT NULL; explicit `test:read`, `test:write` for enrollment |
 | `role` | Migration **003_add_api_user_role.sql**: TEXT NOT NULL DEFAULT `standard`, CHECK restricted to `standard` / `administrator` |
 
-The old `auth.username`/`auth.password_hash` pair is accepted **only for one-way migration**. After connecting and applying migrations, Foundation commits the exact old hash and existing test permissions to `api_users`, then removes both legacy fields from `.app.config` and records `last_api_username`. It never asks for the old API password or rehashes it. Repeating the import is safe; an existing identical account is reused. A different hash, scope set, or active state causes a clear conflict and leaves the original configuration intact. No backup or temporary configuration file containing the legacy hash is generated. If configuration saving fails after commit, the next run safely repeats the import.
+Migration **006** extends the CHECK to standard/supervisor/administrator without changing existing account values or credentials.
+
+The old `auth.username`/`auth.password_hash` pair is accepted **only for one-way migration**. After connecting and applying migrations, Ouroboros commits the exact old hash and existing test permissions to `api_users`, then removes both legacy fields from `.app.config` and records `last_api_username`. It never asks for the old API password or rehashes it. Repeating the import is safe; an existing identical account is reused. A different hash, scope set, or active state causes a clear conflict and leaves the original configuration intact. No backup or temporary configuration file containing the legacy hash is generated. If configuration saving fails after commit, the next run safely repeats the import.
 
 Migration **003** preserves existing IDs, hashes, scopes, active state and timestamps. **Every existing account starts as standard; no ID is promoted silently.** At the master-authenticated terminal, enter `promote` and the exact active username, or `create` and a unique username/password. A newly created database's first API account is administrator. Duplicate creation never replaces an account. There is no public signup, deletion or refresh API. Active API users change their own password through PUT /users/me/password; current administrators can reset another account through PUT /users/{id}/password. `last_api_username` never proves identity. PostgreSQL master credentials cannot log into the API.
 
@@ -76,6 +87,7 @@ Migration **003** preserves existing IDs, hashes, scopes, active state and times
 | Role | Access |
 | --- | --- |
 | `standard` | GET/POST `/test`, subject to issued and current test scopes; no user administration |
+| `supervisor` | Test endpoints and own password; catalogue GET/POST/PUT/DELETE by ID; no DELETE all or user administration |
 | `administrator` | All protected APIs, including future shared-authorization endpoints; valid authentication and current active state remain required |
 
 Authorization is centralized in `require_scopes`. Every protected request reads the **current role and active state from PostgreSQL**. Administrator access does not depend on enumerating all scopes in a token. Standard accounts cannot request `users:manage`, even if a stale database scope array contains it. Existing standard scope restrictions remain effective. **Demotion immediately removes administrator access from already-issued tokens.** A request already in progress may have passed its initial check; administrative writes recheck the actor inside the membership transaction lock.
@@ -90,7 +102,7 @@ These administrative APIs require an **active administrator**: missing/invalid t
 
 **Reset another API user's password:** an administrator can PUT `/users/{id}/password` with `{"new_password":"<private new password>"}`. Success is empty **204**; target not found **404**, self-target **400**, invalid body/path **422**, invalid authentication **401**, standard caller **403**. Self-targeting must use `/users/me/password` with the current password. The reset rechecks current administrator access and token version transactionally, replaces the target's Argon2id hash and increments its credential version. All earlier target tokens become invalid; other accounts' tokens remain valid. The whole reset body is excluded from logs; the safe committed audit identifies actor, target, interaction and outcome. See [API contracts](docs/API.md) and QA **9.1–9.2**.
 
-**Swagger query controls:** GET `/test` exposes `id`, `value`, `page` and `page_size`; GET `/users` exposes only pagination and currently has no filters. Authorize once through **Authorize → Close**, then reuse that authentication for subsequent permitted requests. Defaults are page **1**, page_size **50** (range **10–50**). Filters run before counting/pagination, ordered by ascending ID. Canonical Postman request **61 - Pagination example (page 2, size 10)** has editable pagination and unchecked optional filters; historical YAML copies are not canonical imports. Requests **62–76** exercise reset/revocation with fresh disposable accounts; follow [QA setup](docs/QA_SETUP.md).
+**Swagger query controls:** Every collection GET exposes `page`, `page_size`, enum `order_by` and enum `order_direction`. `/test` retains exact `id` and ILIKE `value`; `/users` has no account filters. See the [catalogue matrix](docs/CATALOGUE_API.md) for every resource. Defaults are page **1**, page_size **50** (range **10–50**), ascending sequence for catalogue resources and ID for inherited lists. NULLS LAST and ID tie-breaks are deterministic. Authorize once, reuse it, and logout/re-authorize to switch accounts. Postman shows editable Params and unchecked optional filters; private YAML copies remain untouched.
 
 To create a standard account through Swagger, authorize with the existing administrator, open **POST /users**, and enter the desired API username and password **locally**; omit `role` or select `standard`. Choose `administrator` explicitly for another administrator. List accounts with **GET /users**, then replace a role with **PUT /users/{id}/role**. These operations persist data and role changes. Administrative logs record **administrator_id, user_id, previous_role, new_role**, plus the automatically propagated request ID; bodies and validation failures never expose passwords or hashes.
 
@@ -103,11 +115,11 @@ To create a standard account through Swagger, authorize with the existing admini
 | PostgreSQL container | `5432` |
 | Published mapping | `127.0.0.1:6669:5432` |
 
-Changing the published port may recreate the container, **never the named data volume**. Keep `foundation_postgres_data`. Restart Foundation after updating its files and use the new Postman `base_url`; never use volume-deleting shutdown commands. Existing records and databases remain in place.
+Changing the published port may recreate the container, **never the named data volume**. Keep `ouroboros_postgres_data`. Restart Ouroboros after updating its files and use the new Postman `base_url`; never use volume-deleting shutdown commands. Existing records and databases remain in place.
 
 ## 🧱 **A derived project needs its own infrastructure**
 
-The current installation remains **Compose project `foundation`**, volume **`foundation_postgres_data`**. Nothing renames or migrates that volume. `infrastructure.project_name` is now explicit instead of a hardcoded Compose name; `.app.config.example` deliberately leaves it blank. The local `infrastructure.workspace` binding prevents a copied local configuration from silently targeting Foundation. Existing containers must belong to the same directory according to Compose labels. A local `.secrets/infrastructure_identity.json` receipt also prevents automatic adoption of an existing orphan volume from another workspace. This receipt is ownership metadata, not a password or encrypted secret.
+Ouroboros uses **Compose project `ouroboros`**, volume **`ouroboros_postgres_data`**, its own prompted database (for example `ouroboros`), API accounts, and fresh protected PostgreSQL/JWT secrets. Foundation remains separate with project `foundation` and volume `foundation_postgres_data`; never copy its runtime credentials or alter its persistence. Workspace binding, Compose working-directory labels and the protected ownership receipt reject reuse across directories.
 
 For a future derived project (illustrative **AcmeService**, not implemented here):
 
@@ -131,7 +143,7 @@ This is a **partial configuration example**: retain timeouts, logging, issuer/au
 5. Run `start.py` **from the derived project**, supply its own master credentials, and enroll its own API user. Fresh protected PostgreSQL/JWT secret files and the named volume **`acme-service_postgres_data`** are created for this identity.
 6. Use that project's API/Swagger URL and Postman `base_url`; use `$config.infrastructure.project_name` for Compose stop/start commands. Use `start.py` for guarded initialization rather than bypassing ownership checks with a bare `docker compose up`.
 
-A copied config/receipt or reused identity that belongs to another directory is rejected. An existing volume without matching ownership metadata is **not adopted automatically**; restore the original project's metadata rather than deleting or silently reassigning it. Each project needs its own identity, free ports, configuration, secrets, API accounts, and volume. No derived application is implemented by this change.
+A copied config/receipt or reused identity that belongs to another directory is rejected. An existing volume without matching ownership metadata is **not adopted automatically**; restore the original project's metadata rather than deleting or silently reassigning it. Each project needs its own identity, free ports, configuration, secrets, API accounts, and volume. Ouroboros is independently configured using these ownership safeguards.
 
 ## 🛠️ **Startup diagnostics and shutdown**
 
@@ -141,7 +153,7 @@ Cleanup attempts database, authentication, log handlers, and bootstrap handler i
 
 ## 🔑 **Change your own API password**
 
-Both active **standard** and **administrator** accounts can use **PUT /users/me/password** with a valid Bearer token. Supply only current_password and new_password locally; no user ID/username is accepted. **204** means success with no body; wrong current or unchanged password returns **400**, invalid/stale authentication **401**, invalid JSON/types/extra fields **422**.
+All active **standard**, **supervisor** and **administrator** accounts can use **PUT /users/me/password** with a valid Bearer token. Supply only current_password and new_password locally; no user ID/username is accepted. **204** means success with no body; wrong current or unchanged password returns **400**, invalid/stale authentication **401**, invalid JSON/types/extra fields **422**.
 
 Migration **004_add_credential_version.sql** adds a positive per-user credential version without changing existing hashes, accounts or records. A row-locked transaction verifies the current password, stores only Argon2id and increments that version. Every protected request compares the JWT's credential_version with the current database value. After a change all earlier tokens of that user are invalid, including the changing token; peer tokens and the global signing key are unchanged. Obtain a fresh token after upgrading because older tokens without the new claim are rejected.
 
@@ -170,10 +182,10 @@ The Compose file needs its non-secret settings and secret path when parsed. Alwa
 ```powershell
 $config = Get-Content -Raw -Encoding UTF8 .app.config | ConvertFrom-Json
 $project = $config.infrastructure.project_name
-$env:FOUNDATION_DB_NAME = $config.database.name
-$env:FOUNDATION_DB_USER = $config.database.user
-$env:FOUNDATION_DB_PORT = [string]$config.database.port
-$env:FOUNDATION_DB_SECRET_FILE = (Resolve-Path .secrets/postgres_password).Path
+$env:OUROBOROS_DB_NAME = $config.database.name
+$env:OUROBOROS_DB_USER = $config.database.user
+$env:OUROBOROS_DB_PORT = [string]$config.database.port
+$env:OUROBOROS_DB_SECRET_FILE = (Resolve-Path .secrets/postgres_password).Path
 
 docker compose -p $project stop postgres
 docker compose -p $project start --wait postgres
@@ -201,7 +213,7 @@ For PowerShell, prompt for API credentials rather than putting a password in com
 
 ```powershell
 $baseUrl = 'http://localhost:6969'
-$apiCredentials = Get-Credential -Message 'Foundation API test credentials'
+$apiCredentials = Get-Credential -Message 'Ouroboros API test credentials'
 $token = Invoke-RestMethod -Method Post -Uri "$baseUrl/token" `
     -ContentType 'application/x-www-form-urlencoded' `
     -Body @{ username = $apiCredentials.UserName; password = $apiCredentials.GetNetworkCredential().Password; scope = 'test:read test:write' }
@@ -220,7 +232,7 @@ Invoke-RestMethod -Uri "$baseUrl/test?id=1&value=%25dragon%25" -Headers $headers
 
 ### 🔐 **Swagger: recommended Authorize workflow**
 
-1. Start Foundation with `.\.venv\Scripts\python.exe start.py` and keep it running.
+1. Start Ouroboros with `.\.venv\Scripts\python.exe start.py` and keep it running.
 2. Open **http://localhost:6969/docs** (or your configured host and port).
 3. Click **Authorize** near the top of Swagger.
 4. Enter the **API username and password**, not PostgreSQL master credentials.
@@ -294,7 +306,7 @@ In URLs, encode `%` as `%25`, backslash as `%5C`, and other reserved characters 
 
 ### Authentication configuration and logging
 
-Local `auth` contains only token settings: `token_ttl_seconds` (default 1800; integer 1-86400), `issuer` (`foundation`), and `audience` (`foundation-api`). `api_users` contains only `last_api_username`. Accounts, hashes, active state, roles and scopes belong in PostgreSQL. The signing key remains in protected `.secrets/jwt_signing_key`. JWT `sub` is the immutable API-user ID as a string. Tokens include version 2 and a selected-database binding. Every protected request checks the current account and active state, uses its current role, and intersects standard token scopes with current test permissions. Current administrators access shared protected endpoints independently of token scope enumeration. Missing/inactive users return 401; insufficient standard permissions return 403. Self-service password replacement is available at PUT /users/me/password; there is no privileged password reset or token refresh.
+Local `auth` contains only token settings: `token_ttl_seconds` (default 1800; integer 1-86400), `issuer` (`ouroboros`), and `audience` (`ouroboros-api`). `api_users` contains only `last_api_username`. Accounts, hashes, active state, roles and scopes belong in PostgreSQL. The signing key remains in protected `.secrets/jwt_signing_key`. JWT `sub` is the immutable API-user ID as a string. Tokens include version 2 and a selected-database binding. Every protected request checks the current account and active state, uses its current role, and intersects standard token scopes with current test permissions. Current administrators access shared protected endpoints independently of token scope enumeration. Missing/inactive users return 401; insufficient standard permissions return 403. Self-service password replacement is available at PUT /users/me/password; administrator password reset is available at PUT /users/{id}/password; token refresh is not implemented.
 
 Each request receives a server-generated 24-digit `X-Interaction-ID`: local `YYYYMMDDHHMMSS` followed by ten cryptographically random digits. IDs are strings, generated once, and ignore client-supplied IDs. Randomness reduces collision probability but is not a mathematical uniqueness guarantee. Logs inherit this ID, method, endpoint path (no query), and category `request` automatically through request context, including in synchronous component workers. Context is reset after success, errors, and cancellation. General events use category `application`, with a blank aligned ID field and no HTTP method/path.
 
@@ -304,15 +316,15 @@ Only `INFO` and `DEBUG` are valid configured minimum levels; both include warnin
 
 **Concurrency:** one API worker, 40 AnyIO thread-pool slots, and synchronous handlers offloaded by FastAPI. Each request owns its connection and transaction; `database.max_connections` bounds live connections (default 8, range 1-32). `database.connection_acquire_timeout` bounds capacity waits (default 5 seconds, range 1-300). Capacity exhaustion returns a safe 503. Async middleware sends blocking logging and JSON preview work to the thread pool. No manual thread is created per request.
 
-This OAuth2 password flow serves Foundation's controlled local client only. An integration with external identity providers will require a different flow; no such integration is implemented here.
+This OAuth2 password flow serves Ouroboros's controlled local client only. An integration with external identity providers will require a different flow; no such integration is implemented here.
 
 ### 🎨 **Readable UTF-8 logs**
 
 Fixed fields use minimum widths: **level 8**, **interaction ID 24**, and **category 11**. Other names, messages, and paths are not padded or truncated for alignment. The field order and per-execution files are unchanged. Representative events (source/line and timestamp are illustrative):
 
 ```text
-INFO     |                          | 2026-10-18T11:33:11.048+01:00 | application |  | foundation | - | start.py:30 | Foundation preparation completed | {}
-DEBUG    | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | POST /test | foundation | - | app/main.py:45 | Request JSON body received | {"body": {"value": "Ouroboros está vivo! 🐍💻"}, "truncated": false}
+INFO     |                          | 2026-10-18T11:33:11.048+01:00 | application |  | ouroboros | - | start.py:30 | Ouroboros preparation completed | {}
+DEBUG    | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | POST /test | ouroboros | - | app/main.py:45 | Request JSON body received | {"body": {"value": "Ouroboros está vivo! 🐍💻"}, "truncated": false}
 ```
 
 Accents and emojis remain literal Unicode in the console and UTF-8 file; fitting body objects are serialized **once** inside context, not stored as a JSON string. An oversized body uses `body_preview` with `truncated: true`; its preview remains bounded by `logging.body_max_chars`. Redaction happens before preview generation. Line breaks/control characters remain escaped, preserving **one event per line**. Tokens, secret fields, and `/token` bodies remain excluded.
@@ -324,7 +336,7 @@ Only the console's **level label** is colored: DEBUG gray, INFO green, WARNING y
 ### 🚀 **Start the application and import**
 
 1. Download **[Postman Desktop](https://www.postman.com/downloads/)**.
-2. Open Docker Desktop, then run Foundation from the project root and **keep that terminal running**:
+2. Open Docker Desktop, then run Ouroboros from the project root and **keep that terminal running**:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -332,7 +344,7 @@ Only the console's **level label** is colored: DEBUG gray, INFO green, WARNING y
 ```
 
 3. Complete the database prompts and first-administrator recovery if needed. Existing installations require explicit selection, never automatic promotion. Use administrative APIs for further enrollment. The default base URL is `http://localhost:6969`.
-4. In Postman, select **Import → Files** and choose **[postman/Foundation.postman_collection.json](postman/Foundation.postman_collection.json)**. This is the canonical **Collection v2.1** JSON. Existing YAML request files are preserved as reference, not the canonical export.
+4. In Postman, select **Import → Files** and choose **[postman/Ouroboros.postman_collection.json](postman/Ouroboros.postman_collection.json)**. This is the canonical **Collection v2.1** JSON. Existing YAML request files are preserved as reference, not the canonical export.
 
 **Replace an earlier import:** preserve any private local environment/custom requests, then import this JSON and choose replacement when Postman offers it. Otherwise remove/archive only the old imported collection you have identified, then import once. Do not import the YAML directory alongside the JSON. The local `Foundation — API smoke tests` directory contains `04 - List all entries.request.yaml`, `04 - List all entries-1.request.yaml`, and `04 - List all entries-2.request.yaml`: these are historical duplicates with old array assertions and different ordering. They remain untouched, including personalized local files. **The JSON is the single maintained source.**
 
@@ -456,7 +468,7 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
 ```json
 {
   "info": {
-    "name": "Foundation — API smoke tests",
+    "name": "Ouroboros — API smoke tests",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": "Canonical importable Collection v2.1. Requests 01-08 are the basic flow. Then run Administrator and standard scenarios on an isolated database: they persist users and role changes. Set all credentials only in a private local environment; never export captured tokens. Local YAML copies are historical and not the import source."
   },
@@ -670,6 +682,166 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
       "key": "reset_peer_token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "catalogue_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_destructive_opt_in",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supervisor_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supervisor_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supervisor_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supervisor_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_works",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_works",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_platforms",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_platforms",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_work_availabilities",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_work_availabilities",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_tags",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_tags",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_tag_categories",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_tag_categories",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_tag_category_relationships",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_tag_category_relationships",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_tag_relationships",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_tag_relationships",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_work_classifications",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_work_classifications",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_watchlist_entries",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_watchlist_entries",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_watch_history",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_watch_history",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_id_work_tags",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catalogue_record_work_tags",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audit_interaction_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_record",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -691,7 +863,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
             "type": "text/javascript",
             "exec": [
               "pm.test(\"3.1 - Public health and database outage | HTTP 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"3.1 - Public health and database outage | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+              "pm.test(\"3.1 - Public health and database outage | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"3.1 - Public health and database outage | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -741,7 +916,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "  const data = pm.response.json();",
               "  pm.test(\"3.2 - Invalid credentials and bearer tokens | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
               "  pm.collectionVariables.set(\"access_token\", data.access_token);",
-              "} else { pm.collectionVariables.set(\"access_token\", \"\"); }"
+              "} else { pm.collectionVariables.set(\"access_token\", \"\"); }",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"3.2 - Invalid credentials and bearer tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -789,7 +967,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "pm.test(\"4.1 - Test entry content and Unicode round trip | HTTP 201\", () => pm.response.to.have.status(201));",
               "pm.test(\"4.1 - Test entry content and Unicode round trip | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
               "if (pm.response.code === 201) { pm.collectionVariables.set(\"test_id\", String(pm.response.json().id)); }",
-              "else { pm.collectionVariables.set(\"test_id\", \"\"); }"
+              "else { pm.collectionVariables.set(\"test_id\", \"\"); }",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"4.1 - Test entry content and Unicode round trip | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -802,7 +983,7 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/test",
+          "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
           "host": [
             "{{base_url}}"
           ],
@@ -821,6 +1002,54 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "value": "%Ouroboros%",
               "disabled": true,
               "description": "Enable for a case-insensitive contains pattern. Keep percent signs raw here; Postman encodes them once."
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "50"
+            },
+            {
+              "key": "order_by",
+              "value": "id",
+              "description": "Choices: id, value, created_at, created_at_timezone"
+            },
+            {
+              "key": "order_direction",
+              "value": "asc",
+              "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+            },
+            {
+              "key": "created_at",
+              "value": "2026-10-19T12:00:00Z",
+              "disabled": true,
+              "description": "Exact offset-aware creation instant."
+            },
+            {
+              "key": "created_at_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "Exact recorded source zone."
+            },
+            {
+              "key": "created_at_from",
+              "value": "2026-10-01T00:00:00+01:00",
+              "disabled": true,
+              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+            },
+            {
+              "key": "created_at_to",
+              "value": "2026-11-01T00:00:00Z",
+              "disabled": true,
+              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+            },
+            {
+              "key": "display_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
             }
           ]
         },
@@ -851,7 +1080,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "  pm.expect(data.page).to.be.at.least(1);",
               "  pm.expect(data.page_size).to.be.within(10, 50);",
               "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
-              "});"
+              "});",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"4.4 - Pagination counts limits and empty pages | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -863,7 +1095,74 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{base_url}}/test?id={{test_id}}",
+        "url": {
+          "raw": "{{base_url}}/test?id={{test_id}}&page=1&page_size=50&order_by=id&order_direction=asc",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test"
+          ],
+          "query": [
+            {
+              "key": "id",
+              "value": "{{test_id}}"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "50"
+            },
+            {
+              "key": "order_by",
+              "value": "id",
+              "description": "Choices: id, value, created_at, created_at_timezone"
+            },
+            {
+              "key": "order_direction",
+              "value": "asc",
+              "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+            },
+            {
+              "key": "value",
+              "value": "%Ouroboros%",
+              "disabled": true
+            },
+            {
+              "key": "created_at",
+              "value": "2026-10-19T12:00:00Z",
+              "disabled": true,
+              "description": "Exact offset-aware creation instant."
+            },
+            {
+              "key": "created_at_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "Exact recorded source zone."
+            },
+            {
+              "key": "created_at_from",
+              "value": "2026-10-01T00:00:00+01:00",
+              "disabled": true,
+              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+            },
+            {
+              "key": "created_at_to",
+              "value": "2026-11-01T00:00:00Z",
+              "disabled": true,
+              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+            },
+            {
+              "key": "display_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            }
+          ]
+        },
         "auth": {
           "type": "bearer",
           "bearer": [
@@ -897,7 +1196,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "  pm.expect(rows.length).to.eql(1);",
               "  pm.expect(String(rows[0].id)).to.eql(pm.collectionVariables.get(\"test_id\"));",
               "  pm.expect(rows[0].value).to.eql(\"Ouroboros está vivo! 🐍💻\");",
-              "});"
+              "});",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"4.3 - Filters wildcards escapes and AND | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -909,7 +1211,74 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{base_url}}/test?value=%25Ouroboros%25",
+        "url": {
+          "raw": "{{base_url}}/test?value=%25Ouroboros%25&page=1&page_size=50&order_by=id&order_direction=asc",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test"
+          ],
+          "query": [
+            {
+              "key": "value",
+              "value": "%Ouroboros%"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "50"
+            },
+            {
+              "key": "order_by",
+              "value": "id",
+              "description": "Choices: id, value, created_at, created_at_timezone"
+            },
+            {
+              "key": "order_direction",
+              "value": "asc",
+              "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+            },
+            {
+              "key": "id",
+              "value": "{{test_id}}",
+              "disabled": true
+            },
+            {
+              "key": "created_at",
+              "value": "2026-10-19T12:00:00Z",
+              "disabled": true,
+              "description": "Exact offset-aware creation instant."
+            },
+            {
+              "key": "created_at_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "Exact recorded source zone."
+            },
+            {
+              "key": "created_at_from",
+              "value": "2026-10-01T00:00:00+01:00",
+              "disabled": true,
+              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+            },
+            {
+              "key": "created_at_to",
+              "value": "2026-11-01T00:00:00Z",
+              "disabled": true,
+              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+            },
+            {
+              "key": "display_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            }
+          ]
+        },
         "auth": {
           "type": "bearer",
           "bearer": [
@@ -942,7 +1311,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "  const rows = pm.response.json().items;",
               "  pm.expect(rows.length).to.be.above(0);",
               "  rows.forEach(entry => pm.expect(entry.value.toLocaleLowerCase()).to.include(\"ouroboros\"));",
-              "});"
+              "});",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"4.3 - Filters wildcards escapes and AND | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -954,7 +1326,73 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{base_url}}/test?id={{test_id}}&value=%25Ouroboros%25",
+        "url": {
+          "raw": "{{base_url}}/test?id={{test_id}}&value=%25Ouroboros%25&page=1&page_size=50&order_by=id&order_direction=asc",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test"
+          ],
+          "query": [
+            {
+              "key": "id",
+              "value": "{{test_id}}"
+            },
+            {
+              "key": "value",
+              "value": "%Ouroboros%"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "50"
+            },
+            {
+              "key": "order_by",
+              "value": "id",
+              "description": "Choices: id, value, created_at, created_at_timezone"
+            },
+            {
+              "key": "order_direction",
+              "value": "asc",
+              "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+            },
+            {
+              "key": "created_at",
+              "value": "2026-10-19T12:00:00Z",
+              "disabled": true,
+              "description": "Exact offset-aware creation instant."
+            },
+            {
+              "key": "created_at_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "Exact recorded source zone."
+            },
+            {
+              "key": "created_at_from",
+              "value": "2026-10-01T00:00:00+01:00",
+              "disabled": true,
+              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+            },
+            {
+              "key": "created_at_to",
+              "value": "2026-11-01T00:00:00Z",
+              "disabled": true,
+              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+            },
+            {
+              "key": "display_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            }
+          ]
+        },
         "auth": {
           "type": "bearer",
           "bearer": [
@@ -993,7 +1431,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "  const rows = pm.response.json().items;",
               "  pm.expect(rows.length).to.be.above(0);",
               "  rows.forEach(entry => pm.expect(entry.value.toLocaleLowerCase()).to.include(\"ouroboros\"));",
-              "});"
+              "});",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"4.3 - Filters wildcards escapes and AND | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -1005,7 +1446,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{base_url}}/test",
+        "url": {
+          "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "50"
+            },
+            {
+              "key": "order_by",
+              "value": "id",
+              "description": "Choices: id, value, created_at, created_at_timezone"
+            },
+            {
+              "key": "order_direction",
+              "value": "asc",
+              "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+            },
+            {
+              "key": "id",
+              "value": "{{test_id}}",
+              "disabled": true
+            },
+            {
+              "key": "value",
+              "value": "%Ouroboros%",
+              "disabled": true
+            },
+            {
+              "key": "created_at",
+              "value": "2026-10-19T12:00:00Z",
+              "disabled": true,
+              "description": "Exact offset-aware creation instant."
+            },
+            {
+              "key": "created_at_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "Exact recorded source zone."
+            },
+            {
+              "key": "created_at_from",
+              "value": "2026-10-01T00:00:00+01:00",
+              "disabled": true,
+              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+            },
+            {
+              "key": "created_at_to",
+              "value": "2026-11-01T00:00:00Z",
+              "disabled": true,
+              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+            },
+            {
+              "key": "display_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            }
+          ]
+        },
         "auth": {
           "type": "noauth"
         },
@@ -1018,7 +1527,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
             "type": "text/javascript",
             "exec": [
               "pm.test(\"3.2 - Invalid credentials and bearer tokens | HTTP 401\", () => pm.response.to.have.status(401));",
-              "pm.test(\"3.2 - Invalid credentials and bearer tokens | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+              "pm.test(\"3.2 - Invalid credentials and bearer tokens | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "// Central error and interaction contract",
+              "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+              "if (pm.response.code >= 400) { pm.test(\"3.2 - Invalid credentials and bearer tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
             ]
           }
         }
@@ -1071,7 +1583,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "  const data = pm.response.json();",
                   "  pm.test(\"2.2 - Administrator login and endpoint access | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
                   "  pm.collectionVariables.set(\"admin_token\", data.access_token);",
-                  "} else { pm.collectionVariables.set(\"admin_token\", \"\"); }"
+                  "} else { pm.collectionVariables.set(\"admin_token\", \"\"); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.2 - Administrator login and endpoint access | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1119,7 +1634,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "pm.test(\"2.3 - Create a default standard user | HTTP 201\", () => pm.response.to.have.status(201));",
                   "pm.test(\"2.3 - Create a default standard user | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                   "if (pm.response.code === 201) { pm.collectionVariables.set(\"standard_user_id\", String(pm.response.json().id)); }",
-                  "pm.test(\"2.3 - Create a default standard user | Public metadata only\", () => { const u=pm.response.json(); pm.expect(u).not.to.have.property(\"password_hash\"); pm.expect(u).not.to.have.property(\"password\"); pm.expect(u.role).to.eql(\"standard\"); });"
+                  "pm.test(\"2.3 - Create a default standard user | Public metadata only\", () => { const u=pm.response.json(); pm.expect(u).not.to.have.property(\"password_hash\"); pm.expect(u).not.to.have.property(\"password\"); pm.expect(u.role).to.eql(\"standard\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.3 - Create a default standard user | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1131,7 +1649,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/users?page=1&page_size=10",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=10&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1159,7 +1705,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "  pm.expect(data.page).to.be.at.least(1);",
                   "  pm.expect(data.page_size).to.be.within(10, 50);",
                   "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
-                  "});"
+                  "});",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"3.4 - Administrative validation and conflicts | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1209,7 +1758,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "  const data = pm.response.json();",
                   "  pm.test(\"2.4 - Standard login and permissions | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
                   "  pm.collectionVariables.set(\"standard_token\", data.access_token);",
-                  "} else { pm.collectionVariables.set(\"standard_token\", \"\"); }"
+                  "} else { pm.collectionVariables.set(\"standard_token\", \"\"); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1221,7 +1773,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1241,7 +1821,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.4 - Standard login and permissions | HTTP 403\", () => pm.response.to.have.status(403));",
-                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1253,7 +1836,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1281,7 +1932,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "  pm.expect(data.page).to.be.at.least(1);",
                   "  pm.expect(data.page_size).to.be.within(10, 50);",
                   "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
-                  "});"
+                  "});",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1327,7 +1981,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.4 - Standard login and permissions | HTTP 201\", () => pm.response.to.have.status(201));",
-                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1374,7 +2031,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"3.4 - Administrative validation and conflicts | HTTP 201\", () => pm.response.to.have.status(201));",
                   "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"additional_admin_id\", String(pm.response.json().id)); }"
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"additional_admin_id\", String(pm.response.json().id)); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"3.4 - Administrative validation and conflicts | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1421,7 +2081,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"3.4 - Administrative validation and conflicts | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "pm.test(\"3.4 - Administrative validation and conflicts | Role replaced\", () => pm.expect(pm.response.json().role).to.eql(\"standard\"));"
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Role replaced\", () => pm.expect(pm.response.json().role).to.eql(\"standard\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"3.4 - Administrative validation and conflicts | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1467,7 +2130,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"3.4 - Administrative validation and conflicts | HTTP 409\", () => pm.response.to.have.status(409));",
-                  "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"3.4 - Administrative validation and conflicts | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1513,7 +2179,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.4 - Standard login and permissions | HTTP 403\", () => pm.response.to.have.status(403));",
-                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1559,7 +2228,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.4 - Standard login and permissions | HTTP 403\", () => pm.response.to.have.status(403));",
-                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1576,7 +2248,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/users?page_size=50",
+            "url": {
+              "raw": "{{base_url}}/users?page_size=50&page=1&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1601,7 +2301,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "  const u = pm.response.json().items.find(u => u.username === pm.variables.get(\"admin_username\"));",
                   "  pm.test(\"2.5 - Promotion with the original token | Acting administrator found\", () => pm.expect(u).to.be.an(\"object\"));",
                   "  pm.collectionVariables.set(\"admin_user_id\", u ? String(u.id) : \"\");",
-                  "}"
+                  "}",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.5 - Promotion with the original token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1613,7 +2316,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1634,7 +2405,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"old_standard_token\", pm.collectionVariables.get(\"standard_token\")); }"
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"old_standard_token\", pm.collectionVariables.get(\"standard_token\")); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.5 - Promotion with the original token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1680,7 +2454,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.5 - Promotion with the original token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1692,7 +2469,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1712,7 +2517,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.5 - Promotion with the original token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1768,7 +2576,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"2.5 - Promotion with the original token | HTTP 201\", () => pm.response.to.have.status(201));",
                   "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }"
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.5 - Promotion with the original token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1814,7 +2625,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.5 - Promotion with the original token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1864,7 +2678,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "  const data = pm.response.json();",
                   "  pm.test(\"2.6 - Promotion with a new token | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
                   "  pm.collectionVariables.set(\"promoted_token\", data.access_token);",
-                  "} else { pm.collectionVariables.set(\"promoted_token\", \"\"); }"
+                  "} else { pm.collectionVariables.set(\"promoted_token\", \"\"); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.6 - Promotion with a new token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1876,7 +2693,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1896,7 +2741,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.6 - Promotion with a new token | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.6 - Promotion with a new token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1952,7 +2800,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"2.6 - Promotion with a new token | HTTP 201\", () => pm.response.to.have.status(201));",
                   "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }"
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.6 - Promotion with a new token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -1998,7 +2849,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.6 - Promotion with a new token | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.6 - Promotion with a new token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2044,7 +2898,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2056,7 +2913,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2076,7 +2961,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
-                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2132,7 +3020,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
                   "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }"
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2178,7 +3069,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
-                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2190,7 +3084,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2210,7 +3172,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2256,7 +3221,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 201\", () => pm.response.to.have.status(201));",
-                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2268,7 +3236,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2288,7 +3284,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
-                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2300,7 +3299,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2320,7 +3387,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.7 - Demotion with already-issued tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2366,7 +3436,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"2.8 - Protect the last active administrator | HTTP 409\", () => pm.response.to.have.status(409));",
-                  "pm.test(\"2.8 - Protect the last active administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"2.8 - Protect the last active administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"2.8 - Protect the last active administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2417,7 +3490,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.2 - Change own password as administrator | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_old_token\", pm.response.json().access_token); }"
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_old_token\", pm.response.json().access_token); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2463,7 +3539,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.1 - Change own password as standard | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_old_token\", pm.response.json().access_token); }"
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_old_token\", pm.response.json().access_token); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2509,7 +3588,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 400\", () => pm.response.to.have.status(400));",
-                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.3 - Reject invalid own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2555,7 +3637,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 400\", () => pm.response.to.have.status(400));",
-                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.3 - Reject invalid own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2601,7 +3686,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 422\", () => pm.response.to.have.status(422));",
-                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.3 - Reject invalid own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2640,7 +3728,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.3 - Reject invalid own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2687,7 +3778,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.1 - Change own password as standard | HTTP 204\", () => pm.response.to.have.status(204));",
                   "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "pm.test(\"8.1 - Change own password as standard | Empty 204 body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                  "pm.test(\"8.1 - Change own password as standard | Empty 204 body\", () => pm.expect(pm.response.text()).to.eql(\"\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2698,7 +3792,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "47 - Reject standard token after password change",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -2719,7 +3881,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.1 - Change own password as standard | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2764,7 +3929,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.1 - Change own password as standard | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2810,7 +3978,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.1 - Change own password as standard | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_new_token\", pm.response.json().access_token); }"
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_new_token\", pm.response.json().access_token); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2821,7 +3992,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "50 - Preserve unrelated administrator token",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -2842,7 +4041,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2889,7 +4091,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.2 - Change own password as administrator | HTTP 204\", () => pm.response.to.have.status(204));",
                   "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "pm.test(\"8.2 - Change own password as administrator | Empty 204 body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                  "pm.test(\"8.2 - Change own password as administrator | Empty 204 body\", () => pm.expect(pm.response.text()).to.eql(\"\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2900,7 +4105,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "52 - Reject administrator token after password change",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -2921,7 +4154,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.2 - Change own password as administrator | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -2966,7 +4202,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.2 - Change own password as administrator | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3012,7 +4251,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.2 - Change own password as administrator | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_new_token\", pm.response.json().access_token); }"
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_new_token\", pm.response.json().access_token); }",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3023,7 +4265,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "55 - Preserve unrelated standard token",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -3044,7 +4354,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3090,7 +4403,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3136,7 +4452,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 422\", () => pm.response.to.have.status(422));",
-                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.3 - Reject invalid own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3183,7 +4502,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.5 - Concurrent own-password changes | Guarded concurrent result\", () => pm.expect(pm.response.code).to.be.oneOf([204, 401]));",
                   "pm.test(\"8.5 - Concurrent own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "pm.collectionVariables.set(\"password_race_a_status\", String(pm.response.code));"
+                  "pm.collectionVariables.set(\"password_race_a_status\", String(pm.response.code));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.5 - Concurrent own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3230,7 +4552,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"8.5 - Concurrent own-password changes | Guarded concurrent result\", () => pm.expect(pm.response.code).to.be.oneOf([204, 401]));",
                   "pm.test(\"8.5 - Concurrent own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "pm.collectionVariables.set(\"password_race_b_status\", String(pm.response.code));"
+                  "pm.collectionVariables.set(\"password_race_b_status\", String(pm.response.code));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.5 - Concurrent own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3259,7 +4584,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "pm.test(\"8.5 - Concurrent own-password changes | Exactly one concurrent password change succeeds\", () => {",
                   "  const codes = [Number(pm.collectionVariables.get(\"password_race_a_status\")), Number(pm.collectionVariables.get(\"password_race_b_status\"))].sort();",
                   "  pm.expect(codes).to.eql([204, 401]);",
-                  "});"
+                  "});",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"8.5 - Concurrent own-password changes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3276,7 +4604,7 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/test?page=2&page_size=10",
+              "raw": "{{base_url}}/test?page=2&page_size=10&order_by=id&order_direction=asc",
               "host": [
                 "{{base_url}}"
               ],
@@ -3305,6 +4633,46 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "value": "%Ouroboros%",
                   "disabled": true,
                   "description": "Optional raw ILIKE pattern; AND with id"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
                 }
               ]
             },
@@ -3329,7 +4697,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"4.4 - Pagination counts limits and empty pages | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"4.4 - Pagination counts limits and empty pages | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "pm.test(\"4.4 - Pagination counts limits and empty pages | Paginated envelope\", () => { const b=pm.response.json(); pm.expect(b.items).to.be.an(\"array\"); pm.expect(b.count).to.be.at.least(b.items.length); pm.expect(b.page).to.eql(Number(pm.request.url.query.get(\"page\") || 1)); pm.expect(b.page_size).to.eql(Number(pm.request.url.query.get(\"page_size\") || 50)); pm.expect(b.items.length).to.be.at.most(b.page_size); for(let i=1;i<b.items.length;i++) pm.expect(b.items[i].id).to.be.above(b.items[i-1].id); });"
+                  "pm.test(\"4.4 - Pagination counts limits and empty pages | Paginated envelope\", () => { const b=pm.response.json(); pm.expect(b.items).to.be.an(\"array\"); pm.expect(b.count).to.be.at.least(b.items.length); pm.expect(b.page).to.eql(Number(pm.request.url.query.get(\"page\") || 1)); pm.expect(b.page_size).to.eql(Number(pm.request.url.query.get(\"page_size\") || 50)); pm.expect(b.items.length).to.be.at.most(b.page_size); for(let i=1;i<b.items.length;i++) pm.expect(b.items[i].id).to.be.above(b.items[i-1].id); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"4.4 - Pagination counts limits and empty pages | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3375,7 +4746,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_admin_token\", String(pm.response.json().access_token));"
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_admin_token\", String(pm.response.json().access_token));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3422,7 +4796,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 201\", () => pm.response.to.have.status(201));",
                   "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 201) pm.collectionVariables.set(\"reset_target_id\", String(pm.response.json().id));"
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"reset_target_id\", String(pm.response.json().id));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3468,7 +4845,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_old_token\", String(pm.response.json().access_token));"
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_old_token\", String(pm.response.json().access_token));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3514,7 +4894,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_peer_token\", String(pm.response.json().access_token));"
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_peer_token\", String(pm.response.json().access_token));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3560,7 +4943,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 403\", () => pm.response.to.have.status(403));",
-                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.2 - Administrative reset rejection and body secrecy | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3599,7 +4985,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.2 - Administrative reset rejection and body secrecy | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3645,7 +5034,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 404\", () => pm.response.to.have.status(404));",
-                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.2 - Administrative reset rejection and body secrecy | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3691,7 +5083,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 422\", () => pm.response.to.have.status(422));",
-                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.2 - Administrative reset rejection and body secrecy | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3738,7 +5133,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 204\", () => pm.response.to.have.status(204));",
                   "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "pm.test(\"9.1 - Administrator reset and target token revocation | Empty body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Empty body\", () => pm.expect(pm.response.text()).to.eql(\"\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3749,7 +5147,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "71 - Reject target token issued before reset",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -3770,7 +5236,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3815,7 +5284,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 401\", () => pm.response.to.have.status(401));",
-                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3861,7 +5333,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
-                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_new_token\", String(pm.response.json().access_token));"
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_new_token\", String(pm.response.json().access_token));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3872,7 +5347,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "74 - Preserve unrelated token after reset",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -3893,7 +5436,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3904,7 +5450,75 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "75 - Use new target token after reset",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/test",
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, value, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -3925,7 +5539,10 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
@@ -3936,7 +5553,35 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
           "name": "76 - Preserve administrator token after reset",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/users",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Choices: id, username, role, is_active, created_at"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                }
+              ]
+            },
             "header": [],
             "auth": {
               "type": "bearer",
@@ -3957,12 +5602,13567 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }
           ],
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "Catalogue CRUD (isolated database; supervisor or administrator)",
+      "description": "Run login then create/update/list folders in dependency order in a fresh QA database. Deletion requests are skipped unless explicitly opted in; execute leaves before parents. Normal records must never be used.",
+      "item": [
+        {
+          "name": "CAT - Catalogue login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{base_url}}/token",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{catalogue_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{catalogue_password}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"catalogue_token\", pm.response.json().access_token);",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "works",
+          "item": [
+            {
+              "name": "CAT works - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/works",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"El dragón 🐉\",\n  \"title_language\": \"es\",\n  \"synopsis\": \"An English synopsis.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_works\", pm.response.json().id_works);",
+                      "pm.collectionVariables.set(\"catalogue_record_works\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/works/{{catalogue_id_works}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_works\", pm.response.json().id_works);",
+                      "pm.collectionVariables.set(\"catalogue_record_works\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/works/{{catalogue_id_works}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"synopsis\": \"Updated English synopsis, omitted title preserved.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_works\", pm.response.json().id_works);",
+                      "pm.collectionVariables.set(\"catalogue_record_works\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/works/{{catalogue_id_works}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_works}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_works\", pm.response.json().id_works);",
+                      "pm.collectionVariables.set(\"catalogue_record_works\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/works?page=1&page_size=50&order_by=sequence_works&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "works"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_works",
+                      "value": "{{catalogue_id_works}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_works",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_works",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_works",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "title",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "title_language",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "synopsis",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_works",
+                      "description": "Choices: id_works, sequence_works, prefix_works, fantasy_name_works, title, title_language, synopsis, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/works?page=1&page_size=50&order_by=sequence_works&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "works"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_works",
+                      "value": "{{catalogue_id_works}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_works",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_works",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_works",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "title",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "title_language",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "synopsis",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_works",
+                      "description": "Choices: id_works, sequence_works, prefix_works, fantasy_name_works, title, title_language, synopsis, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/works?page=1&page_size=50&order_by=sequence_works&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "works"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_works",
+                      "value": "{{catalogue_id_works}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_works",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_works",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_works",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "title",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "title_language",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "synopsis",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_works",
+                      "description": "Choices: id_works, sequence_works, prefix_works, fantasy_name_works, title, title_language, synopsis, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_works\", value: pm.collectionVariables.get(\"catalogue_id_works\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_works)).to.eql([pm.collectionVariables.get(\"catalogue_id_works\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/works/{{catalogue_id_works}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT works - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/works?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "works"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "platforms",
+          "item": [
+            {
+              "name": "CAT platforms - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/platforms",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"platform_name\": \"QA Library\",\n  \"platform_is_paid\": false,\n  \"platform_is_episodes\": true,\n  \"platform_is_duration_time\": true,\n  \"price_amount\": null,\n  \"price_currency\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_platforms\", pm.response.json().id_platforms);",
+                      "pm.collectionVariables.set(\"catalogue_record_platforms\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/platforms/{{catalogue_id_platforms}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_platforms\", pm.response.json().id_platforms);",
+                      "pm.collectionVariables.set(\"catalogue_record_platforms\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/platforms/{{catalogue_id_platforms}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"platform_name\": \"QA Library\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_platforms\", pm.response.json().id_platforms);",
+                      "pm.collectionVariables.set(\"catalogue_record_platforms\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/platforms/{{catalogue_id_platforms}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_platforms}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_platforms\", pm.response.json().id_platforms);",
+                      "pm.collectionVariables.set(\"catalogue_record_platforms\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/platforms?page=1&page_size=50&order_by=sequence_platforms&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "platforms"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_platforms",
+                      "value": "{{catalogue_id_platforms}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_platforms",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_platforms",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_platforms",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "platform_name",
+                      "value": "%Library%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "platform_is_paid",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "platform_is_episodes",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "platform_is_duration_time",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "price_amount",
+                      "value": "12.5",
+                      "disabled": true,
+                      "description": "Optional exact finite decimal match within the field numeric limits."
+                    },
+                    {
+                      "key": "price_currency",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_platforms",
+                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, price_amount, price_currency, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/platforms?page=1&page_size=50&order_by=sequence_platforms&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "platforms"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_platforms",
+                      "value": "{{catalogue_id_platforms}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_platforms",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_platforms",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_platforms",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "platform_name",
+                      "value": "%Library%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "platform_is_paid",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "platform_is_episodes",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "platform_is_duration_time",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "price_amount",
+                      "value": "12.5",
+                      "disabled": true,
+                      "description": "Optional exact finite decimal match within the field numeric limits."
+                    },
+                    {
+                      "key": "price_currency",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_platforms",
+                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, price_amount, price_currency, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/platforms?page=1&page_size=50&order_by=sequence_platforms&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "platforms"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_platforms",
+                      "value": "{{catalogue_id_platforms}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_platforms",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_platforms",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_platforms",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "platform_name",
+                      "value": "%Library%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "platform_is_paid",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "platform_is_episodes",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "platform_is_duration_time",
+                      "value": "true",
+                      "disabled": true,
+                      "description": "Optional exact boolean match (true or false)."
+                    },
+                    {
+                      "key": "price_amount",
+                      "value": "12.5",
+                      "disabled": true,
+                      "description": "Optional exact finite decimal match within the field numeric limits."
+                    },
+                    {
+                      "key": "price_currency",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_platforms",
+                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, price_amount, price_currency, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_platforms\", value: pm.collectionVariables.get(\"catalogue_id_platforms\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_platforms)).to.eql([pm.collectionVariables.get(\"catalogue_id_platforms\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/platforms/{{catalogue_id_platforms}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT platforms - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/platforms?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "platforms"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "work_availabilities",
+          "item": [
+            {
+              "name": "CAT work_availabilities - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_availabilities",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\",\n  \"id_platforms\": \"{{catalogue_id_platforms}}\",\n  \"duration_minutes\": \"120.5\",\n  \"episode_quantity\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_availabilities\", pm.response.json().id_work_availabilities);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_availabilities\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_availabilities/{{catalogue_id_work_availabilities}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_availabilities\", pm.response.json().id_work_availabilities);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_availabilities\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_availabilities/{{catalogue_id_work_availabilities}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_availabilities\", pm.response.json().id_work_availabilities);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_availabilities\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_availabilities/{{catalogue_id_work_availabilities}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_work_availabilities}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_availabilities\", pm.response.json().id_work_availabilities);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_availabilities\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_availabilities?page=1&page_size=50&order_by=sequence_work_availabilities&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_availabilities"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "{{catalogue_id_work_availabilities}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_availabilities",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_availabilities",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_availabilities",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_platforms",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "duration_minutes",
+                      "value": "12.5",
+                      "disabled": true,
+                      "description": "Optional exact finite decimal match within the field numeric limits."
+                    },
+                    {
+                      "key": "episode_quantity",
+                      "value": "2",
+                      "disabled": true,
+                      "description": "Optional exact positive integer match."
+                    },
+                    {
+                      "key": "publisher_profile",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "url",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_work_availabilities",
+                      "description": "Choices: id_work_availabilities, sequence_work_availabilities, prefix_work_availabilities, fantasy_name_work_availabilities, id_works, id_platforms, duration_minutes, episode_quantity, publisher_profile, url, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_availabilities?page=1&page_size=50&order_by=sequence_work_availabilities&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_availabilities"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "{{catalogue_id_work_availabilities}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_availabilities",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_availabilities",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_availabilities",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_platforms",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "duration_minutes",
+                      "value": "12.5",
+                      "disabled": true,
+                      "description": "Optional exact finite decimal match within the field numeric limits."
+                    },
+                    {
+                      "key": "episode_quantity",
+                      "value": "2",
+                      "disabled": true,
+                      "description": "Optional exact positive integer match."
+                    },
+                    {
+                      "key": "publisher_profile",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "url",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_work_availabilities",
+                      "description": "Choices: id_work_availabilities, sequence_work_availabilities, prefix_work_availabilities, fantasy_name_work_availabilities, id_works, id_platforms, duration_minutes, episode_quantity, publisher_profile, url, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_availabilities?page=1&page_size=50&order_by=sequence_work_availabilities&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_availabilities"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "{{catalogue_id_work_availabilities}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_availabilities",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_availabilities",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_availabilities",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_platforms",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "duration_minutes",
+                      "value": "12.5",
+                      "disabled": true,
+                      "description": "Optional exact finite decimal match within the field numeric limits."
+                    },
+                    {
+                      "key": "episode_quantity",
+                      "value": "2",
+                      "disabled": true,
+                      "description": "Optional exact positive integer match."
+                    },
+                    {
+                      "key": "publisher_profile",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "url",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_work_availabilities",
+                      "description": "Choices: id_work_availabilities, sequence_work_availabilities, prefix_work_availabilities, fantasy_name_work_availabilities, id_works, id_platforms, duration_minutes, episode_quantity, publisher_profile, url, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_work_availabilities\", value: pm.collectionVariables.get(\"catalogue_id_work_availabilities\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_work_availabilities)).to.eql([pm.collectionVariables.get(\"catalogue_id_work_availabilities\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_availabilities/{{catalogue_id_work_availabilities}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_availabilities - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_availabilities?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_availabilities"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tags",
+          "item": [
+            {
+              "name": "CAT tags - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tags",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tag_name\": \"support_without_dependence\",\n  \"display_name_tags\": \"Support 💕\",\n  \"description_tags\": \"Reusable preference tag.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tags\", pm.response.json().id_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tags\", pm.response.json().id_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tag_name\": \"support_without_dependence\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tags\", pm.response.json().id_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_tags}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tags\", pm.response.json().id_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tags?page=1&page_size=50&order_by=sequence_tags&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tags",
+                      "value": "{{catalogue_id_tags}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tags",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "tag_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_tags",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_tags",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tags",
+                      "description": "Choices: id_tags, sequence_tags, prefix_tags, fantasy_name_tags, tag_name, display_name_tags, description_tags, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tags?page=1&page_size=50&order_by=sequence_tags&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tags",
+                      "value": "{{catalogue_id_tags}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tags",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "tag_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_tags",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_tags",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tags",
+                      "description": "Choices: id_tags, sequence_tags, prefix_tags, fantasy_name_tags, tag_name, display_name_tags, description_tags, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tags?page=1&page_size=50&order_by=sequence_tags&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tags",
+                      "value": "{{catalogue_id_tags}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tags",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "tag_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_tags",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_tags",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tags",
+                      "description": "Choices: id_tags, sequence_tags, prefix_tags, fantasy_name_tags, tag_name, display_name_tags, description_tags, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_tags\", value: pm.collectionVariables.get(\"catalogue_id_tags\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_tags)).to.eql([pm.collectionVariables.get(\"catalogue_id_tags\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tags - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tags?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tag_categories",
+          "item": [
+            {
+              "name": "CAT tag_categories - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_categories",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tag_category_name\": \"relationships\",\n  \"display_name_tag_categories\": \"Vínculos\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_categories\", pm.response.json().id_tag_categories);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_categories\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_categories\", pm.response.json().id_tag_categories);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_categories\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tag_category_name\": \"relationships\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_categories\", pm.response.json().id_tag_categories);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_categories\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_tag_categories}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_categories\", pm.response.json().id_tag_categories);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_categories\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_categories?page=1&page_size=50&order_by=sequence_tag_categories&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_categories"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_categories",
+                      "value": "{{catalogue_id_tag_categories}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_categories",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_categories",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_categories",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "tag_category_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_tag_categories",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_tag_categories",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_categories",
+                      "description": "Choices: id_tag_categories, sequence_tag_categories, prefix_tag_categories, fantasy_name_tag_categories, tag_category_name, display_name_tag_categories, description_tag_categories, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_categories?page=1&page_size=50&order_by=sequence_tag_categories&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_categories"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_categories",
+                      "value": "{{catalogue_id_tag_categories}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_categories",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_categories",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_categories",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "tag_category_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_tag_categories",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_tag_categories",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_categories",
+                      "description": "Choices: id_tag_categories, sequence_tag_categories, prefix_tag_categories, fantasy_name_tag_categories, tag_category_name, display_name_tag_categories, description_tag_categories, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_categories?page=1&page_size=50&order_by=sequence_tag_categories&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_categories"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_categories",
+                      "value": "{{catalogue_id_tag_categories}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_categories",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_categories",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_categories",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "tag_category_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_tag_categories",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_tag_categories",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_categories",
+                      "description": "Choices: id_tag_categories, sequence_tag_categories, prefix_tag_categories, fantasy_name_tag_categories, tag_category_name, display_name_tag_categories, description_tag_categories, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_tag_categories\", value: pm.collectionVariables.get(\"catalogue_id_tag_categories\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_tag_categories)).to.eql([pm.collectionVariables.get(\"catalogue_id_tag_categories\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_categories - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_categories?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_categories"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tag_category_relationships",
+          "item": [
+            {
+              "name": "CAT tag_category_relationships - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_category_relationships",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_tags\": \"{{catalogue_id_tags}}\",\n  \"id_tag_categories\": \"{{catalogue_id_tag_categories}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_category_relationships\", pm.response.json().id_tag_category_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_category_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_category_relationships/{{catalogue_id_tag_category_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_category_relationships\", pm.response.json().id_tag_category_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_category_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_category_relationships/{{catalogue_id_tag_category_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_tags\": \"{{catalogue_id_tags}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_category_relationships\", pm.response.json().id_tag_category_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_category_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_category_relationships/{{catalogue_id_tag_category_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_tag_category_relationships}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_category_relationships\", pm.response.json().id_tag_category_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_category_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_category_relationships?page=1&page_size=50&order_by=sequence_tag_category_relationships&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_category_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_category_relationships",
+                      "value": "{{catalogue_id_tag_category_relationships}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_category_relationships",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_category_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_category_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tag_categories",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_category_relationships",
+                      "description": "Choices: id_tag_category_relationships, sequence_tag_category_relationships, prefix_tag_category_relationships, fantasy_name_tag_category_relationships, id_tags, id_tag_categories, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_category_relationships?page=1&page_size=50&order_by=sequence_tag_category_relationships&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_category_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_category_relationships",
+                      "value": "{{catalogue_id_tag_category_relationships}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_category_relationships",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_category_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_category_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tag_categories",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_category_relationships",
+                      "description": "Choices: id_tag_category_relationships, sequence_tag_category_relationships, prefix_tag_category_relationships, fantasy_name_tag_category_relationships, id_tags, id_tag_categories, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_category_relationships?page=1&page_size=50&order_by=sequence_tag_category_relationships&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_category_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_category_relationships",
+                      "value": "{{catalogue_id_tag_category_relationships}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_category_relationships",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_category_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_category_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tag_categories",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_category_relationships",
+                      "description": "Choices: id_tag_category_relationships, sequence_tag_category_relationships, prefix_tag_category_relationships, fantasy_name_tag_category_relationships, id_tags, id_tag_categories, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_tag_category_relationships\", value: pm.collectionVariables.get(\"catalogue_id_tag_category_relationships\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_tag_category_relationships)).to.eql([pm.collectionVariables.get(\"catalogue_id_tag_category_relationships\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_category_relationships/{{catalogue_id_tag_category_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_category_relationships - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_category_relationships?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_category_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tag_relationships",
+          "item": [
+            {
+              "name": "CAT tag_relationships - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_relationships",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_tags_source\": \"{{catalogue_id_tags}}\",\n  \"id_tags_target\": \"{{catalogue_id_tags}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_relationships\", pm.response.json().id_tag_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_relationships/{{catalogue_id_tag_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_relationships\", pm.response.json().id_tag_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_relationships/{{catalogue_id_tag_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_tags_source\": \"{{catalogue_id_tags}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_relationships\", pm.response.json().id_tag_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_relationships/{{catalogue_id_tag_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_tag_relationships}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_tag_relationships\", pm.response.json().id_tag_relationships);",
+                      "pm.collectionVariables.set(\"catalogue_record_tag_relationships\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_relationships?page=1&page_size=50&order_by=sequence_tag_relationships&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_relationships",
+                      "value": "{{catalogue_id_tag_relationships}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_relationships",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags_source",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags_target",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_relationships",
+                      "description": "Choices: id_tag_relationships, sequence_tag_relationships, prefix_tag_relationships, fantasy_name_tag_relationships, id_tags_source, id_tags_target, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_relationships?page=1&page_size=50&order_by=sequence_tag_relationships&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_relationships",
+                      "value": "{{catalogue_id_tag_relationships}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_relationships",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags_source",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags_target",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_relationships",
+                      "description": "Choices: id_tag_relationships, sequence_tag_relationships, prefix_tag_relationships, fantasy_name_tag_relationships, id_tags_source, id_tags_target, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_relationships?page=1&page_size=50&order_by=sequence_tag_relationships&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_tag_relationships",
+                      "value": "{{catalogue_id_tag_relationships}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_tag_relationships",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_tag_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_tag_relationships",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags_source",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags_target",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_tag_relationships",
+                      "description": "Choices: id_tag_relationships, sequence_tag_relationships, prefix_tag_relationships, fantasy_name_tag_relationships, id_tags_source, id_tags_target, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_tag_relationships\", value: pm.collectionVariables.get(\"catalogue_id_tag_relationships\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_tag_relationships)).to.eql([pm.collectionVariables.get(\"catalogue_id_tag_relationships\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/tag_relationships/{{catalogue_id_tag_relationships}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT tag_relationships - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/tag_relationships?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "tag_relationships"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "work_classifications",
+          "item": [
+            {
+              "name": "CAT work_classifications - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_classifications",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"work_classification_name\": \"qa_classification\",\n  \"display_name_work_classifications\": \"QA only\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_classifications\", pm.response.json().id_work_classifications);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_classifications\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_classifications\", pm.response.json().id_work_classifications);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_classifications\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"work_classification_name\": \"qa_classification\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_classifications\", pm.response.json().id_work_classifications);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_classifications\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_work_classifications}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_classifications\", pm.response.json().id_work_classifications);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_classifications\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_classifications?page=1&page_size=50&order_by=tier&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_classifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_classifications",
+                      "value": "{{catalogue_id_work_classifications}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_classifications",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_classifications",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_classifications",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "work_classification_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_work_classifications",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_work_classifications",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "tier",
+                      "value": "2",
+                      "disabled": true,
+                      "description": "Optional exact positive integer match."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "tier",
+                      "description": "Choices: id_work_classifications, sequence_work_classifications, prefix_work_classifications, fantasy_name_work_classifications, work_classification_name, display_name_work_classifications, description_work_classifications, tier, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_classifications?page=1&page_size=50&order_by=tier&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_classifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_classifications",
+                      "value": "{{catalogue_id_work_classifications}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_classifications",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_classifications",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_classifications",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "work_classification_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_work_classifications",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_work_classifications",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "tier",
+                      "value": "2",
+                      "disabled": true,
+                      "description": "Optional exact positive integer match."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "tier",
+                      "description": "Choices: id_work_classifications, sequence_work_classifications, prefix_work_classifications, fantasy_name_work_classifications, work_classification_name, display_name_work_classifications, description_work_classifications, tier, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_classifications?page=1&page_size=50&order_by=tier&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_classifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_classifications",
+                      "value": "{{catalogue_id_work_classifications}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_classifications",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_classifications",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_classifications",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "work_classification_name",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "display_name_work_classifications",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "description_work_classifications",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "tier",
+                      "value": "2",
+                      "disabled": true,
+                      "description": "Optional exact positive integer match."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "tier",
+                      "description": "Choices: id_work_classifications, sequence_work_classifications, prefix_work_classifications, fantasy_name_work_classifications, work_classification_name, display_name_work_classifications, description_work_classifications, tier, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_work_classifications\", value: pm.collectionVariables.get(\"catalogue_id_work_classifications\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_work_classifications)).to.eql([pm.collectionVariables.get(\"catalogue_id_work_classifications\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_classifications - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_classifications?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_classifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "watchlist_entries",
+          "item": [
+            {
+              "name": "CAT watchlist_entries - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watchlist_entries",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\",\n  \"id_work_availabilities\": \"{{catalogue_id_work_availabilities}}\",\n  \"observations\": \"Trailer impressions.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watchlist_entries\", pm.response.json().id_watchlist_entries);",
+                      "pm.collectionVariables.set(\"catalogue_record_watchlist_entries\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watchlist_entries/{{catalogue_id_watchlist_entries}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watchlist_entries\", pm.response.json().id_watchlist_entries);",
+                      "pm.collectionVariables.set(\"catalogue_record_watchlist_entries\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watchlist_entries/{{catalogue_id_watchlist_entries}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watchlist_entries\", pm.response.json().id_watchlist_entries);",
+                      "pm.collectionVariables.set(\"catalogue_record_watchlist_entries\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watchlist_entries/{{catalogue_id_watchlist_entries}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_watchlist_entries}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watchlist_entries\", pm.response.json().id_watchlist_entries);",
+                      "pm.collectionVariables.set(\"catalogue_record_watchlist_entries\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watchlist_entries?page=1&page_size=50&order_by=sequence_watchlist_entries&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watchlist_entries"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_watchlist_entries",
+                      "value": "{{catalogue_id_watchlist_entries}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_watchlist_entries",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_watchlist_entries",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_watchlist_entries",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_classifications_predicted",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "observations",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "added_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "added_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_watchlist_entries",
+                      "description": "Choices: id_watchlist_entries, sequence_watchlist_entries, prefix_watchlist_entries, fantasy_name_watchlist_entries, id_works, id_work_availabilities, id_work_classifications_predicted, observations, created_at, created_at_timezone, added_at, added_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watchlist_entries?page=1&page_size=50&order_by=sequence_watchlist_entries&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watchlist_entries"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_watchlist_entries",
+                      "value": "{{catalogue_id_watchlist_entries}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_watchlist_entries",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_watchlist_entries",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_watchlist_entries",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_classifications_predicted",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "observations",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "added_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "added_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_watchlist_entries",
+                      "description": "Choices: id_watchlist_entries, sequence_watchlist_entries, prefix_watchlist_entries, fantasy_name_watchlist_entries, id_works, id_work_availabilities, id_work_classifications_predicted, observations, created_at, created_at_timezone, added_at, added_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watchlist_entries?page=1&page_size=50&order_by=sequence_watchlist_entries&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watchlist_entries"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_watchlist_entries",
+                      "value": "{{catalogue_id_watchlist_entries}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_watchlist_entries",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_watchlist_entries",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_watchlist_entries",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_classifications_predicted",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "observations",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "added_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "added_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_watchlist_entries",
+                      "description": "Choices: id_watchlist_entries, sequence_watchlist_entries, prefix_watchlist_entries, fantasy_name_watchlist_entries, id_works, id_work_availabilities, id_work_classifications_predicted, observations, created_at, created_at_timezone, added_at, added_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_watchlist_entries\", value: pm.collectionVariables.get(\"catalogue_id_watchlist_entries\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_watchlist_entries)).to.eql([pm.collectionVariables.get(\"catalogue_id_watchlist_entries\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watchlist_entries/{{catalogue_id_watchlist_entries}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watchlist_entries - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watchlist_entries?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watchlist_entries"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "watch_history",
+          "item": [
+            {
+              "name": "CAT watch_history - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watch_history",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\",\n  \"id_work_availabilities\": \"{{catalogue_id_work_availabilities}}\",\n  \"watched_at\": null,\n  \"observations\": \"A separate experience.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watch_history\", pm.response.json().id_watch_history);",
+                      "pm.collectionVariables.set(\"catalogue_record_watch_history\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watch_history/{{catalogue_id_watch_history}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watch_history\", pm.response.json().id_watch_history);",
+                      "pm.collectionVariables.set(\"catalogue_record_watch_history\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watch_history/{{catalogue_id_watch_history}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watch_history\", pm.response.json().id_watch_history);",
+                      "pm.collectionVariables.set(\"catalogue_record_watch_history\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watch_history/{{catalogue_id_watch_history}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_watch_history}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_watch_history\", pm.response.json().id_watch_history);",
+                      "pm.collectionVariables.set(\"catalogue_record_watch_history\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watch_history?page=1&page_size=50&order_by=sequence_watch_history&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watch_history"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_watch_history",
+                      "value": "{{catalogue_id_watch_history}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_watch_history",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_watch_history",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_watch_history",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_classifications",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "observations",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "watched_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "watched_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "watched_at_offset",
+                      "value": "+01:00",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_watch_history",
+                      "description": "Choices: id_watch_history, sequence_watch_history, prefix_watch_history, fantasy_name_watch_history, id_works, id_work_availabilities, id_work_classifications, observations, watched_at, watched_at_timezone, created_at, created_at_timezone, watched_at_offset"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watch_history?page=1&page_size=50&order_by=sequence_watch_history&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watch_history"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_watch_history",
+                      "value": "{{catalogue_id_watch_history}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_watch_history",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_watch_history",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_watch_history",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_classifications",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "observations",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "watched_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "watched_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "watched_at_offset",
+                      "value": "+01:00",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_watch_history",
+                      "description": "Choices: id_watch_history, sequence_watch_history, prefix_watch_history, fantasy_name_watch_history, id_works, id_work_availabilities, id_work_classifications, observations, watched_at, watched_at_timezone, created_at, created_at_timezone, watched_at_offset"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watch_history?page=1&page_size=50&order_by=sequence_watch_history&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watch_history"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_watch_history",
+                      "value": "{{catalogue_id_watch_history}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_watch_history",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_watch_history",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_watch_history",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_availabilities",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_work_classifications",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "observations",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
+                      "key": "watched_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "watched_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "watched_at_offset",
+                      "value": "+01:00",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_watch_history",
+                      "description": "Choices: id_watch_history, sequence_watch_history, prefix_watch_history, fantasy_name_watch_history, id_works, id_work_availabilities, id_work_classifications, observations, watched_at, watched_at_timezone, created_at, created_at_timezone, watched_at_offset"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_watch_history\", value: pm.collectionVariables.get(\"catalogue_id_watch_history\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_watch_history)).to.eql([pm.collectionVariables.get(\"catalogue_id_watch_history\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/watch_history/{{catalogue_id_watch_history}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT watch_history - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/watch_history?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "watch_history"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "work_tags",
+          "item": [
+            {
+              "name": "CAT work_tags - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_tags",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\",\n  \"id_tags\": \"{{catalogue_id_tags}}\",\n  \"id_tag_relationships\": null,\n  \"id_watchlist_entries\": \"{{catalogue_id_watchlist_entries}}\",\n  \"id_watch_history\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_tags\", pm.response.json().id_work_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - Get created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_tags/{{catalogue_id_work_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_tags\", pm.response.json().id_work_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - Partial PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_tags/{{catalogue_id_work_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_tags\", pm.response.json().id_work_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - Full record PUT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_tags/{{catalogue_id_work_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{catalogue_record_work_tags}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.1 - Catalogue CRUD and full record round trips | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.collectionVariables.set(\"catalogue_id_work_tags\", pm.response.json().id_work_tags);",
+                      "pm.collectionVariables.set(\"catalogue_record_work_tags\", JSON.stringify(pm.response.json()));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.1 - Catalogue CRUD and full record round trips | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - List filters and pagination",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_tags?page=1&page_size=50&order_by=sequence_work_tags&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_tags",
+                      "value": "{{catalogue_id_work_tags}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_tags",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tag_relationships",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_watchlist_entries",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_watch_history",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_work_tags",
+                      "description": "Choices: id_work_tags, sequence_work_tags, prefix_work_tags, fantasy_name_work_tags, id_works, id_tags, id_tag_relationships, id_watchlist_entries, id_watch_history, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - Order descending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_tags?page=1&page_size=50&order_by=sequence_work_tags&order_direction=desc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_tags",
+                      "value": "{{catalogue_id_work_tags}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_tags",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tag_relationships",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_watchlist_entries",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_watch_history",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_work_tags",
+                      "description": "Choices: id_work_tags, sequence_work_tags, prefix_work_tags, fantasy_name_work_tags, id_works, id_tags, id_tag_relationships, id_watchlist_entries, id_watch_history, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "desc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - Filter created ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_tags?page=1&page_size=50&order_by=sequence_work_tags&order_direction=asc",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_work_tags",
+                      "value": "{{catalogue_id_work_tags}}",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "sequence_work_tags",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "prefix_work_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "fantasy_name_work_tags",
+                      "value": "example",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_works",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tags",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_tag_relationships",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_watchlist_entries",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "id_watch_history",
+                      "value": "WK0000001",
+                      "disabled": true,
+                      "description": "Optional exact match; combined with all supplied filters using AND."
+                    },
+                    {
+                      "key": "created_at",
+                      "value": "2026-10-19T12:00:00Z",
+                      "disabled": true,
+                      "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                    },
+                    {
+                      "key": "created_at_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "Optional exact recorded source context."
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "50"
+                    },
+                    {
+                      "key": "order_by",
+                      "value": "sequence_work_tags",
+                      "description": "Choices: id_work_tags, sequence_work_tags, prefix_work_tags, fantasy_name_work_tags, id_works, id_tags, id_tag_relationships, id_watchlist_entries, id_watch_history, created_at, created_at_timezone"
+                    },
+                    {
+                      "key": "order_direction",
+                      "value": "asc",
+                      "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01T00:00:00+01:00",
+                      "disabled": true,
+                      "description": "Inclusive offset-aware instant"
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-11-01T00:00:00Z",
+                      "disabled": true,
+                      "description": "Exclusive offset-aware instant"
+                    },
+                    {
+                      "key": "display_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone or original; read-only presentation"
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.request.url.query.upsert({key: \"id_work_tags\", value: pm.collectionVariables.get(\"catalogue_id_work_tags\"), disabled: false});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_work_tags)).to.eql([pm.collectionVariables.get(\"catalogue_id_work_tags\")]));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - Delete by ID (opt-in)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{catalogue_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/work_tags/{{catalogue_id_work_tags}}",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 204\", () => pm.response.to.have.status(204));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "CAT work_tags - ADMIN DELETE ALL (opt-in isolated only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/work_tags?confirm=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "work_tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "confirm",
+                      "value": "false",
+                      "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    }
+                  ]
+                },
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Committed count\", () => pm.expect(pm.response.json().deleted_count).to.be.a(\"number\"));",
+                      "// Central error and interaction contract",
+                      "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                      "if (pm.response.code >= 400) { pm.test(\"14.5 - Atomic catalogue deletion and safe destructive audit | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Catalogue role scenarios (fresh isolated accounts)",
+      "description": "Use fresh isolated administrator/standard accounts from earlier scenarios. Supervisor creation requires fresh private names; never export credentials.",
+      "item": [
+        {
+          "name": "CAT roles - Create supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/users",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{supervisor_username}}\",\n  \"password\": \"{{supervisor_password}}\",\n  \"role\": \"supervisor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"supervisor_user_id\", String(pm.response.json().id));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Login supervisor",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{base_url}}/token",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{supervisor_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{supervisor_password}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"supervisor_token\", pm.response.json().access_token);",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Login standard",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{base_url}}/token",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{standard_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{standard_password}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"standard_token\", pm.response.json().access_token);",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Supervisor catalogue read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?page=1&page_size=50&order_by=sequence_works&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "sequence_works",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "prefix_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "fantasy_name_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "title",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "title_language",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "synopsis",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Optional exact recorded source context."
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "sequence_works",
+                  "description": "Choices: id_works, sequence_works, prefix_works, fantasy_name_works, title, title_language, synopsis, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive offset-aware instant"
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive offset-aware instant"
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; read-only presentation"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Supervisor DELETE ALL rejected",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Opt-in isolated negative check; confirm=false protects against a misconfigured administrator token. Supervisor authorization is rejected before confirmation validation. Enable only the isolated flow locally.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Standard catalogue rejected",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?page=1&page_size=50&order_by=sequence_works&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "sequence_works",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "prefix_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "fantasy_name_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "title",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "title_language",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "synopsis",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Optional exact recorded source context."
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "sequence_works",
+                  "description": "Choices: id_works, sequence_works, prefix_works, fantasy_name_works, title, title_language, synopsis, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive offset-aware instant"
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive offset-aware instant"
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; read-only presentation"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Promote standard to supervisor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/users/{{standard_user_id}}/role",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"supervisor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Promoted existing token reads catalogue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?page=1&page_size=50&order_by=sequence_works&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "sequence_works",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "prefix_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "fantasy_name_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "title",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "title_language",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "synopsis",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Optional exact recorded source context."
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "sequence_works",
+                  "description": "Choices: id_works, sequence_works, prefix_works, fantasy_name_works, title, title_language, synopsis, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive offset-aware instant"
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive offset-aware instant"
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; read-only presentation"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Demote supervisor to standard",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/users/{{standard_user_id}}/role",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CAT roles - Demoted existing token rejected",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?page=1&page_size=50&order_by=sequence_works&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "sequence_works",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "prefix_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "fantasy_name_works",
+                  "value": "example",
+                  "disabled": true,
+                  "description": "Optional exact match; combined with all supplied filters using AND."
+                },
+                {
+                  "key": "title",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "title_language",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "synopsis",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Optional exact timezone-aware instant; equivalent offsets compare equally."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Optional exact recorded source context."
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "order_by",
+                  "value": "sequence_works",
+                  "description": "Choices: id_works, sequence_works, prefix_works, fantasy_name_works, title, title_language, synopsis, created_at, created_at_timezone"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "description": "asc or desc; NULLS LAST; ID tie-breaker"
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive offset-aware instant"
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive offset-aware instant"
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; read-only presentation"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Audit, datetime and bulk operations (isolated only)",
+      "description": "Preview counts can change. Actual bulk mutations require explicit isolated opt-in and confirm=true. Capture an interaction ID, enable its audit filter, and use supervisor/admin to inspect sanitized evidence.",
+      "item": [
+        {
+          "name": "NEXT - Audit filters and ordering",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{catalogue_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api_audit_logs?page=1&page_size=50&order_by=started_at&order_direction=desc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api_audit_logs"
+              ],
+              "query": [
+                {
+                  "key": "interaction_id",
+                  "value": "{{audit_interaction_id}}",
+                  "disabled": true,
+                  "description": "Exact server interaction ID, also returned in X-Interaction-ID."
+                },
+                {
+                  "key": "actor_id",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Exact historical actor ID; no account FK."
+                },
+                {
+                  "key": "actor_username",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Exact authenticated username snapshot."
+                },
+                {
+                  "key": "started_at_from",
+                  "value": "2026-10-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Inclusive UTC instant lower bound; explicit offset required."
+                },
+                {
+                  "key": "started_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive UTC instant upper bound, after from."
+                },
+                {
+                  "key": "method",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Exact HTTP method snapshot."
+                },
+                {
+                  "key": "resource",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Exact catalogue/infrastructure resource name."
+                },
+                {
+                  "key": "status",
+                  "value": "failure",
+                  "disabled": true,
+                  "description": "Request status; handled 4xx count as failure."
+                },
+                {
+                  "key": "http_status",
+                  "value": "422",
+                  "disabled": true,
+                  "description": "Exact status accepted by the server send callback; unknown status is null."
+                },
+                {
+                  "key": "error_code",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Exact stable code from the versioned error catalogue."
+                },
+                {
+                  "key": "target_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Exact individual target ID; bulk operations have no individual target."
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "One-based page, after filtering and ordering."
+                },
+                {
+                  "key": "page_size",
+                  "value": "50",
+                  "disabled": false,
+                  "description": "10–50 items, count before pagination."
+                },
+                {
+                  "key": "order_by",
+                  "value": "started_at",
+                  "disabled": false,
+                  "description": "Public stored scalar column; JSON/presentation fields are not sortable."
+                },
+                {
+                  "key": "order_direction",
+                  "value": "desc",
+                  "disabled": false,
+                  "description": "NULLS LAST in both directions; unique audit ID ascending tie-breaker."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "original",
+                  "disabled": true,
+                  "description": "Configured display zone by default, explicit IANA zone or original (UTC for audit clocks)."
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.1 - Central audit lifecycle and safe errors. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.1 - Central audit lifecycle and safe errors | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.1 - Central audit lifecycle and safe errors | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.1 - Central audit lifecycle and safe errors | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT - Original timezone presentation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{catalogue_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watch_history/{{catalogue_id_watch_history}}?display_timezone=original",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch_history",
+                "{{catalogue_id_watch_history}}"
+              ],
+              "query": [
+                {
+                  "key": "display_timezone",
+                  "value": "original"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.5 - UTC source context historical dates and DST. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.5 - UTC source context historical dates and DST | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.5 - UTC source context historical dates and DST | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.5 - UTC source context historical dates and DST | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT - Standard audit denied",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api_audit_logs",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.1 - Central audit lifecycle and safe errors. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.1 - Central audit lifecycle and safe errors | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"15.1 - Central audit lifecycle and safe errors | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.1 - Central audit lifecycle and safe errors | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT - Supervisor bulk PUT denied",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"synopsis\": \"Denied\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT - Missing bulk confirmation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"synopsis\": \"Not applied\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT - Unknown filter rejected",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?dry_run=true&titlle=Misspelled",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                },
+                {
+                  "key": "titlle",
+                  "value": "Misspelled"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT works - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"El dragón 🐉\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT works - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?id_works={{catalogue_id_works}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"El dragón 🐉\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT works - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT works - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/works?id_works={{catalogue_id_works}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "works"
+              ],
+              "query": [
+                {
+                  "key": "id_works",
+                  "value": "{{catalogue_id_works}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT platforms - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/platforms?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platforms"
+              ],
+              "query": [
+                {
+                  "key": "id_platforms",
+                  "value": "{{catalogue_id_platforms}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_name\": \"QA Library\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT platforms - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/platforms?id_platforms={{catalogue_id_platforms}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platforms"
+              ],
+              "query": [
+                {
+                  "key": "id_platforms",
+                  "value": "{{catalogue_id_platforms}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_name\": \"QA Library\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT platforms - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/platforms?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platforms"
+              ],
+              "query": [
+                {
+                  "key": "id_platforms",
+                  "value": "{{catalogue_id_platforms}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT platforms - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/platforms?id_platforms={{catalogue_id_platforms}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platforms"
+              ],
+              "query": [
+                {
+                  "key": "id_platforms",
+                  "value": "{{catalogue_id_platforms}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_availabilities - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_availabilities?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_availabilities"
+              ],
+              "query": [
+                {
+                  "key": "id_work_availabilities",
+                  "value": "{{catalogue_id_work_availabilities}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_availabilities - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_availabilities?id_work_availabilities={{catalogue_id_work_availabilities}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_availabilities"
+              ],
+              "query": [
+                {
+                  "key": "id_work_availabilities",
+                  "value": "{{catalogue_id_work_availabilities}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_availabilities - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_availabilities?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_availabilities"
+              ],
+              "query": [
+                {
+                  "key": "id_work_availabilities",
+                  "value": "{{catalogue_id_work_availabilities}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_availabilities - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_availabilities?id_work_availabilities={{catalogue_id_work_availabilities}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_availabilities"
+              ],
+              "query": [
+                {
+                  "key": "id_work_availabilities",
+                  "value": "{{catalogue_id_work_availabilities}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tags - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tags?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags"
+              ],
+              "query": [
+                {
+                  "key": "id_tags",
+                  "value": "{{catalogue_id_tags}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tag_name\": \"support_without_dependence\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tags - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tags?id_tags={{catalogue_id_tags}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags"
+              ],
+              "query": [
+                {
+                  "key": "id_tags",
+                  "value": "{{catalogue_id_tags}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tag_name\": \"support_without_dependence\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tags - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tags?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags"
+              ],
+              "query": [
+                {
+                  "key": "id_tags",
+                  "value": "{{catalogue_id_tags}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tags - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tags?id_tags={{catalogue_id_tags}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags"
+              ],
+              "query": [
+                {
+                  "key": "id_tags",
+                  "value": "{{catalogue_id_tags}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_categories - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_categories?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_categories"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_categories",
+                  "value": "{{catalogue_id_tag_categories}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tag_category_name\": \"relationships\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_categories - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_categories?id_tag_categories={{catalogue_id_tag_categories}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_categories"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_categories",
+                  "value": "{{catalogue_id_tag_categories}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tag_category_name\": \"relationships\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_categories - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_categories?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_categories"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_categories",
+                  "value": "{{catalogue_id_tag_categories}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_categories - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_categories?id_tag_categories={{catalogue_id_tag_categories}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_categories"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_categories",
+                  "value": "{{catalogue_id_tag_categories}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_category_relationships - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_category_relationships?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_category_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_category_relationships",
+                  "value": "{{catalogue_id_tag_category_relationships}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_tags\": \"{{catalogue_id_tags}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_category_relationships - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_category_relationships?id_tag_category_relationships={{catalogue_id_tag_category_relationships}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_category_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_category_relationships",
+                  "value": "{{catalogue_id_tag_category_relationships}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_tags\": \"{{catalogue_id_tags}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_category_relationships - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_category_relationships?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_category_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_category_relationships",
+                  "value": "{{catalogue_id_tag_category_relationships}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_category_relationships - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_category_relationships?id_tag_category_relationships={{catalogue_id_tag_category_relationships}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_category_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_category_relationships",
+                  "value": "{{catalogue_id_tag_category_relationships}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_relationships - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_relationships?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_relationships",
+                  "value": "{{catalogue_id_tag_relationships}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_tags_source\": \"{{catalogue_id_tags}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_relationships - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_relationships?id_tag_relationships={{catalogue_id_tag_relationships}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_relationships",
+                  "value": "{{catalogue_id_tag_relationships}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_tags_source\": \"{{catalogue_id_tags}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_relationships - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_relationships?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_relationships",
+                  "value": "{{catalogue_id_tag_relationships}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT tag_relationships - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/tag_relationships?id_tag_relationships={{catalogue_id_tag_relationships}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tag_relationships"
+              ],
+              "query": [
+                {
+                  "key": "id_tag_relationships",
+                  "value": "{{catalogue_id_tag_relationships}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_classifications - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_classifications?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_classifications"
+              ],
+              "query": [
+                {
+                  "key": "id_work_classifications",
+                  "value": "{{catalogue_id_work_classifications}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_classification_name\": \"qa_classification\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_classifications - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_classifications?id_work_classifications={{catalogue_id_work_classifications}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_classifications"
+              ],
+              "query": [
+                {
+                  "key": "id_work_classifications",
+                  "value": "{{catalogue_id_work_classifications}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_classification_name\": \"qa_classification\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_classifications - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_classifications?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_classifications"
+              ],
+              "query": [
+                {
+                  "key": "id_work_classifications",
+                  "value": "{{catalogue_id_work_classifications}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_classifications - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_classifications?id_work_classifications={{catalogue_id_work_classifications}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_classifications"
+              ],
+              "query": [
+                {
+                  "key": "id_work_classifications",
+                  "value": "{{catalogue_id_work_classifications}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watchlist_entries - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watchlist_entries?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watchlist_entries"
+              ],
+              "query": [
+                {
+                  "key": "id_watchlist_entries",
+                  "value": "{{catalogue_id_watchlist_entries}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watchlist_entries - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watchlist_entries?id_watchlist_entries={{catalogue_id_watchlist_entries}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watchlist_entries"
+              ],
+              "query": [
+                {
+                  "key": "id_watchlist_entries",
+                  "value": "{{catalogue_id_watchlist_entries}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watchlist_entries - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watchlist_entries?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watchlist_entries"
+              ],
+              "query": [
+                {
+                  "key": "id_watchlist_entries",
+                  "value": "{{catalogue_id_watchlist_entries}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watchlist_entries - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watchlist_entries?id_watchlist_entries={{catalogue_id_watchlist_entries}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watchlist_entries"
+              ],
+              "query": [
+                {
+                  "key": "id_watchlist_entries",
+                  "value": "{{catalogue_id_watchlist_entries}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watch_history - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watch_history?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch_history"
+              ],
+              "query": [
+                {
+                  "key": "id_watch_history",
+                  "value": "{{catalogue_id_watch_history}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watch_history - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watch_history?id_watch_history={{catalogue_id_watch_history}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch_history"
+              ],
+              "query": [
+                {
+                  "key": "id_watch_history",
+                  "value": "{{catalogue_id_watch_history}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watch_history - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watch_history?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch_history"
+              ],
+              "query": [
+                {
+                  "key": "id_watch_history",
+                  "value": "{{catalogue_id_watch_history}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT watch_history - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/watch_history?id_watch_history={{catalogue_id_watch_history}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch_history"
+              ],
+              "query": [
+                {
+                  "key": "id_watch_history",
+                  "value": "{{catalogue_id_watch_history}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_tags - PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_tags?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_tags"
+              ],
+              "query": [
+                {
+                  "key": "id_work_tags",
+                  "value": "{{catalogue_id_work_tags}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_tags - PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_tags?id_work_tags={{catalogue_id_work_tags}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_tags"
+              ],
+              "query": [
+                {
+                  "key": "id_work_tags",
+                  "value": "{{catalogue_id_work_tags}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_works\": \"{{catalogue_id_works}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_tags - DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_tags?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_tags"
+              ],
+              "query": [
+                {
+                  "key": "id_work_tags",
+                  "value": "{{catalogue_id_work_tags}}",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Preview count\",()=>pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEXT work_tags - DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_tags?id_work_tags={{catalogue_id_work_tags}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_tags"
+              ],
+              "query": [
+                {
+                  "key": "id_work_tags",
+                  "value": "{{catalogue_id_work_tags}}",
+                  "disabled": false
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"15.4 - Filtered bulk confirmation previews and rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Classification tiers and complete test CRUD (isolated only)",
+      "description": "Fresh owned QA storage only. Classification tiers are independent positions. Actual test bulk changes require explicit opt-in plus confirm=true. Reorders and deletions are skipped by default.",
+      "item": [
+        {
+          "name": "REMAIN - Test create full record",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.5 - Complete test CRUD integer identity and representation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Isolated CRUD 🐉\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"test_id\", String(pm.response.json().id));",
+                  "pm.collectionVariables.set(\"test_record\",JSON.stringify(pm.response.json()));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.5 - Complete test CRUD integer identity and representation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test get integer ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test/{{test_id}}",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.5 - Complete test CRUD integer identity and representation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"test_id\", String(pm.response.json().id));",
+                  "pm.collectionVariables.set(\"test_record\",JSON.stringify(pm.response.json()));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.5 - Complete test CRUD integer identity and representation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test partial PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test/{{test_id}}",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.5 - Complete test CRUD integer identity and representation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Changed Unicode 🐉\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"test_id\", String(pm.response.json().id));",
+                  "pm.collectionVariables.set(\"test_record\",JSON.stringify(pm.response.json()));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.5 - Complete test CRUD integer identity and representation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test full GET record PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test/{{test_id}}",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.5 - Complete test CRUD integer identity and representation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{test_record}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"test_id\", String(pm.response.json().id));",
+                  "pm.collectionVariables.set(\"test_record\",JSON.stringify(pm.response.json()));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.5 - Complete test CRUD integer identity and representation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test complete filters and dates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/test?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Optional exact positive integer ID."
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "created_at",
+                  "value": "2026-10-19T12:00:00Z",
+                  "disabled": true,
+                  "description": "Exact offset-aware creation instant."
+                },
+                {
+                  "key": "created_at_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "Exact recorded source zone."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00+01:00",
+                  "disabled": true,
+                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true,
+                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "One-based page after filtering and ordering."
+                },
+                {
+                  "key": "page_size",
+                  "value": "50",
+                  "disabled": false,
+                  "description": "10–50 items; count precedes pagination."
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "disabled": false,
+                  "description": "Whitelisted public scalar. Ties use integer ID ascending."
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "disabled": false,
+                  "description": "NULL values always sort last."
+                },
+                {
+                  "key": "display_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.6 - Test bulk predicates previews confirmation and current scopes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test supervisor update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test/{{test_id}}",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.5 - Complete test CRUD integer identity and representation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Supervisor individual write\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.5 - Complete test CRUD integer identity and representation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test standard bulk denied",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/test?confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.6 - Test bulk predicates previews confirmation and current scopes. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Denied\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Classification bulk tier rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/work_classifications?confirm=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "work_classifications"
+              ],
+              "query": [
+                {
+                  "key": "confirm",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.2 - Classification append insert move and bounded shift evidence | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"16.2 - Classification append insert move and bounded shift evidence | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"16.2 - Classification append insert move and bounded shift evidence | Individual reorder guidance\",()=>pm.expect(JSON.stringify(pm.response.json())).to.include(\"individual PUT\"));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.2 - Classification append insert move and bounded shift evidence | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Classification explicit tier insert (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/work_classifications",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_classification_name\": \"isolated_tier_example\",\n  \"display_name_work_classifications\": \"Tier example\",\n  \"tier\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.2 - Classification append insert move and bounded shift evidence | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"16.2 - Classification append insert move and bounded shift evidence | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.2 - Classification append insert move and bounded shift evidence | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Classification move tier (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.2 - Classification append insert move and bounded shift evidence | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.2 - Classification append insert move and bounded shift evidence | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.2 - Classification append insert move and bounded shift evidence | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test PUT preview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/test?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Isolated%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.6 - Test bulk predicates previews confirmation and current scopes. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Bulk changed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test PUT filtered actual (opt-in)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/test?id={{test_id}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": false
+                },
+                {
+                  "key": "value",
+                  "value": "%Isolated%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.6 - Test bulk predicates previews confirmation and current scopes. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Bulk changed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test DELETE preview",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/test?dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "value",
+                  "value": "%Isolated%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.6 - Test bulk predicates previews confirmation and current scopes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test DELETE filtered actual (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/test?id={{test_id}}&confirm=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": false
+                },
+                {
+                  "key": "value",
+                  "value": "%Isolated%",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-11-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "confirm",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.6 - Test bulk predicates previews confirmation and current scopes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.6 - Test bulk predicates previews confirmation and current scopes | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REMAIN - Test delete integer ID (opt-in)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test/{{test_id}}",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.5 - Complete test CRUD integer identity and representation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | HTTP 204\", () => pm.response.to.have.status(204));",
+                  "pm.test(\"16.5 - Complete test CRUD integer identity and representation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"16.5 - Complete test CRUD integer identity and representation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
@@ -3991,3 +19191,7 @@ Remove-Item Env:FOUNDATION_RUN_INTEGRATION
 It creates a UUID-named Compose project with a separate volume, temporary secret, random password, and available local port. It verifies initial migration, generated IDs, 50,000-character text, persistence across stop/start, migration reexecution, invalid database credentials, the real API endpoints and pattern searches, and a real HTTP socket with graceful server shutdown. Cleanup removes only the disposable resources created by that test. Normal application data and logs are untouched. Account integration tests also cover exact legacy-hash import, idempotence/conflicts, two accounts, inactive users, live scope reductions, another database, and denied CREATEDB permissions. A separate check uses actual API/Swagger port 6969 and PostgreSQL port 6669 when free; occupied ports are preserved, account tests use a temporary database port, and the fixed-port check is explicitly skipped rather than stopping an existing service.
 
 See [NEXTGENERATION.md](NEXTGENERATION.md) for developer conventions.
+
+## 🪜 Classification tiers and complete test CRUD
+
+Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](docs/TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.

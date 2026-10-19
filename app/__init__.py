@@ -1,1 +1,1 @@
-"""Foundation application infrastructure."""
+"""Ouroboros application infrastructure."""

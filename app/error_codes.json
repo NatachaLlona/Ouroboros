@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "errors": [
+    {"code": "RESOURCE_NOT_FOUND", "status": 404, "message": "The requested resource was not found."},
+    {"code": "METHOD_NOT_ALLOWED", "status": 405, "message": "This method is not allowed for the resource."},
+    {"code": "RELATIONSHIP_CONFLICT", "status": 409, "message": "A reference, duplicate relationship or dependency prevents this operation."},
+    {"code": "USER_CONFLICT", "status": 409, "message": "The requested account change conflicts with an existing account or administrator requirement."},
+    {"code": "PASSWORD_CHANGE_REJECTED", "status": 400, "message": "The password operation was rejected; verify confirmation and use self-service for your own account."},
+    {"code": "VALIDATION_ERROR", "status": 422, "message": "The request does not satisfy the documented field and query rules."},
+    {"code": "AUTHENTICATION_REQUIRED", "status": 401, "message": "Bearer authentication is required."},
+    {"code": "INVALID_TOKEN", "status": 401, "message": "The access token is invalid, expired or revoked."},
+    {"code": "INVALID_CREDENTIALS", "status": 401, "message": "The supplied credentials are invalid."},
+    {"code": "INSUFFICIENT_PERMISSIONS", "status": 403, "message": "The current account does not have the required permission."},
+    {"code": "CONFIRMATION_REQUIRED", "status": 422, "message": "Actual bulk execution requires explicit confirm=true; use dry_run=true to preview."},
+    {"code": "DATABASE_UNAVAILABLE", "status": 503, "message": "The database is temporarily unavailable."},
+    {"code": "AUDIT_UNAVAILABLE", "status": 503, "message": "Required mutation auditing is unavailable; no business change was committed."},
+    {"code": "INTERNAL_ERROR", "status": 500, "message": "An unexpected internal error occurred."},
+    {"code": "REQUEST_CANCELLED", "status": 499, "message": "Request processing was cancelled."},
+    {"code": "TRANSPORT_FAILURE", "status": 500, "message": "Response transmission failed."}
+  ]
+}
