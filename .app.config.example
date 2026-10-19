@@ -1,0 +1,32 @@
+{
+  "host": "localhost",
+  "port": 6969,
+  "database": {
+    "name": "",
+    "user": "",
+    "port": 6669,
+    "startup_timeout": 120,
+    "connect_timeout": 10,
+    "statement_timeout": 30,
+    "max_connections": 8,
+    "connection_acquire_timeout": 5
+  },
+  "logging": {
+    "level": "DEBUG",
+    "format": "%(level)-8s | %(interaction_id)-24s | %(datetime)s | %(category)-11s | %(method_path)s | %(component)s | %(class_name)s | %(source)s:%(line)s | %(message)s | %(context)s",
+    "directory": "logs",
+    "body_max_chars": 2048
+  },
+  "auth": {
+    "token_ttl_seconds": 1800,
+    "issuer": "foundation",
+    "audience": "foundation-api"
+  },
+  "api_users": {
+    "last_api_username": ""
+  },
+  "infrastructure": {
+    "project_name": "",
+    "workspace": ""
+  }
+}

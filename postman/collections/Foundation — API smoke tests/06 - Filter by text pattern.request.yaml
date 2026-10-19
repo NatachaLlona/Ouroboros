@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{base_url}}/test?value=%25Ouroboros%25"
+method: GET
+queryParams:
+  value: "%25Ouroboros%25"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      pm.test("Request interaction ID", () => pm.expect(pm.response.headers.get("X-Interaction-ID")).to.match(/^[0-9]{24}$/));
+      pm.test("Array response", () => pm.expect(pm.response.json()).to.be.an("array"));
+      pm.test("Case-insensitive contains pattern matches every row", () => {
+        const rows = pm.response.json();
+        pm.expect(rows.length).to.be.above(0);
+        rows.forEach(entry => pm.expect(entry.value.toLocaleLowerCase()).to.include("ouroboros"));
+        pm.expect(rows.some(entry => String(entry.id) === pm.collectionVariables.get("test_id"))).to.eql(true);
+      });
+    language: text/javascript
+order: 8000

@@ -1,0 +1,48 @@
+name: Foundation QA checks
+
+'on':
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    name: Isolated preparation, scenarios and reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Prepare Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install verification dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Verify Python and Docker prerequisites
+        run: python scripts/run_checks.py --preflight-only
+      - name: Run catalogue scenarios in isolated infrastructure
+        if: always()
+        run: python scripts/run_checks.py
+      - name: Publish sanitized summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f reports/summary.md ]; then
+            cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'QA checks did not produce a report; preparation is incomplete.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload sanitized reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foundation-qa-reports
+          path: |
+            reports/summary.md
+            reports/results.json
+            reports/junit.xml
+          if-no-files-found: warn
+          retention-days: 14

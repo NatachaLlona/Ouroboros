@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{base_url}}/test"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      pm.test("Request interaction ID", () => pm.expect(pm.response.headers.get("X-Interaction-ID")).to.match(/^[0-9]{24}$/));
+      pm.test("Array response", () => pm.expect(pm.response.json()).to.be.an("array"));
+    language: text/javascript
+order: 4658

@@ -1,0 +1,3993 @@
+# Foundation
+
+Foundation is a reusable Python base project that provides a consistent, maintainable starting point for new applications.
+
+## 📚 **Documentation and QA delivery**
+
+| Start here | Purpose |
+| --- | --- |
+| [Documentation index](docs/README.md) | Architecture, API contracts, setup, operations and troubleshooting |
+| [QA test plan](docs/QA_TEST_PLAN.md) | Guided Windows preparation and manual cases generated from the single catalogue |
+| [Scenario catalogue](qa/scenarios.json) | Stable IDs/names, prerequisites, steps, criteria and mapped automatic tests |
+| [Developer guide](NEXTGENERATION.md) | Development and Git conventions |
+
+**Run mandatory automated checks with one command:**
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe scripts/run_checks.py
+```
+
+The runner checks prerequisites, creates only disposable isolated infrastructure, runs mapped tests, and writes sanitized **reports/summary.md**, **reports/results.json** and **reports/junit.xml** (ignored by Git). It prints the same scenario IDs/names as the QA plan and separate test/scenario totals. **PASS** requires every mapped automated check; **FAIL**, **BLOCKED**, **SKIP** and **MANUAL** remain distinct. Missing mandatory tools/tests/preparation returns nonzero. `--unit-only` is a partial diagnostic run, not approval. Automated success does not establish manual/interface QA approval.
+
+The local [GitHub Actions workflow](.github/workflows/qa-checks.yml) uses the same runner, manual dispatch, Docker isolation and sanitized artifacts. After publication, use **Actions → Foundation QA checks → Run workflow**; [QA setup](docs/QA_SETUP.md) explains logs/artifact download. **Creating the workflow does not mean it ran on GitHub.** Actual Swagger, Postman sandbox, physical terminal and hosted pipeline evidence remain separate manual scenarios.
+
+## Setup and run
+
+Install Python 3.10 or newer and Docker Desktop with Docker Compose. Open Docker Desktop and wait until the Linux container Engine is ready.
+
+From the project root in PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe start.py
+```
+
+The commands above invoke the virtual environment interpreter explicitly, so activation is optional. Use bare `python start.py` only when that interpreter is already selected or activated. The entry point also works when launched by absolute path from another directory. For a fresh checkout, set a unique `infrastructure.project_name` in local `.app.config` before running; the example leaves it blank intentionally. Existing Foundation configuration keeps its established identity.
+
+On first run, Foundation creates `.app.config` from `.app.config.example` without overwriting existing settings. If the infrastructure identity is blank, startup stops with a clear configuration error: edit the generated local file and select a unique project name before retrying. It first displays the configured database and asks whether to keep it or enter another, independently displays and confirms the master user, and then requests the master password. Missing names/users are prompted directly. Selecting another database does not select another master user automatically. Password input displays one asterisk per character, supports Backspace, and cancels with Ctrl+C or Escape. Use an interactive terminal, such as the VS Code terminal; do not send the password as a command argument.
+
+These are master database credentials, not API accounts. Names use 1-63 lowercase letters, digits, or underscores and cannot begin with a digit. The database password is never stored in JSON or logs. API password hashes are stored only in PostgreSQL `public.api_users`, using Argon2id; neither password nor hash is logged. Local configuration stores only `api_users.last_api_username` as a convenience preference, not proof of identity.
+
+Startup checks Docker, prepares PostgreSQL, validates master credentials, applies tracked migrations, and serves the FastAPI application using the configured host and application port. An empty API-user table triggers enrollment of the first **administrator**, with a separate API username and masked password. An installation without an active administrator requires an explicit choice to **promote an existing active username** or **create an administrator** after master authentication. Once an active administrator exists, startup does not offer enrollment or ask for API passwords; use the administrative APIs. Press Ctrl+C to stop the API and release its connections. PostgreSQL keeps running.
+
+## Configuration and persistence
+
+- Application `host` defaults to `localhost` when missing, null, or blank; application `port` defaults to `6969` in the example.
+- `database.name` and `database.user` are prompted when blank. `database.port` is independent of the API port and defaults to `6669`; the container keeps port `5432`. PostgreSQL is published only at `127.0.0.1`.
+- `database.startup_timeout` defaults to 120 seconds, `connect_timeout` to 10 seconds, and `statement_timeout` to 30 seconds. Increase startup timeout if the first image download is slow.
+- Logging defaults to `DEBUG` (select `INFO` to suppress debug details), writes to stderr and UTF-8 files under `logs/`, and supports configurable fields and output directory. General startup events use category `application` and a blank 24-character interaction field.
+
+Compose pins `postgres:17.11-bookworm` and stores data in the named `foundation_postgres_data` volume. Migration `001_create_test.sql` creates `public.test` with an automatically generated BIGINT primary key and an unlimited TEXT value. Migration records and checksums are stored in `public.foundation_migrations`. Startup inserts no demonstration records.
+
+Existing data is preserved on subsequent runs. Selecting a different database reuses the same PostgreSQL instance. Startup authenticates the selected master against the `postgres` maintenance database, checks for the target database, and creates it only if missing and the role has CREATEDB/superuser permission. Identifier composition is safe; previous databases remain intact. Choosing another master validates an existing role; it never creates roles, rotates passwords, or grants permissions. Creation failures explain the missing permission and stop without deleting data. Container initialization variables remain those of the original container; they do not provision a database in an already initialized volume.
+
+## 👤 **Database API accounts and legacy migration**
+
+Migration **002_create_api_users.sql** adds `public.api_users`, separate from PostgreSQL master roles:
+
+| Field | Definition |
+| --- | --- |
+| `id` | BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY |
+| `username` | TEXT NOT NULL UNIQUE |
+| `password_hash` | TEXT NOT NULL; Argon2id |
+| `created_at` | TIMESTAMPTZ NOT NULL, automatic current timestamp |
+| `is_active` | BOOLEAN NOT NULL DEFAULT TRUE |
+| `scopes` | TEXT[] NOT NULL; explicit `test:read`, `test:write` for enrollment |
+| `role` | Migration **003_add_api_user_role.sql**: TEXT NOT NULL DEFAULT `standard`, CHECK restricted to `standard` / `administrator` |
+
+The old `auth.username`/`auth.password_hash` pair is accepted **only for one-way migration**. After connecting and applying migrations, Foundation commits the exact old hash and existing test permissions to `api_users`, then removes both legacy fields from `.app.config` and records `last_api_username`. It never asks for the old API password or rehashes it. Repeating the import is safe; an existing identical account is reused. A different hash, scope set, or active state causes a clear conflict and leaves the original configuration intact. No backup or temporary configuration file containing the legacy hash is generated. If configuration saving fails after commit, the next run safely repeats the import.
+
+Migration **003** preserves existing IDs, hashes, scopes, active state and timestamps. **Every existing account starts as standard; no ID is promoted silently.** At the master-authenticated terminal, enter `promote` and the exact active username, or `create` and a unique username/password. A newly created database's first API account is administrator. Duplicate creation never replaces an account. There is no public signup, deletion or refresh API. Active API users change their own password through PUT /users/me/password; current administrators can reset another account through PUT /users/{id}/password. `last_api_username` never proves identity. PostgreSQL master credentials cannot log into the API.
+
+### 🛡️ **Fixed roles and administrative APIs**
+
+| Role | Access |
+| --- | --- |
+| `standard` | GET/POST `/test`, subject to issued and current test scopes; no user administration |
+| `administrator` | All protected APIs, including future shared-authorization endpoints; valid authentication and current active state remain required |
+
+Authorization is centralized in `require_scopes`. Every protected request reads the **current role and active state from PostgreSQL**. Administrator access does not depend on enumerating all scopes in a token. Standard accounts cannot request `users:manage`, even if a stale database scope array contains it. Existing standard scope restrictions remain effective. **Demotion immediately removes administrator access from already-issued tokens.** A request already in progress may have passed its initial check; administrative writes recheck the actor inside the membership transaction lock.
+
+| Method / URL | Body | Success | Rejections |
+| --- | --- | --- | --- |
+| `POST /users` | `username`, `password`, optional `role` (default `standard`) | **201**, public metadata | Duplicate username **409**; invalid input **422** |
+| `GET /users?page=1&page_size=50` | None | **200**, paginated public accounts ordered by ID | Invalid pagination **422** |
+| `PUT /users/{id}/role` | `{"role":"standard"}` or `{"role":"administrator"}` | **200**, updated public metadata | Missing user **404**; last active administrator demotion **409** |
+
+These administrative APIs require an **active administrator**: missing/invalid token returns **401**, a standard account returns **403**. Public account metadata contains only **id, username, role, is_active, created_at**, never password or hash. Passwords are hashed with Argon2id before persistence. The role-change transaction uses a shared advisory lock and row locks, preventing concurrent operations from removing the last active administrator. Direct privileged SQL is outside the API's invariant and must uphold it independently. No role/permission tables are added.
+
+**Reset another API user's password:** an administrator can PUT `/users/{id}/password` with `{"new_password":"<private new password>"}`. Success is empty **204**; target not found **404**, self-target **400**, invalid body/path **422**, invalid authentication **401**, standard caller **403**. Self-targeting must use `/users/me/password` with the current password. The reset rechecks current administrator access and token version transactionally, replaces the target's Argon2id hash and increments its credential version. All earlier target tokens become invalid; other accounts' tokens remain valid. The whole reset body is excluded from logs; the safe committed audit identifies actor, target, interaction and outcome. See [API contracts](docs/API.md) and QA **9.1–9.2**.
+
+**Swagger query controls:** GET `/test` exposes `id`, `value`, `page` and `page_size`; GET `/users` exposes only pagination and currently has no filters. Authorize once through **Authorize → Close**, then reuse that authentication for subsequent permitted requests. Defaults are page **1**, page_size **50** (range **10–50**). Filters run before counting/pagination, ordered by ascending ID. Canonical Postman request **61 - Pagination example (page 2, size 10)** has editable pagination and unchecked optional filters; historical YAML copies are not canonical imports. Requests **62–76** exercise reset/revocation with fresh disposable accounts; follow [QA setup](docs/QA_SETUP.md).
+
+To create a standard account through Swagger, authorize with the existing administrator, open **POST /users**, and enter the desired API username and password **locally**; omit `role` or select `standard`. Choose `administrator` explicitly for another administrator. List accounts with **GET /users**, then replace a role with **PUT /users/{id}/role**. These operations persist data and role changes. Administrative logs record **administrator_id, user_id, previous_role, new_role**, plus the automatically propagated request ID; bodies and validation failures never expose passwords or hashes.
+
+### 🔌 **Definitive configurable ports**
+
+| Service | Default |
+| --- | --- |
+| API / Swagger | `6969`, `http://localhost:6969/docs` |
+| PostgreSQL host | `127.0.0.1:6669` |
+| PostgreSQL container | `5432` |
+| Published mapping | `127.0.0.1:6669:5432` |
+
+Changing the published port may recreate the container, **never the named data volume**. Keep `foundation_postgres_data`. Restart Foundation after updating its files and use the new Postman `base_url`; never use volume-deleting shutdown commands. Existing records and databases remain in place.
+
+## 🧱 **A derived project needs its own infrastructure**
+
+The current installation remains **Compose project `foundation`**, volume **`foundation_postgres_data`**. Nothing renames or migrates that volume. `infrastructure.project_name` is now explicit instead of a hardcoded Compose name; `.app.config.example` deliberately leaves it blank. The local `infrastructure.workspace` binding prevents a copied local configuration from silently targeting Foundation. Existing containers must belong to the same directory according to Compose labels. A local `.secrets/infrastructure_identity.json` receipt also prevents automatic adoption of an existing orphan volume from another workspace. This receipt is ownership metadata, not a password or encrypted secret.
+
+For a future derived project (illustrative **AcmeService**, not implemented here):
+
+1. Copy only source and tracked templates into `C:\Dev\AcmeService`. **Do not copy `.app.config`, `.secrets/`, logs, virtual environments, private Postman settings, or data volumes.**
+2. Create a fresh virtual environment and install requirements.
+3. Copy `.app.config.example` to a **new** local `.app.config`; never overwrite another existing local file.
+4. Keep the existing logging/auth settings and edit these fields (choose ports that are actually free):
+
+```json
+{
+  "host": "localhost",
+  "port": 6970,
+  "infrastructure": {"project_name": "acme-service", "workspace": ""},
+  "database": {"name": "acme_service", "user": "acme_master", "port": 6670},
+  "api_users": {"last_api_username": ""}
+}
+```
+
+This is a **partial configuration example**: retain timeouts, logging, issuer/audience/lifetime from the template; use derived issuer/audience values if desired. Do not add a password. A blank workspace is bound to that new folder during startup and saved with local settings.
+
+5. Run `start.py` **from the derived project**, supply its own master credentials, and enroll its own API user. Fresh protected PostgreSQL/JWT secret files and the named volume **`acme-service_postgres_data`** are created for this identity.
+6. Use that project's API/Swagger URL and Postman `base_url`; use `$config.infrastructure.project_name` for Compose stop/start commands. Use `start.py` for guarded initialization rather than bypassing ownership checks with a bare `docker compose up`.
+
+A copied config/receipt or reused identity that belongs to another directory is rejected. An existing volume without matching ownership metadata is **not adopted automatically**; restore the original project's metadata rather than deleting or silently reassigning it. Each project needs its own identity, free ports, configuration, secrets, API accounts, and volume. No derived application is implemented by this change.
+
+## 🛠️ **Startup diagnostics and shutdown**
+
+Unexpected startup failures record **exception category, safe source/line/function frames, and the named startup stage**, without raw exception messages, connection strings, locals, passwords, hashes, or tokens. Look in the current execution log for `stage` and `error_type`; early logger failures fall back to a safe console diagnostic. Application-owned configuration/database errors retain their intentionally safe guidance.
+
+Cleanup attempts database, authentication, log handlers, and bootstrap handler independently. One failed close does not prevent subsequent attempts; safe cleanup diagnostics do not replace the original failure, and cleanup errors make the exit status nonzero. API lifespan cleanup restores the thread-pool limit and reports failures back to the entry point. Ctrl+C while serving is normal shutdown (0 if cleanup succeeds); cancelling startup returns 130; EOF before startup completes returns failure. Generic cancellation/failure messages do **not** assert data integrity or preservation: those require actual verification.
+
+## 🔑 **Change your own API password**
+
+Both active **standard** and **administrator** accounts can use **PUT /users/me/password** with a valid Bearer token. Supply only current_password and new_password locally; no user ID/username is accepted. **204** means success with no body; wrong current or unchanged password returns **400**, invalid/stale authentication **401**, invalid JSON/types/extra fields **422**.
+
+Migration **004_add_credential_version.sql** adds a positive per-user credential version without changing existing hashes, accounts or records. A row-locked transaction verifies the current password, stores only Argon2id and increments that version. Every protected request compares the JWT's credential_version with the current database value. After a change all earlier tokens of that user are invalid, including the changing token; peer tokens and the global signing key are unchanged. Obtain a fresh token after upgrading because older tokens without the new claim are rejected.
+
+The **entire password-change body** is excluded from DEBUG logging, including malformed/rejected JSON. After commit the exact INFO message **API password changed** records user_id and the request context. Logout/re-authorize in Swagger using the new password. The [QA guide](docs/QA_TEST_PLAN.md) documents concrete public suggestions for disposable local QA only, using the standard 6969/6669 ports. Those examples are never runtime defaults or filled collection credentials.
+
+Postman's **Own password changes** folder (40–60) covers both profiles, rejections, old/new login, revocation, peers and the guarded race. All credentials/tokens remain empty in the versioned JSON. Requests 58/59 require the same pre-race token and must be sent concurrently before checking 60; serial execution alone does not prove concurrency. Real sandbox/interface execution remains manual; the automated suite replays their HTTP contracts and sends an actual concurrent HTTP race.
+
+Each catalogue scenario now specifies the real execution-file pattern, exact log messages, levels/categories/method/endpoint, context fields and forbidden data. Copy **X-Interaction-ID** from each response and Ctrl+F it in that execution's log: it changes per request and is distinct from user/record IDs. DEBUG evidence is absent in INFO mode. The same rules are asserted against captured HTTP logs.
+
+Runner fixture aggregation now maps setup/teardown class/module failures to affected scenario selectors: preparation is **BLOCKED**, cleanup is **FAIL** even when individual checks passed. Individual records remain preserved, with no arbitrary exception text in reports.
+
+## Secrets
+
+**Password storage rule:** never put plaintext passwords in configuration JSON, source code, logs, or versioned files. API hashes belong only in PostgreSQL. The documented exception is the initial PostgreSQL password in its restricted, ignored file used by `POSTGRES_PASSWORD_FILE`; this is plaintext with filesystem access control, **not encrypted storage**.
+
+`.app.config`, `.secrets/`, and `logs/` are ignored by Git. `.secrets/jwt_signing_key` is generated automatically using cryptographic randomness, protected by the same filesystem permissions, and reused across restarts. Keep this signing key private and persistent; losing or replacing it invalidates outstanding tokens. API passwords never have a plaintext secret file. Only the sanitized `.app.config.example` is versioned. On first initialization, `.secrets/postgres_password` supplies the password through the Compose file secret mounted as `POSTGRES_PASSWORD_FILE`. On Windows its directory has a protected ACL granting access only to the current user; on POSIX the directory and file use modes 0700 and 0600. Docker must run under the same user's authorized environment.
+
+The secret file contains the initialization password in plaintext with restricted filesystem access; it is not an encrypted vault. Keep it while the container exists or might need recreation. Later runs preserve its contents and use the freshly prompted password for the database connection. An incorrect password never overwrites the initialization secret. Do not copy it into configuration, source files, logs, or commands. Database superuser access and Docker administrators remain trusted.
+
+Do not remove the secret while its container may be started or recreated. Remove it manually only after deliberately retiring the associated container and deciding how to retain or retire its volume; normal startup never deletes it. There is no password rotation feature in this stage.
+
+## Stop and restart without deleting data
+
+The Compose file needs its non-secret settings and secret path when parsed. Always pass the configured project identity explicitly. In a new PowerShell terminal, load them first:
+
+```powershell
+$config = Get-Content -Raw -Encoding UTF8 .app.config | ConvertFrom-Json
+$project = $config.infrastructure.project_name
+$env:FOUNDATION_DB_NAME = $config.database.name
+$env:FOUNDATION_DB_USER = $config.database.user
+$env:FOUNDATION_DB_PORT = [string]$config.database.port
+$env:FOUNDATION_DB_SECRET_FILE = (Resolve-Path .secrets/postgres_password).Path
+
+docker compose -p $project stop postgres
+docker compose -p $project start --wait postgres
+```
+
+Run these commands from the project root after the first successful initialization. They do not validate a newly entered password or run migrations; use `python start.py` for the full preparation workflow. `docker compose -p $project down` removes containers and networks but preserves the named volume. Never add `--volumes` to normal shutdown commands.
+
+## API and Swagger
+
+With the default settings, open `http://localhost:6969/docs`. Use the configured host and port if different. The API has these endpoints:
+
+| Endpoint | Authentication | Result |
+| --- | --- | --- |
+| `GET /health` | Public | 200 with `{"status":"ok"}` when a real database query succeeds; otherwise 503 |
+| `POST /token` | API username and password in a URL-encoded form | Signed Bearer token |
+| `POST /test` | `test:write` | 201 with the inserted `id` and unchanged `value` |
+| `GET /test` | `test:read` or administrator | Paginated envelope ordered by ascending `id` |
+| `POST /users` | Administrator | 201 with public account metadata |
+| `GET /users` | Administrator | Paginated public accounts |
+| `PUT /users/{id}/role` | Administrator | Updated public account metadata |
+
+In Swagger, click **Authorize**, enter your API credentials, select the test scopes, and authorize. Administrators can also select **users:manage**; standard accounts cannot request it. Swagger submits to `/token` and automatically sends the Bearer token for protected requests. Do not use database master credentials. Without requested scopes, `/token` grants the standard account's current allowed test scopes or the administrator's known OAuth2 scopes. Current administrator access is checked from the database independently of that scope list.
+
+For PowerShell, prompt for API credentials rather than putting a password in command history:
+
+```powershell
+$baseUrl = 'http://localhost:6969'
+$apiCredentials = Get-Credential -Message 'Foundation API test credentials'
+$token = Invoke-RestMethod -Method Post -Uri "$baseUrl/token" `
+    -ContentType 'application/x-www-form-urlencoded' `
+    -Body @{ username = $apiCredentials.UserName; password = $apiCredentials.GetNetworkCredential().Password; scope = 'test:read test:write' }
+$headers = @{ Authorization = "Bearer $($token.access_token)" }
+
+$json = @{ value = 'Ouroboros está vivo! 🐍💻' } | ConvertTo-Json
+$bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+Invoke-RestMethod -Method Post -Uri "$baseUrl/test" -Headers $headers `
+    -ContentType 'application/json; charset=utf-8' -Body $bodyBytes
+Invoke-RestMethod -Uri "$baseUrl/test" -Headers $headers
+Invoke-RestMethod -Uri "$baseUrl/test?id=1" -Headers $headers
+Invoke-RestMethod -Uri "$baseUrl/test?value=dragon" -Headers $headers
+Invoke-RestMethod -Uri "$baseUrl/test?value=%25dragon%25" -Headers $headers
+Invoke-RestMethod -Uri "$baseUrl/test?id=1&value=%25dragon%25" -Headers $headers
+```
+
+### 🔐 **Swagger: recommended Authorize workflow**
+
+1. Start Foundation with `.\.venv\Scripts\python.exe start.py` and keep it running.
+2. Open **http://localhost:6969/docs** (or your configured host and port).
+3. Click **Authorize** near the top of Swagger.
+4. Enter the **API username and password**, not PostgreSQL master credentials.
+5. Select **test:read** and **test:write** as permitted for that account. Leave client fields empty.
+6. Click **Authorize**, then **Close**.
+7. Open **POST /test**, click **Try it out**, enter JSON such as `{"value":"Ouroboros está vivo! 🐍💻"}`, and click **Execute**. Swagger sends the Bearer header automatically.
+8. Open **GET /test**, use **Try it out**, and execute without filters or with positive `id` / `value` patterns such as `%Ouroboros%`. Requests continue using the authorized token.
+
+`GET /health` and `POST /token` do not require a Bearer token. Missing authentication remains 401 and insufficient permissions remain 403; authorization checks have not been weakened. Reauthorize after expiration.
+
+### 📝 **POST /token: Try it out fields**
+
+This alternate path submits an **application/x-www-form-urlencoded** form and returns a token. **Executing Try it out does not necessarily populate Swagger's global authorization.** Use the **Authorize** dialog for the main protected-endpoint workflow.
+
+| Field | Required | Accepted value / action |
+| --- | --- | --- |
+| `username` | Yes | Your API account's username; no built-in default |
+| `password` | Yes | That account's API password, not the master password |
+| `grant_type` | Default supplied | **password** is the only supported grant; keep the default. Omitted or empty form values use this default. `string` and `client_credentials` return 422 |
+| `scope` | No | Space-separated names, e.g. `test:read test:write`. Omitted or empty means only the account's currently permitted scopes |
+| `client_id` | No | Not used by this controlled local client; leave empty |
+| `client_secret` | No | Not used by this controlled local client; leave empty |
+
+For optional blank fields, **Send empty value** may be unchecked (omitted) or checked (empty form value). Both have been verified over HTTP: an empty `grant_type` uses `password`, empty `scope` uses current account permissions, and empty client fields are unused. Username/password must not be empty. No real credentials are embedded in OpenAPI examples.
+
+**Reproduced finding:** the previous OpenAPI exposed `grant_type` with a pattern but no default. Sending Swagger's generic text `string` produced 422, while omitted/empty/`password` succeeded. The new schema supplies and explains `password`. This identifies a reproducible failure path, not a confirmed reconstruction of the user's original clicks. Browser automation failed to initialize in this session; actual Swagger visual interaction remains a manual check. Schema and equivalent HTTP requests are separate verification.
+
+### 🌍 **PowerShell and Unicode JSON**
+
+The example above passes **UTF-8 bytes** and `application/json; charset=utf-8`, including on Windows PowerShell 5.1. Do not rely on its default string-body encoding for accented text or emoji. If saving a `.ps1` script with literal Unicode for Windows PowerShell 5.1, save the script as **UTF-8 with BOM**; when reading a JSON file, use `Get-Content -Raw -Encoding UTF8`. In an interactive terminal, copy/type Unicode directly. For pipelines into native tools, configure `$OutputEncoding` as UTF-8 as well.
+
+`POST /token` returns `access_token`, `token_type: "bearer"`, and `expires_in` in seconds. Missing, invalid, or expired tokens return 401 with a Bearer challenge. Insufficient permissions return 403. Invalid credentials produce a generic 401 response. No refresh tokens or public registration are provided.
+
+`POST /test` requires exactly one `value` field containing a JSON string. Empty strings, spaces, and long text are preserved. Missing values, null, numbers, objects, and unknown fields return 422. IDs come from PostgreSQL. These example commands create real records when run against your normal API; automated verification only uses the isolated test database.
+
+### Search patterns
+
+`id` is a positive PostgreSQL BIGINT. `value` is an optional PostgreSQL `ILIKE` pattern, matched case-insensitively. When both are present they are combined with AND. Filters are applied before the shared pagination below.
+
+### 📚 **Collection pagination — changed GET /test contract**
+
+**Breaking response change:** GET `/test` previously returned an array. It now returns the same envelope as GET `/users`; update clients to read **response.items**.
+
+| Query parameter | Default | Allowed |
+| --- | --- | --- |
+| `page` | **1** | Integer >= 1 |
+| `page_size` | **50** | Integer **10–50**, inclusive |
+
+```json
+{"count":123,"page":1,"page_size":50,"items":[{"id":1,"value":"Example"}]}
+```
+
+`count` is the **total matching filters before pagination**, while `items` holds only the requested page, ordered by ascending ID. `?page=2&page_size=10&value=%25Ouroboros%25` requests the second filtered page. A page past the result returns empty `items` with the original count; no matches returns `count: 0` and `items: []`. SQL applies **LIMIT/OFFSET**; count and items come from **one statement snapshot**, without fetching the entire collection into Python. Separate page requests may observe later commits. This reusable convention applies to all collection GETs; single-object `/health` is unchanged.
+
+### 🔎 **Pattern reference**
+
+| Pattern | Meaning |
+| --- | --- |
+| `dragon` | Whole value equals dragon, ignoring case |
+| `dragon%` | Starts with dragon |
+| `%dragon` | Ends with dragon |
+| `%dragon%` | Contains dragon |
+| `dr_gon` | The underscore matches one character |
+| `100\%` | Literal percent: matches the whole value `100%` |
+| `literal\_under` | Literal underscore |
+| empty string | Matches only the empty value |
+
+Use backslash to escape `%`, `_`, or another backslash. No `%` characters are added automatically. Omitting `value` means no value filter; `?value=` searches the empty string. This is pattern matching, not spelling correction or similarity search.
+
+In URLs, encode `%` as `%25`, backslash as `%5C`, and other reserved characters appropriately. For example, `?value=%25dragon%25` searches for `%dragon%`, and `?value=100%5C%25` searches for the literal value `100%`. In Swagger, type `%dragon%` or `100\%` directly; the interface handles URL encoding.
+
+### Authentication configuration and logging
+
+Local `auth` contains only token settings: `token_ttl_seconds` (default 1800; integer 1-86400), `issuer` (`foundation`), and `audience` (`foundation-api`). `api_users` contains only `last_api_username`. Accounts, hashes, active state, roles and scopes belong in PostgreSQL. The signing key remains in protected `.secrets/jwt_signing_key`. JWT `sub` is the immutable API-user ID as a string. Tokens include version 2 and a selected-database binding. Every protected request checks the current account and active state, uses its current role, and intersects standard token scopes with current test permissions. Current administrators access shared protected endpoints independently of token scope enumeration. Missing/inactive users return 401; insufficient standard permissions return 403. Self-service password replacement is available at PUT /users/me/password; there is no privileged password reset or token refresh.
+
+Each request receives a server-generated 24-digit `X-Interaction-ID`: local `YYYYMMDDHHMMSS` followed by ten cryptographically random digits. IDs are strings, generated once, and ignore client-supplied IDs. Randomness reduces collision probability but is not a mathematical uniqueness guarantee. Logs inherit this ID, method, endpoint path (no query), and category `request` automatically through request context, including in synchronous component workers. Context is reset after success, errors, and cancellation. General events use category `application`, with a blank aligned ID field and no HTTP method/path.
+
+The default configurable order is **LEVEL | INTERACTION_ID | DATETIME | CATEGORY | METHOD PATH | COMPONENT | CLASS | SOURCE:LINE | MESSAGE | CONTEXT**. The ID occupies the second field with width 24. Datetime includes its timezone; source/line identify the actual caller. UTF-8 files are named `application_YYYY-MM-DD_HHMMSS_random.log`, shared by the process execution and rotated by local calendar date. Prior files remain intact.
+
+Only `INFO` and `DEBUG` are valid configured minimum levels; both include warnings, errors, and critical events. Local and example configuration now select **DEBUG**. DEBUG includes one sanitized JSON body object when it fits the limit, otherwise a truncated text preview, limited by `logging.body_max_chars` (default 2048, 64-65536), with an explicit `truncated` flag. Oversized inspection buffers (over 1 MiB), malformed JSON, binary bodies, uploads, and all `/token` and `/users/me/password` bodies are omitted. Body limits affect logging only; endpoint input is unchanged. Sensitive keys are redacted recursively in objects and lists. Never put secrets into arbitrary free-text values or messages; key-based redaction cannot identify every possible secret. Control characters remain escaped. Authorization headers, query strings, passwords, hashes, and tokens are never intentionally logged. Built-in Uvicorn access logs stay disabled. Validation errors do not echo rejected input.
+
+**Concurrency:** one API worker, 40 AnyIO thread-pool slots, and synchronous handlers offloaded by FastAPI. Each request owns its connection and transaction; `database.max_connections` bounds live connections (default 8, range 1-32). `database.connection_acquire_timeout` bounds capacity waits (default 5 seconds, range 1-300). Capacity exhaustion returns a safe 503. Async middleware sends blocking logging and JSON preview work to the thread pool. No manual thread is created per request.
+
+This OAuth2 password flow serves Foundation's controlled local client only. An integration with external identity providers will require a different flow; no such integration is implemented here.
+
+### 🎨 **Readable UTF-8 logs**
+
+Fixed fields use minimum widths: **level 8**, **interaction ID 24**, and **category 11**. Other names, messages, and paths are not padded or truncated for alignment. The field order and per-execution files are unchanged. Representative events (source/line and timestamp are illustrative):
+
+```text
+INFO     |                          | 2026-10-18T11:33:11.048+01:00 | application |  | foundation | - | start.py:30 | Foundation preparation completed | {}
+DEBUG    | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | POST /test | foundation | - | app/main.py:45 | Request JSON body received | {"body": {"value": "Ouroboros está vivo! 🐍💻"}, "truncated": false}
+```
+
+Accents and emojis remain literal Unicode in the console and UTF-8 file; fitting body objects are serialized **once** inside context, not stored as a JSON string. An oversized body uses `body_preview` with `truncated: true`; its preview remains bounded by `logging.body_max_chars`. Redaction happens before preview generation. Line breaks/control characters remain escaped, preserving **one event per line**. Tokens, secret fields, and `/token` bodies remain excluded.
+
+Only the console's **level label** is colored: DEBUG gray, INFO green, WARNING yellow, ERROR red, CRITICAL bold red. Colors require an interactive compatible terminal; redirection, `TERM=dumb`, or the presence of `NO_COLOR` disables them. Windows uses native virtual-terminal detection/enabling for the current output handle, including VS Code's integrated terminal. No additional dependency is required. Log files always remain **plain text without ANSI**. Font/emoji rendering depends on the terminal; actual VS Code appearance remains a manual check.
+
+## 🧪 **Manual tests with Postman Desktop**
+
+### 🚀 **Start the application and import**
+
+1. Download **[Postman Desktop](https://www.postman.com/downloads/)**.
+2. Open Docker Desktop, then run Foundation from the project root and **keep that terminal running**:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe start.py
+```
+
+3. Complete the database prompts and first-administrator recovery if needed. Existing installations require explicit selection, never automatic promotion. Use administrative APIs for further enrollment. The default base URL is `http://localhost:6969`.
+4. In Postman, select **Import → Files** and choose **[postman/Foundation.postman_collection.json](postman/Foundation.postman_collection.json)**. This is the canonical **Collection v2.1** JSON. Existing YAML request files are preserved as reference, not the canonical export.
+
+**Replace an earlier import:** preserve any private local environment/custom requests, then import this JSON and choose replacement when Postman offers it. Otherwise remove/archive only the old imported collection you have identified, then import once. Do not import the YAML directory alongside the JSON. The local `Foundation — API smoke tests` directory contains `04 - List all entries.request.yaml`, `04 - List all entries-1.request.yaml`, and `04 - List all entries-2.request.yaml`: these are historical duplicates with old array assertions and different ordering. They remain untouched, including personalized local files. **The JSON is the single maintained source.**
+
+### 🔐 **Configure private local variables**
+
+| Variable | Versioned default | Local use |
+| --- | --- | --- |
+| `base_url` | `http://localhost:6969` | Change locally if needed; no trailing slash |
+| `api_username` | empty | Your API account, not the database master |
+| `api_password` | empty | Enter only in a private local environment/secret value |
+| `access_token` | empty | Captured in collection variables by request 02 |
+| `test_id` | empty | Captured in collection variables by request 03 |
+
+Create a **private local environment** for `api_username` and `api_password`, mark the password sensitive, and select that environment. Do not share/sync secret values or export the environment. Keep `access_token` and `test_id` in collection scope: do not shadow them with empty environment/global variables, because that would override the captured values. Check that each placeholder resolves before sending. Clear captured collection values before exporting.
+
+### ▶️ **Run requests in order**
+
+Run **01 through 08**, or use the collection runner in that order. Every request checks its expected status and the 24-digit `X-Interaction-ID`. Request **02** automatically saves `access_token`; request **03** saves the generated `test_id`. Later requests reuse both. Reauthenticate when the token expires.
+
+| Order | Method and URL | Authentication | Body | Expected result |
+| --- | --- | --- | --- | --- |
+| 01 | `GET {{base_url}}/health` | None | None | **200**, `{"status":"ok"}`; 503 if database unavailable |
+| 02 | `POST {{base_url}}/token` | No Bearer token | URL-encoded `username={{api_username}}`, `password={{api_password}}` | **200**, token captured automatically; default grants the user's stored test scopes |
+| 03 | `POST {{base_url}}/test` | Bearer `{{access_token}}`, `test:write` | JSON below | **201**, generated ID captured, original value returned |
+| 04 | `GET {{base_url}}/test` | Bearer, `test:read` | None | **200**, envelope with first page ordered by ID |
+| 05 | `GET {{base_url}}/test?id={{test_id}}` | Bearer, `test:read` | None | **200**, `count: 1`, inserted row in `items` |
+| 06 | `GET {{base_url}}/test?value=%25Ouroboros%25` | Bearer, `test:read` | None | **200**, case-insensitive matches containing Ouroboros |
+| 07 | `GET {{base_url}}/test?id={{test_id}}&value=%25Ouroboros%25` | Bearer, `test:read` | None | **200**, inserted row matching both filters |
+| 08 | `GET {{base_url}}/test` | Explicitly **No Auth** | None | **401** and Bearer challenge |
+
+**POST /test example** (`Body → raw → JSON`):
+
+```json
+{
+  "value": "Ouroboros está vivo! 🐍💻"
+}
+```
+
+**Every POST creates a persistent record.** Re-running request 03 or the collection adds another row; there is no automatic cleanup of your normal database. Automated tests use their own isolated database instead.
+
+### ☑️ **Toggle filters in Params**
+
+Open **04 - List all entries**, then the **Params** tab. The collection includes two rows, both **unchecked by default**:
+
+| Checkbox | Key | Value |
+| --- | --- | --- |
+| Unchecked | `id` | `{{test_id}}` |
+| Unchecked | `value` | `%Ouroboros%` |
+
+| Enabled checkboxes | GET behavior |
+| --- | --- |
+| Neither | `GET /test`: first unfiltered page; use `page` / `page_size` to navigate |
+| Only `id` | Filter by the ID captured by request 03 |
+| Only `value` | Case-insensitive match for `%Ouroboros%` |
+| Both | Combine ID and text pattern with **AND** |
+
+Keep the **Bearer `{{access_token}}`** authentication. Run requests 02 and 03 first when testing the captured ID. Disabled Params are not sent. Keep `%Ouroboros%` **unencoded in the Params value** and leave Postman's automatic URL encoding enabled: the transmitted URL contains `value=%25Ouroboros%25`, never `%2525Ouroboros%2525`. Do not pre-encode the Params value or duplicate it in the raw URL. These filters belong only to **GET**; POST /test still receives only its JSON body. Separate requests **05-07** and their assertions remain available.
+
+List/filter scripts validate **items as an array** and the envelope's count/page/page_size. A contains-filter page may not contain the newly inserted ID when many records exist; exact-ID requests prove that record's presence. Add `page` and `page_size` in Params as needed; the two optional filters stay unchecked by default.
+
+### 🛡️ **Administrative Postman scenarios**
+
+Run the additional folder **09–20 in order**, preferably against an **isolated database**. First obtain an administrator via the master-authenticated terminal. Configure these additional values **only in a private local environment**:
+
+| Variables | Purpose |
+| --- | --- |
+| `admin_username`, `admin_password` | Existing active administrator for request 09 |
+| `standard_username`, `standard_password` | New unique account created by request 10 |
+| `additional_admin_username`, `additional_admin_password` | New unique administrator created by request 16 |
+| `admin_token`, `standard_token` | Automatically captured in collection scope by 09/12 |
+| `standard_user_id`, `additional_admin_id` | Automatically captured by 10/16 |
+
+### 🔁 **Promotion and demotion of the same user**
+
+The **QA role lifecycle** folder extends the existing collection with requests **21–39**, linked to catalogue scenarios **2.5–2.8**. Start with **09, 10 and 12** using a fresh standard username; request 10 intentionally **omits role** and asserts the standard default. Set `lifecycle_probe_password` only in a private local environment; probe usernames are generated uniquely when testing administrative creation.
+
+Run 21–26 to capture the acting `admin_user_id`, preserve `old_standard_token`, promote that same `standard_user_id`, and test GET/POST/PUT administration **without re-login**. Run 27–30 to obtain `promoted_token` and test the same access with a new token. Run 31–38 to demote that user with the original admin token, then verify previously issued tokens lose administration while retaining GET/POST `/test`. Request 39 expects **409** when demoting the last active administrator. All IDs are captured; none is assumed to be 1 or 2. Keep captured values in collection scope and clear them before any export.
+
+Every Postman assertion/description carries the exact owning catalogue ID/name. The [QA plan](docs/QA_TEST_PLAN.md) explains account switching, precise fields, evidence and expected negative responses. Physical Swagger interaction and actual Postman JavaScript execution must be recorded separately from HTTP replay.
+
+All are **empty in the versioned collection**. Do not shadow captured values with empty environment variables. Requests 10 and 16 create persistent accounts; choose fresh usernames for a rerun. Request 17 demotes the additional administrator. No automatic cleanup/deletion is available.
+
+| Order | Request | Expected |
+| --- | --- | --- |
+| 09 | POST `/token` with administrator form credentials | **200**, capture admin token |
+| 10 | POST `/users` with standard username/password/role | **201**, capture public user ID |
+| 11 | GET `/users?page=1&page_size=10` as administrator | **200**, public paginated accounts |
+| 12 | POST `/token` with new standard credentials | **200**, capture standard token |
+| 13 | GET `/users` as standard | **403** |
+| 14–15 | GET/POST `/test` as standard | **200** envelope / **201** inserted row |
+| 16 | POST `/users` with administrator role | **201**, capture additional administrator ID |
+| 17 | PUT `/users/{{additional_admin_id}}/role` with standard role | **200** |
+| 18 | POST `/users` with the existing standard username | **409** |
+| 19–20 | POST `/users` and PUT role as standard | **403** |
+
+### 🔎 **Filters and interaction tracing**
+
+`%` matches any sequence; `_` matches one character. `Ouroboros` matches the whole value; `Ouroboros%` starts with it; `%Ouroboros%` contains it. The API does not add wildcards. Encode `%` as **`%25` in a URL**, hence `?value=%25Ouroboros%25`. If editing Postman's Params table, enter `%Ouroboros%` and check that the resulting encoded URL sends one encoding layer. Escape literal wildcards with backslash (`100\%`, URL `100%5C%25`). An absent filter means no filter; an empty `value` searches an empty value.
+
+Open the response **Headers**, copy **X-Interaction-ID**, then search that exact 24-digit string with **Ctrl+F** in the current `logs/application_*.log` file. All component events from that request inherit the same ID. The ID is the second field in each request log line. Application startup/shutdown lines have no ID.
+
+### 🛠️ **Troubleshooting and safe exports**
+
+| Symptom | Check |
+| --- | --- |
+| Connection refused / no response | Keep `start.py` running; check `base_url`, API port, terminal errors, and Docker Desktop |
+| Health returns 503 | PostgreSQL availability, configured database port, and matching interaction logs |
+| 401 | Run 02 again; check API credentials, missing/invalid/expired Bearer token, and variable scope shadowing |
+| 403 | Standard users cannot administer users; for test endpoints check issued/current scopes, or request allowed scopes again |
+| 409 | Duplicate username or attempted demotion of the last active administrator |
+| 422 | Check strict JSON field names/types, fixed role choices, positive `id`/`page` and `page_size` 10–50 |
+
+**Never version exports containing passwords, tokens, hashes, or personal credentials.** The canonical JSON keeps username/password/token/ID empty. Local environments/globals, `.postman/` and `.resources/` workspace metadata, and private exports stay outside Git. Existing local YAML metadata may contain private variable values; it is preserved locally and ignored. Postman may persist captured collection values locally: sanitize them before exporting, and review changes before staging.
+
+**Verification status:** JSON syntax and the official v2.1 schema are checked automatically. Basic and administrative request definitions are replayed against the real API with isolated PostgreSQL. HTTP/OpenAPI tests do not constitute visual Swagger verification, Postman desktop import, or execution of Postman's JavaScript sandbox; those remain manual. Migration **003** is applied by the next normal startup; verification uses isolated resources and does not migrate or promote users in the normal database.
+
+<!-- postman-json:start -->
+<details>
+<summary>📄 <strong>Complete importable Postman Collection v2.1 JSON</strong></summary>
+
+```json
+{
+  "info": {
+    "name": "Foundation — API smoke tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Canonical importable Collection v2.1. Requests 01-08 are the basic flow. Then run Administrator and standard scenarios on an isolated database: they persist users and role changes. Set all credentials only in a private local environment; never export captured tokens. Local YAML copies are historical and not the import source."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:6969",
+      "type": "string"
+    },
+    {
+      "key": "api_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "api_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "standard_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "standard_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "standard_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "standard_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "additional_admin_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "additional_admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "additional_admin_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "old_standard_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "promoted_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lifecycle_probe_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lifecycle_probe_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lifecycle_probe_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_new_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "standard_new_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password_admin_old_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password_standard_old_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password_admin_new_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password_standard_new_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "standard_next_password_a",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "standard_next_password_b",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password_race_a_status",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password_race_b_status",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_target_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_target_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_old_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_new_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_target_old_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_target_new_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_peer_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_peer_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_peer_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Health (public)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "QA scenario: 3.1 - Public health and database outage. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"3.1 - Public health and database outage | HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"3.1 - Public health and database outage | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "02 - Get access token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "url": "{{base_url}}/token",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "{{api_username}}",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "{{api_password}}",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "QA scenario: 3.2 - Invalid credentials and bearer tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"3.2 - Invalid credentials and bearer tokens | HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"3.2 - Invalid credentials and bearer tokens | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "if (pm.response.code === 200) {",
+              "  const data = pm.response.json();",
+              "  pm.test(\"3.2 - Invalid credentials and bearer tokens | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
+              "  pm.collectionVariables.set(\"access_token\", data.access_token);",
+              "} else { pm.collectionVariables.set(\"access_token\", \"\"); }"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "03 - Insert test entry",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/test",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"value\": \"Ouroboros está vivo! 🐍💻\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "QA scenario: 4.1 - Test entry content and Unicode round trip. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"4.1 - Test entry content and Unicode round trip | HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"4.1 - Test entry content and Unicode round trip | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "if (pm.response.code === 201) { pm.collectionVariables.set(\"test_id\", String(pm.response.json().id)); }",
+              "else { pm.collectionVariables.set(\"test_id\", \"\"); }"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "04 - List all entries",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/test",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test"
+          ],
+          "query": [
+            {
+              "key": "id",
+              "value": "{{test_id}}",
+              "disabled": true,
+              "description": "Enable to filter by the ID captured after insertion."
+            },
+            {
+              "key": "value",
+              "value": "%Ouroboros%",
+              "disabled": true,
+              "description": "Enable for a case-insensitive contains pattern. Keep percent signs raw here; Postman encodes them once."
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "Use Params checkboxes: neither returns the first unfiltered page; id filters by inserted ID; value applies ILIKE; both combine with AND. Response is count/page/page_size/items. Optional page and page_size may be added in Params. Percent signs are encoded once.\n\nQA scenario: 4.4 - Pagination counts limits and empty pages. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"4.4 - Pagination counts limits and empty pages | HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"4.4 - Pagination counts limits and empty pages | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "pm.test(\"4.4 - Pagination counts limits and empty pages | Pagination envelope\", () => {",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.items).to.be.an(\"array\");",
+              "  pm.expect(data.count).to.be.a(\"number\").and.at.least(data.items.length);",
+              "  pm.expect(data.page).to.be.at.least(1);",
+              "  pm.expect(data.page_size).to.be.within(10, 50);",
+              "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "05 - Filter by inserted ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/test?id={{test_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "QA scenario: 4.3 - Filters wildcards escapes and AND. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Pagination envelope\", () => {",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.items).to.be.an(\"array\");",
+              "  pm.expect(data.count).to.be.a(\"number\").and.at.least(data.items.length);",
+              "  pm.expect(data.page).to.be.at.least(1);",
+              "  pm.expect(data.page_size).to.be.within(10, 50);",
+              "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
+              "});",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | ID filter returns only the inserted record\", () => {",
+              "  const rows = pm.response.json().items;",
+              "  pm.expect(rows.length).to.eql(1);",
+              "  pm.expect(String(rows[0].id)).to.eql(pm.collectionVariables.get(\"test_id\"));",
+              "  pm.expect(rows[0].value).to.eql(\"Ouroboros está vivo! 🐍💻\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "06 - Filter by text pattern",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/test?value=%25Ouroboros%25",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "QA scenario: 4.3 - Filters wildcards escapes and AND. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Pagination envelope\", () => {",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.items).to.be.an(\"array\");",
+              "  pm.expect(data.count).to.be.a(\"number\").and.at.least(data.items.length);",
+              "  pm.expect(data.page).to.be.at.least(1);",
+              "  pm.expect(data.page_size).to.be.within(10, 50);",
+              "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
+              "});",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Case-insensitive contains pattern matches every row\", () => {",
+              "  const rows = pm.response.json().items;",
+              "  pm.expect(rows.length).to.be.above(0);",
+              "  rows.forEach(entry => pm.expect(entry.value.toLocaleLowerCase()).to.include(\"ouroboros\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "07 - Combine ID and text filters",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/test?id={{test_id}}&value=%25Ouroboros%25",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "QA scenario: 4.3 - Filters wildcards escapes and AND. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Pagination envelope\", () => {",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.items).to.be.an(\"array\");",
+              "  pm.expect(data.count).to.be.a(\"number\").and.at.least(data.items.length);",
+              "  pm.expect(data.page).to.be.at.least(1);",
+              "  pm.expect(data.page_size).to.be.within(10, 50);",
+              "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
+              "});",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | ID filter returns only the inserted record\", () => {",
+              "  const rows = pm.response.json().items;",
+              "  pm.expect(rows.length).to.eql(1);",
+              "  pm.expect(String(rows[0].id)).to.eql(pm.collectionVariables.get(\"test_id\"));",
+              "  pm.expect(rows[0].value).to.eql(\"Ouroboros está vivo! 🐍💻\");",
+              "});",
+              "pm.test(\"4.3 - Filters wildcards escapes and AND | Case-insensitive contains pattern matches every row\", () => {",
+              "  const rows = pm.response.json().items;",
+              "  pm.expect(rows.length).to.be.above(0);",
+              "  rows.forEach(entry => pm.expect(entry.value.toLocaleLowerCase()).to.include(\"ouroboros\"));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "08 - Reject unauthenticated request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/test",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "QA scenario: 3.2 - Invalid credentials and bearer tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"3.2 - Invalid credentials and bearer tokens | HTTP 401\", () => pm.response.to.have.status(401));",
+              "pm.test(\"3.2 - Invalid credentials and bearer tokens | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Administrator and standard scenarios (isolated database recommended)",
+      "item": [
+        {
+          "name": "09 - Authenticate existing administrator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{base_url}}/token",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{admin_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{admin_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.2 - Administrator login and endpoint access. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.2 - Administrator login and endpoint access | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.2 - Administrator login and endpoint access | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.test(\"2.2 - Administrator login and endpoint access | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
+                  "  pm.collectionVariables.set(\"admin_token\", data.access_token);",
+                  "} else { pm.collectionVariables.set(\"admin_token\", \"\"); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10 - Create standard user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{standard_username}}\",\n  \"password\": \"{{standard_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.3 - Create a default standard user. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.3 - Create a default standard user | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"2.3 - Create a default standard user | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"standard_user_id\", String(pm.response.json().id)); }",
+                  "pm.test(\"2.3 - Create a default standard user | Public metadata only\", () => { const u=pm.response.json(); pm.expect(u).not.to.have.property(\"password_hash\"); pm.expect(u).not.to.have.property(\"password\"); pm.expect(u.role).to.eql(\"standard\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "11 - List users as administrator",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users?page=1&page_size=10",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 3.4 - Administrative validation and conflicts. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3.4 - Administrative validation and conflicts | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Pagination envelope\", () => {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.items).to.be.an(\"array\");",
+                  "  pm.expect(data.count).to.be.a(\"number\").and.at.least(data.items.length);",
+                  "  pm.expect(data.page).to.be.at.least(1);",
+                  "  pm.expect(data.page_size).to.be.within(10, 50);",
+                  "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "12 - Authenticate standard user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{base_url}}/token",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{standard_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{standard_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.4 - Standard login and permissions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.test(\"2.4 - Standard login and permissions | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
+                  "  pm.collectionVariables.set(\"standard_token\", data.access_token);",
+                  "} else { pm.collectionVariables.set(\"standard_token\", \"\"); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "13 - Standard cannot list users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.4 - Standard login and permissions | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "14 - Standard can list test entries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/test",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.4 - Standard login and permissions | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"2.4 - Standard login and permissions | Pagination envelope\", () => {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.items).to.be.an(\"array\");",
+                  "  pm.expect(data.count).to.be.a(\"number\").and.at.least(data.items.length);",
+                  "  pm.expect(data.page).to.be.at.least(1);",
+                  "  pm.expect(data.page_size).to.be.within(10, 50);",
+                  "  pm.expect(data.items.length).to.be.at.most(data.page_size);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "15 - Standard can insert test entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Ouroboros est\\u00e1 vivo! \\ud83d\\udc0d\\ud83d\\udcbb\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.4 - Standard login and permissions | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "16 - Create additional administrator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{additional_admin_username}}\",\n  \"password\": \"{{additional_admin_password}}\",\n  \"role\": \"administrator\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 3.4 - Administrative validation and conflicts. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3.4 - Administrative validation and conflicts | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"additional_admin_id\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "17 - Demote additional administrator",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{additional_admin_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 3.4 - Administrative validation and conflicts. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3.4 - Administrative validation and conflicts | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Role replaced\", () => pm.expect(pm.response.json().role).to.eql(\"standard\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "18 - Duplicate username is rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{standard_username}}\",\n  \"password\": \"{{standard_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 3.4 - Administrative validation and conflicts. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3.4 - Administrative validation and conflicts | HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"3.4 - Administrative validation and conflicts | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "19 - Standard cannot create users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{additional_admin_username}}\",\n  \"password\": \"{{additional_admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.4 - Standard login and permissions | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20 - Standard cannot change roles",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{standard_user_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"administrator\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.4 - Standard login and permissions | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"2.4 - Standard login and permissions | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "QA role lifecycle (run 09, 10, 12 first)",
+      "item": [
+        {
+          "name": "21 - Capture acting administrator ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users?page_size=50",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.5 - Promotion with the original token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) {",
+                  "  const u = pm.response.json().items.find(u => u.username === pm.variables.get(\"admin_username\"));",
+                  "  pm.test(\"2.5 - Promotion with the original token | Acting administrator found\", () => pm.expect(u).to.be.an(\"object\"));",
+                  "  pm.collectionVariables.set(\"admin_user_id\", u ? String(u.id) : \"\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "22 - Preserve original standard token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/test",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.5 - Promotion with the original token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"old_standard_token\", pm.collectionVariables.get(\"standard_token\")); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "23 - Promote the same standard user",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{standard_user_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"administrator\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.5 - Promotion with the original token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "24 - Original token after promotion list users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{old_standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.5 - Promotion with the original token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "25 - Original token after promotion create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{old_standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{lifecycle_probe_username}}\",\n  \"password\": \"{{lifecycle_probe_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.5 - Promotion with the original token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"lifecycle_probe_username\", \"qa-probe-\" + pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.5 - Promotion with the original token | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "26 - Original token after promotion change role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{lifecycle_probe_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{old_standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.5 - Promotion with the original token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.5 - Promotion with the original token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.5 - Promotion with the original token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "27 - Authenticate promoted user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{base_url}}/token",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{standard_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{standard_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.6 - Promotion with a new token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.6 - Promotion with a new token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.6 - Promotion with a new token | Request interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.test(\"2.6 - Promotion with a new token | Access token returned\", () => pm.expect(data.access_token).to.be.a(\"string\").and.not.empty);",
+                  "  pm.collectionVariables.set(\"promoted_token\", data.access_token);",
+                  "} else { pm.collectionVariables.set(\"promoted_token\", \"\"); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "28 - New administrator token list users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.6 - Promotion with a new token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.6 - Promotion with a new token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "29 - New administrator token create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{lifecycle_probe_username}}\",\n  \"password\": \"{{lifecycle_probe_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.6 - Promotion with a new token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"lifecycle_probe_username\", \"qa-probe-\" + pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.6 - Promotion with a new token | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30 - New administrator token change role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{lifecycle_probe_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.6 - Promotion with a new token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.6 - Promotion with a new token | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.6 - Promotion with a new token | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "31 - Demote the same user",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{standard_user_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "32 - Administrator token after demotion list users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "33 - Administrator token after demotion create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{lifecycle_probe_username}}\",\n  \"password\": \"{{lifecycle_probe_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"lifecycle_probe_username\", \"qa-probe-\" + pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"lifecycle_probe_id\", String(pm.response.json().id)); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "34 - Administrator token after demotion change role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{lifecycle_probe_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "35 - Demoted user can read tests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/test",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "36 - Demoted user can write tests",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{promoted_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Ouroboros está vivo! 🐍💻\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "37 - Original token loses administration",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{old_standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "38 - Original token retains test access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/test",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{old_standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 2.7 - Demotion with already-issued tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"2.7 - Demotion with already-issued tokens | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "39 - Reject last administrator demotion",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{admin_user_id}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 2.8 - Protect the last active administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2.8 - Protect the last active administrator | HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"2.8 - Protect the last active administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Own password changes (fresh isolated QA accounts; see plan)",
+      "item": [
+        {
+          "name": "40 - Authenticate administrator before password changes",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{admin_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{admin_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.2 - Change own password as administrator | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_old_token\", pm.response.json().access_token); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "41 - Authenticate standard before password changes",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{standard_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{standard_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.1 - Change own password as standard | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_old_token\", pm.response.json().access_token); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "42 - Reject incorrect current password",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{admin_password}}\",\n  \"new_password\": \"{{standard_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.3 - Reject invalid own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "43 - Reject unchanged password",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{standard_password}}\",\n  \"new_password\": \"{{standard_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.3 - Reject invalid own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "44 - Reject identity in password body",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{standard_password}}\",\n  \"new_password\": \"{{standard_new_password}}\",\n  \"username\": \"{{standard_username}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.3 - Reject invalid own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "45 - Reject password change without token",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{standard_password}}\",\n  \"new_password\": \"{{standard_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.3 - Reject invalid own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "46 - Change standard password",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{standard_password}}\",\n  \"new_password\": \"{{standard_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.1 - Change own password as standard | HTTP 204\", () => pm.response.to.have.status(204));",
+                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"8.1 - Change own password as standard | Empty 204 body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "47 - Reject standard token after password change",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/test",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.1 - Change own password as standard | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "48 - Reject old standard password",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{standard_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{standard_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.1 - Change own password as standard | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "49 - Authenticate new standard password",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{standard_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{standard_new_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.1 - Change own password as standard | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_new_token\", pm.response.json().access_token); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "50 - Preserve unrelated administrator token",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_admin_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.4 - Revoke own tokens and preserve other accounts. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "51 - Change administrator password",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_admin_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{admin_password}}\",\n  \"new_password\": \"{{admin_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.2 - Change own password as administrator | HTTP 204\", () => pm.response.to.have.status(204));",
+                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"8.2 - Change own password as administrator | Empty 204 body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "52 - Reject administrator token after password change",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_admin_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.2 - Change own password as administrator | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "53 - Reject old administrator password",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{admin_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{admin_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.2 - Change own password as administrator | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "54 - Authenticate new administrator password",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{admin_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{admin_new_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.2 - Change own password as administrator | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_new_token\", pm.response.json().access_token); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "55 - Preserve unrelated standard token",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/test",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_new_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 8.4 - Revoke own tokens and preserve other accounts. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "56 - Reject reuse of password-changing token",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_admin_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{admin_new_password}}\",\n  \"new_password\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.4 - Revoke own tokens and preserve other accounts. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"8.4 - Revoke own tokens and preserve other accounts | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "57 - Reject malformed password JSON",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_new_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.3 - Reject invalid own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.3 - Reject invalid own-password changes | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"8.3 - Reject invalid own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "58 - Concurrent password candidate A",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_new_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{standard_new_password}}\",\n  \"new_password\": \"{{standard_next_password_a}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.5 - Concurrent own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.5 - Concurrent own-password changes | Guarded concurrent result\", () => pm.expect(pm.response.code).to.be.oneOf([204, 401]));",
+                  "pm.test(\"8.5 - Concurrent own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"password_race_a_status\", String(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "59 - Concurrent password candidate B",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/me/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{password_standard_new_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{standard_new_password}}\",\n  \"new_password\": \"{{standard_next_password_b}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 8.5 - Concurrent own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.5 - Concurrent own-password changes | Guarded concurrent result\", () => pm.expect(pm.response.code).to.be.oneOf([204, 401]));",
+                  "pm.test(\"8.5 - Concurrent own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.collectionVariables.set(\"password_race_b_status\", String(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "60 - Verify concurrent password outcomes",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "QA scenario: 8.5 - Concurrent own-password changes. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"8.5 - Concurrent own-password changes | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"8.5 - Concurrent own-password changes | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"8.5 - Concurrent own-password changes | Exactly one concurrent password change succeeds\", () => {",
+                  "  const codes = [Number(pm.collectionVariables.get(\"password_race_a_status\")), Number(pm.collectionVariables.get(\"password_race_b_status\"))].sort();",
+                  "  pm.expect(codes).to.eql([204, 401]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pagination and administrator password reset (fresh isolated accounts)",
+      "item": [
+        {
+          "name": "61 - Pagination example (page 2, size 10)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/test?page=2&page_size=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2",
+                  "description": "One-based page, minimum 1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10",
+                  "description": "10–50; default 50"
+                },
+                {
+                  "key": "id",
+                  "value": "{{test_id}}",
+                  "disabled": true,
+                  "description": "Optional exact ID"
+                },
+                {
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true,
+                  "description": "Optional raw ILIKE pattern; AND with id"
+                }
+              ]
+            },
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 4.4 - Pagination counts limits and empty pages. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"4.4 - Pagination counts limits and empty pages | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"4.4 - Pagination counts limits and empty pages | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"4.4 - Pagination counts limits and empty pages | Paginated envelope\", () => { const b=pm.response.json(); pm.expect(b.items).to.be.an(\"array\"); pm.expect(b.count).to.be.at.least(b.items.length); pm.expect(b.page).to.eql(Number(pm.request.url.query.get(\"page\") || 1)); pm.expect(b.page_size).to.eql(Number(pm.request.url.query.get(\"page_size\") || 50)); pm.expect(b.items.length).to.be.at.most(b.page_size); for(let i=1;i<b.items.length;i++) pm.expect(b.items[i].id).to.be.above(b.items[i-1].id); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "62 - Authenticate reset administrator",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{admin_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{reset_admin_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_admin_token\", String(pm.response.json().access_token));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "63 - Create disposable password reset target",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/users",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{reset_target_username}}\",\n  \"password\": \"{{reset_old_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"reset_target_id\", String(pm.response.json().id));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "64 - Authenticate reset target before reset",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{reset_target_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{reset_old_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_old_token\", String(pm.response.json().access_token));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "65 - Authenticate unrelated reset peer",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{reset_peer_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{reset_peer_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_peer_token\", String(pm.response.json().access_token));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "66 - Deny standard administrative reset",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/{{reset_target_id}}/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_peer_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"{{reset_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 9.2 - Administrative reset rejection and body secrecy. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "67 - Deny unauthenticated administrative reset",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/{{reset_target_id}}/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"{{reset_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 9.2 - Administrative reset rejection and body secrecy. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "68 - Reject missing reset target",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/9223372036854775807/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"{{reset_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 9.2 - Administrative reset rejection and body secrecy. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "69 - Reject empty reset password",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/{{reset_target_id}}/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 9.2 - Administrative reset rejection and body secrecy. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"9.2 - Administrative reset rejection and body secrecy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "70 - Reset standard password as administrator",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/{{reset_target_id}}/password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"{{reset_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 204\", () => pm.response.to.have.status(204));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Empty body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "71 - Reject target token issued before reset",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/test",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_target_old_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "72 - Reject old target password after reset",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{reset_target_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{reset_old_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "73 - Authenticate new target password after reset",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{reset_target_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{reset_new_password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_new_token\", String(pm.response.json().access_token));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "74 - Preserve unrelated token after reset",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/test",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_peer_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "75 - Use new target token after reset",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/test",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_target_new_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "76 - Preserve administrator token after reset",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reset_admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+</details>
+<!-- postman-json:end -->
+
+## Verify
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+The real PostgreSQL test is opt-in and requires Docker Engine:
+
+```powershell
+$env:FOUNDATION_RUN_INTEGRATION = '1'
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+Remove-Item Env:FOUNDATION_RUN_INTEGRATION
+```
+
+It creates a UUID-named Compose project with a separate volume, temporary secret, random password, and available local port. It verifies initial migration, generated IDs, 50,000-character text, persistence across stop/start, migration reexecution, invalid database credentials, the real API endpoints and pattern searches, and a real HTTP socket with graceful server shutdown. Cleanup removes only the disposable resources created by that test. Normal application data and logs are untouched. Account integration tests also cover exact legacy-hash import, idempotence/conflicts, two accounts, inactive users, live scope reductions, another database, and denied CREATEDB permissions. A separate check uses actual API/Swagger port 6969 and PostgreSQL port 6669 when free; occupied ports are preserved, account tests use a temporary database port, and the fixed-port check is explicitly skipped rather than stopping an existing service.
+
+See [NEXTGENERATION.md](NEXTGENERATION.md) for developer conventions.

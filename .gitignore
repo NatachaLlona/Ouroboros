@@ -1,0 +1,77 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+.eggs/
+build/
+dist/
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# Logs
+*.log
+logs/
+
+# Local configuration and secrets
+.env
+.env.*
+.app.config
+.app.config.*
+!.app.config.example
+
+# Temporary files and copies that may contain credentials
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+.tmp/
+tmp/
+temp/
+*credentials*.tmp*
+*credentials*.temp*
+*credentials*.bak*
+*credentials*.backup*
+*credentials*~
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Local database secrets
+.secrets/
+
+# Private Postman settings and credential exports
+postman/globals/
+postman/local/
+*.postman_environment.json
+*.postman_globals.json
+
+# Local Postman workspace metadata can contain private variable values
+.postman/
+**/.resources/
+
+# Sanitized local QA reports (regenerate instead of versioning)
+reports/

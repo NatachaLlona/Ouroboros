@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{base_url}}/test?id={{test_id}}"
+method: GET
+queryParams:
+  id: "{{test_id}}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      pm.test("Request interaction ID", () => pm.expect(pm.response.headers.get("X-Interaction-ID")).to.match(/^[0-9]{24}$/));
+      pm.test("Array response", () => pm.expect(pm.response.json()).to.be.an("array"));
+      pm.test("ID filter returns only the inserted record", () => {
+        const rows = pm.response.json();
+        pm.expect(rows.length).to.eql(1);
+        pm.expect(String(rows[0].id)).to.eql(pm.collectionVariables.get("test_id"));
+        pm.expect(rows[0].value).to.eql("Ouroboros está vivo! 🐍💻");
+      });
+    language: text/javascript
+order: 7000
