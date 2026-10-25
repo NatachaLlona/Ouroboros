@@ -186,6 +186,8 @@ def create_app(config, database, auth, logger):
     application.state.logger = logger
     application.state.config = config
     application.state.error_codes = codes
+    from app.creation_limits import CreationBodyLimitMiddleware
+    application.add_middleware(CreationBodyLimitMiddleware, config=config, codes=codes)
     application.add_middleware(RequestLoggingMiddleware, logger=logger)
     from app.audit_middleware import RequestAuditingMiddleware
     application.add_middleware(RequestAuditingMiddleware, database=database, logger=logger, config=config, codes=codes)
@@ -251,6 +253,8 @@ def validation_message(category):
     if category == "extra_forbidden":
         return "This field is not allowed"
     messages = {
+        "creation_shape": "Supply one JSON object or a nonempty array of JSON objects",
+        "batch_empty": "Supply at least one JSON object in the array",
         "tier_bulk_update": "Bulk tier changes are not supported; use individual PUT /work_classifications/{id} to reorder classifications",
         "empty_update": "Supply at least one field to update or echo; an empty update object is not allowed",
         "string_type": "Expected a string",

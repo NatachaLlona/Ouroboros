@@ -57,3 +57,7 @@ For manual QA use owned disposable storage and fresh private accounts. Inspect S
 ## 🪜 Classification tiers and complete test CRUD
 
 Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.
+
+## Object and array creation
+
+POST /test and the eleven catalogue POST creation endpoints accept one object or a nonempty atomic array. Single-object 201 responses remain full records; array 201 responses contain created_count and full items in request order, without GET pagination. Each item uses the existing create schema and creation permissions. See [the batch creation contract](BATCH_CREATION.md) for zero-based item errors, transaction/audit guarantees, classification tiers, configurable api.max_batch_size (default 300) and api.max_creation_body_bytes (default 4 MiB), client examples and restart instructions. Capture/inspection budgets are independent and remain bounded. No migration, reset or seed is required; preserve existing normal records and leave unconfirmed listeners alone.

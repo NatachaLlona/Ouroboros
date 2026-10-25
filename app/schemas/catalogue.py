@@ -4,6 +4,7 @@ Models are built from this fixed public contract, not database introspection or
 client-provided identifiers. Each route publishes its own named OpenAPI schemas.
 """
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -11,7 +12,8 @@ from pydantic import (BaseModel, BeforeValidator, ConfigDict, Field,
                       StrictBool, StrictInt, StrictStr, create_model, model_validator)
 from app.pagination import integer_query
 from pydantic_core import PydanticCustomError
-from app.datetimes import Instant, SourceInstant, ZoneName, DisplayZone, check_range
+from app.datetimes import Instant, SourceInstant, ZoneName, DisplayZone, check_range, date_filter_fields, date_predicates
+from app.schemas.relationships import collection_record
 
 Text = StrictStr
 Technical = Annotated[StrictStr, Field(pattern=r'^[a-z][a-z0-9]*(_[a-z0-9]+)*$')]
@@ -90,9 +92,31 @@ class Selection(BaseModel):
     """Reject unknown filters and invalid inclusive/exclusive creation ranges."""
     model_config = ConfigDict(extra='forbid')
 
+    filter_timezone: ZoneName | None = Field(default=None, description='IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone.', examples=['Europe/Lisbon', 'America/New_York'])
+
     @model_validator(mode='after')
     def date_bounds(self):
-        check_range(getattr(self, 'created_at_from', None), getattr(self, 'created_at_to', None))
+        values = self.model_dump()
+        fields = [name[:-5] for name in type(self).model_fields if name.endswith('_date')]
+        # Mixed date/instant ordering needs the configured application zone at the route.
+        if self.filter_timezone is not None or not any(isinstance(v, datetime) for k, v in values.items() if k.endswith(('_from', '_to'))):
+            date_predicates(values, fields)
+        else:
+            for field in fields:
+                if values.get(field + '_date') is not None and any(values.get(field + suffix) is not None for suffix in ('_from', '_to')):
+                    raise ValueError('Exact calendar day cannot be combined with range bounds')
+                start, end = values.get(field + '_from'), values.get(field + '_to')
+                if isinstance(start, datetime) and isinstance(end, datetime):
+                    check_range(start, end)
+        return self
+
+    def bind_filter_timezone(self, config):
+        from app.catalogue_repository import CatalogueError
+        self.filter_timezone = self.filter_timezone or config.get('application_timezone', 'Europe/Lisbon')
+        try:
+            date_predicates(self.model_dump(), [name[:-5] for name in type(self).model_fields if name.endswith('_date')])
+        except ValueError:
+            raise CatalogueError(422, 'Invalid date filter') from None
         return self
 
 
@@ -122,6 +146,7 @@ class Resource:
     pattern_fields: tuple[str, ...]
     bulk_query: type[BaseModel]
     bulk_update: type[BaseModel]
+    list_record: type[BaseModel]
 
     @property
     def key(self):
@@ -214,8 +239,9 @@ def build_resource(table, fields):
         if name.startswith('sequence_'):
             filter_type, example = Annotated[int, BeforeValidator(integer_query), Field(gt=0, le=9223372036854775807)], 1
         filters[name] = (filter_type | None, Field(default=None, description=description, examples=[example]))
-    filters.update(created_at_from=(Instant | None, Field(default=None, description='Inclusive creation-time lower bound; explicit UTC offset required. NULL history does not match.', examples=['2026-10-01T00:00:00+01:00'])),
-        created_at_to=(Instant | None, Field(default=None, description='Exclusive creation-time upper bound; must follow from. NULL history does not match.', examples=['2026-11-01T00:00:00Z'])))
+    for field in ('created_at', 'added_at', 'watched_at'):
+        if field in columns:
+            filters.update(date_filter_fields(field))
     bulk_query = create_model(title + 'BulkFilters', __base__=BulkSelection, **filters)
     bulk_fields = {name: (annotation, Field(default=None, description='Supplied mutable fields only; omitted fields are preserved.')) for name, (annotation, _) in fields.items()}
     if table == 'work_classifications':
@@ -229,7 +255,8 @@ def build_resource(table, fields):
         order_direction=(Literal['asc', 'desc'], Field(default='asc', description='NULL values always sort last.', examples=['asc', 'desc'])))
     query = create_model(title + 'Filters', __base__=Selection, **filters)
     pattern_fields = tuple(name for name in columns if query.model_fields[name].description == PATTERN_HELP)
-    return Resource(table, fields, create, update, record, query, columns, tuple(common) + tuple(automatic), pattern_fields, bulk_query, bulk_update)
+    return Resource(table, fields, create, update, record, query, columns, tuple(common) + tuple(automatic), pattern_fields, bulk_query, bulk_update,
+                    collection_record(table, record))
 
 
 RESOURCES = {table: build_resource(table, fields) for table, fields in CONTRACTS.items()}

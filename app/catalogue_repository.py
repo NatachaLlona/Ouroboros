@@ -1,13 +1,16 @@
 """Transactional catalogue persistence with safe errors and current-role checks."""
 from contextlib import contextmanager
-from psycopg import errors, sql
+from psycopg import errors, sql, IsolationLevel
 from pydantic import ValidationError
 
 from app.collection_queries import select_page, template, where_clause
-from app.datetimes import source_values, present, utc
+from app.datetimes import source_values, present, utc, date_predicates
 from app.audit_context import audit_context, bulk_context, operation_evidence
 from app.errors import AuditUnavailable
 from app.classification_ordering import ClassificationOrdering, TierPositionError
+from app.creation import batch_context, batch_evidence, creation_item
+from app.schemas.relationships import RELATIONSHIPS
+from app.relationship_reads import enrich_page
 
 
 class CatalogueError(Exception):
@@ -83,6 +86,39 @@ class CatalogueRepository:
                 ordering.evidence('insert', {'id': result[self.resource.key], 'old_tier': None, 'new_tier': result['tier']}, shifted)
         return result
 
+    def create_many(self, payloads, actor):
+        """Insert ordered items on one authorized transaction; never commit a prefix."""
+        resource = self.resource
+        batch_context(resource.table, len(payloads))
+        results, shifted_count, shifted_records, statement = [], 0, [], None
+        with self.writing(actor) as cursor:
+            ordering = ClassificationOrdering(cursor) if resource.table == 'work_classifications' else None
+            for index, payload in enumerate(payloads):
+                with creation_item(index):
+                    values = self.source_context(payload.model_dump())
+                    if ordering is not None:
+                        values['tier'], shifted = ordering.insert(values.get('tier'))
+                        shifted_count += shifted['shifted_count']
+                        shifted_records.extend({'item_index': index, **row}
+                            for row in shifted['shifted_records'][:20 - len(shifted_records)])
+                    if statement is None:
+                        statement = self.statement('catalogue_insert.sql',
+                            fields=sql.SQL(', ').join(map(sql.Identifier, values)),
+                            values=sql.SQL(', ').join(sql.Placeholder() for _ in values))
+                    cursor.execute(statement, tuple(values.values()))
+                    results.append(self.mapped(cursor.fetchone()))
+            if ordering is not None:
+                # Later inserts may shift earlier items: return their final persisted tiers.
+                cursor.execute(sql.SQL('SELECT {} FROM public.{} WHERE {} = ANY(%s)').format(
+                    sql.SQL(', ').join(map(sql.Identifier, resource.columns)),
+                    sql.Identifier(resource.table), sql.Identifier(resource.key)),
+                    ([record[resource.key] for record in results],))
+                persisted = {row[resource.key]: row for row in map(self.mapped, cursor.fetchall())}
+                results = [persisted[record[resource.key]] for record in results]
+            batch_evidence(cursor, resource.table, results, resource.key, shifted_count,
+                           shifted_records if ordering is not None else None)
+        return results
+
     def read(self, record_id):
         """Read an exact permanent ID or return safe 404 guidance."""
         with self.database.connection() as connection, connection.cursor() as cursor:
@@ -134,8 +170,14 @@ class CatalogueRepository:
         values = selection.model_dump()
         filters = self.filters(values)
         with self.database.connection() as connection:
-            return select_page(connection, resource.table, resource.columns, resource.key, filters,
+            if resource.table in RELATIONSHIPS:
+                # The provider's setup transaction is already committed. Set these
+                # before the first data SELECT so the page and names share a snapshot.
+                connection.isolation_level = IsolationLevel.REPEATABLE_READ
+                connection.read_only = True
+            result = select_page(connection, resource.table, resource.columns, resource.key, filters,
                 values['page'], values['page_size'], values['order_by'], values['order_direction'])
+            return enrich_page(connection, resource.table, result) if resource.table in RELATIONSHIPS else result
 
     def source_context(self, values, current=None, preserve_echo=False):
         """Update watched_at companions together; metadata echoes are not editable."""
@@ -167,7 +209,7 @@ class CatalogueRepository:
         """Use the identical predicate contract for collection and bulk operations."""
         resource = self.resource
         filters = [(name, 'ILIKE' if name in resource.pattern_fields else '=', values.get(name)) for name in resource.columns]
-        filters += [('created_at', '>=', values.get('created_at_from')), ('created_at', '<', values.get('created_at_to'))]
+        filters += date_predicates(values, [field for field in ('created_at', 'added_at', 'watched_at') if field in resource.columns])
         return filters
 
     def bulk(self, actor, selection, payload=None):

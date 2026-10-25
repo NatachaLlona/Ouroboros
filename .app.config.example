@@ -3,6 +3,10 @@
   "port": 6969,
   "application_timezone": "Europe/Lisbon",
   "default_display_timezone": "Europe/Lisbon",
+  "api": {
+    "max_batch_size": 300,
+    "max_creation_body_bytes": 4194304
+  },
   "audit": {
     "request_body_max_bytes": 8192,
     "response_body_max_bytes": 8192,

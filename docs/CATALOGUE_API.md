@@ -4,7 +4,7 @@ Ouroboros implements seven endpoint forms for each of the eleven catalogue resou
 
 | Route for each `<resource>` | Result |
 | --- | --- |
-| `POST /<resource>` | 201, complete persisted record |
+| `POST /<resource>` | 201, complete persisted record for one object; created_count/full items for an atomic array |
 | `GET /<resource>` | 200, `{count, page, page_size, items}` |
 | `GET /<resource>/{id}` | 200, complete persisted record; missing 404 |
 | `PUT /<resource>/{id}` | 200, complete persisted record; missing 404 |
@@ -27,7 +27,7 @@ Migration **006_add_supervisor_role.sql** replaces only the api_users role CHECK
 
 ## ✏️ **POST, PUT and record round trips**
 
-POST/PUT/GET-by-ID and collection items use the identical public record schema, including all generated metadata/defaults/timestamps from PostgreSQL. POST accepts domain fields only. PUT intentionally supports both partial input and a full copied GET record. Unknown properties and `{}` return 422.
+Single POST/PUT/GET-by-ID and collection items use the identical public record schema, including all generated metadata/defaults/timestamps from PostgreSQL. Array POST wraps those same full records in created_count/items, ordered by request. POST accepts domain fields only, as one object or an atomic array. PUT intentionally supports both partial input and a full copied GET record. Unknown properties and `{}` return 422.
 
 - Omit a field to preserve its locked current value. Explicit null clears only nullable fields.
 - Echo ID/sequence/prefix/fantasy name unchanged; attempts to change them return 422. `watchlist_entries.added_at` is server-controlled and may only be echoed unchanged. `watch_history.watched_at` remains editable and timezone-aware; null preserves unknown completion dates.
@@ -53,9 +53,9 @@ All named stored fields below are supported filters and permitted `order_by` cho
 | `watch_history` | `id_watch_history`, `sequence_watch_history`, `prefix_watch_history`, `fantasy_name_watch_history`, `id_works`, `id_work_availabilities`, `id_work_classifications`, `watched_at` | `observations` | `sequence_watch_history` |
 | `work_tags` | `id_work_tags`, `sequence_work_tags`, `prefix_work_tags`, `fantasy_name_work_tags`, `id_works`, `id_tags`, `id_tag_relationships`, `id_watchlist_entries`, `id_watch_history` |  | `sequence_work_tags` |
 
-Every row in this matrix additionally supports exact `created_at` and `created_at_timezone` filters/order fields. Watchlist also supports `added_at_timezone`; watch history also supports `watched_at_offset` and `watched_at_timezone`. All resources support inclusive `created_at_from` and exclusive `created_at_to` filter bounds, plus read-only `display_timezone`; these controls are not order fields. See [UTC and source-context rules](AUDIT_DATETIME_BULK.md).
+Every row in this matrix additionally supports exact `created_at` and `created_at_timezone` filters/order fields. Watchlist also supports `added_at_timezone`; watch history also supports `watched_at_offset` and `watched_at_timezone`. All resources support `created_at_date` and `created_at_from/to`; watchlist added_at and history watched_at support the same calendar/range controls. Calendar upper dates include the whole day; timestamp upper bounds remain exclusive. `filter_timezone` defaults to application_timezone, separately from read-only `display_timezone`; these controls are not order fields. See [UTC and source-context rules](AUDIT_DATETIME_BULK.md).
 
-The exact filters include metadata, foreign IDs and technical snake_case names; platform_name remains human searchable text. Numeric/boolean/timestamp fields use exact values. Timestamp filters require an explicit UTC offset and compare instants. Decimal filters must be finite; price is nonnegative and duration positive. Counts/sequences are positive decimal integers.
+The exact filters include metadata, foreign IDs and technical snake_case names; platform_name remains human searchable text. Numeric/boolean/timestamp fields use exact values. Exact-instant timestamp filters require an explicit UTC offset and compare instants; calendar inputs use the rules below. Decimal filters must be finite; price is nonnegative and duration positive. Counts/sequences are positive decimal integers.
 
 | Inherited collection | Filters | order_by choices / default |
 | --- | --- | --- |
@@ -97,3 +97,19 @@ For manual QA use owned disposable storage and fresh private accounts. Inspect S
 ## 🪜 Classification tiers and complete test CRUD
 
 Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.
+
+## Calendar-day filters
+
+All publicly filterable timestamp fields support `<field>_date`, `<field>_from` and `<field>_to`: created_at on test and all catalogue resources, added_at on watchlist_entries, watched_at on watch_history, and started_at/finished_at on api_audit_logs. Existing exact-instant filters remain available where previously exposed.
+
+`created_at_date=2026-10-25` matches the entire calendar day. `created_at_from=2026-10-01&created_at_to=2026-10-25` includes both calendar dates. Either bound may be omitted. The date-only upper bound becomes the beginning of the following local day, exclusively. A same-day date range is valid. Historical NULL dates never match supplied date filters.
+
+`filter_timezone=Europe/Lisbon` selects a validated IANA zone; omission uses configured application_timezone. It is independent of display_timezone and recorded source zones. Local midnights are converted separately to UTC, so DST days can span 23 or 25 hours. SQL compares stored timestamps directly against parameterized UTC boundaries, without row casts or formatting.
+
+From/to still accept timezone-aware ISO 8601 timestamps: the lower instant is inclusive and the upper instant is exclusive. For example, `created_at_to=2026-10-25T00:00:00Z` excludes that instant and everything after it; `created_at_to=2026-10-25` includes that entire local calendar day. Mixed date/timestamp bounds follow these same rules. Naive datetimes, invalid dates/zones, nonincreasing calculated boundaries, and exact-day plus same-field range combinations return 422. An upper calendar date that cannot advance to the following day is rejected.
+
+Collection GET, administrator bulk PUT/DELETE and previews share predicates. Compare GET count with preview matched_count using identical criteria; separate requests can observe intervening writes. Swagger lists date/date-time alternatives and examples. Postman calendar controls are editable and unchecked by default. Enable either exact-day or range controls for a field, not both. Actual bulk requests retain confirmation and disposable-data opt-in requirements.
+
+## Atomic array creation
+
+POST on the eleven catalogue resources and /test accepts one object or an ordered atomic array (default maximum 300). Single responses retain their full record shape; arrays return created_count/items with full final records, independently of GET pagination and administrator bulk PUT/DELETE. See [request, validation, configuration, audit and restart contracts](BATCH_CREATION.md).

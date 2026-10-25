@@ -217,6 +217,10 @@ For manual QA use owned disposable storage and fresh private accounts. Inspect S
 
 Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.
 
+## Atomic array creation
+
+POST on the eleven catalogue resources and /test accepts one object or an ordered atomic array (default maximum 300). Single responses retain their full record shape; arrays return created_count/items with full final records, independently of GET pagination and administrator bulk PUT/DELETE. See [request, validation, configuration, audit and restart contracts](BATCH_CREATION.md).
+
 ## 🗂️ **Scenario index**
 
 | ID | Scenario | Verification type |
@@ -289,6 +293,12 @@ Migrations009–010 add independent classification tier positions and complete i
 | 16.4 | [Concurrent classification ordering and bounded audit summaries](#scenario-16-4) | both |
 | 16.5 | [Complete test CRUD integer identity and representation](#scenario-16-5) | both |
 | 16.6 | [Test bulk predicates previews confirmation and current scopes](#scenario-16-6) | both |
+| 17.1 | [Array input limits schemas and safe validation](#scenario-17-1) | both |
+| 17.2 | [Ordered batch creation and single record compatibility](#scenario-17-2) | both |
+| 17.3 | [Indexed batch failures and complete rollback](#scenario-17-3) | both |
+| 17.4 | [Sequential classification batch tiers and concurrency](#scenario-17-4) | both |
+| 17.5 | [Batch creation roles transactional authority and connection reuse](#scenario-17-5) | both |
+| 17.6 | [Batch audit atomicity bounded capture and large bodies](#scenario-17-6) | both |
 
 <a id="scenario-1-1"></a>
 ## 1.1 - Configuration and independent credential prompts
@@ -2932,8 +2942,12 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 1. Upgrade a populated migration-006 disposable database. Verify unknown created_at/source context remain NULL; new insert with explicit NULL creation time receives an automatic timestamp.
 2. Check inclusive from/exclusive to creation bounds, AND filters, NULL exclusion, invalid/naive ranges and unknown display timezone rejection.
 3. Create watched_at with explicit Lisbon offset/zone; verify UTC canonical value, retained source metadata and original display round trip. Change/clear date and confirm companion updates. Numeric offsets must not infer IANA geography.
+4. For every applicable field enable _date=2026-10-25 and filter_timezone=Europe/Lisbon; verify the whole day. Then disable _date and use _from=2026-10-01 and _to=2026-10-25; verify the final day is included. Repeat each open-ended range.
+5. Verify Lisbon 2026-03-29 (23 hours), Lisbon 2026-10-25 (25 hours), and America/New_York 2026-03-08. Keep display_timezone different and confirm unchanged matches. Omitted filter_timezone uses application_timezone.
+6. Verify aware timestamp lower inclusion and upper exclusion remain unchanged. Reject invalid dates, naive timestamps, invalid zones, inverted ranges and exact-day/range conflicts with 422. NULL history never matches.
+7. On owned disposable data compare GET count with PUT and DELETE dry_run matched_count using identical criteria for created_at, added_at and watched_at. Inspect started_at and finished_at calendar filters on protected audit reads. Previews preserve all domain records.
 
-**Approval criterion:** All stated contracts hold in owned disposable storage; GUI evidence remains separately pending.
+**Approval criterion:** All stated contracts hold in owned disposable storage; GUI evidence remains separately pending. Calendar days and inclusive calendar ranges use configured/explicit filter zones with DST-aware UTC boundaries; timestamp bounds retain compatibility; GET and previews agree without changing domain data.
 
 
 **Exact log evidence:**
@@ -2951,6 +2965,11 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 
 - `test_next_phase.NextPhaseTests.test_source_timezone_and_bounds`
 - `test_next_phase.NextPhaseTests.test_migration_preserves_unknown_historical_context`
+- `test_date_filters.DateFilterTests.test_whole_day_dst_and_inclusive_range`
+- `test_date_filters.DateFilterTests.test_open_bounds_timestamp_compatibility_and_default`
+- `test_date_filters.DateFilterTests.test_invalid_conflicting_and_naive`
+- `test_date_filters.DateFilterTests.test_all_fields_share_bulk_and_read_predicates`
+- `test_remaining_phase.RemainingPhaseTests.test_07_calendar_get_and_preview_counts`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |
@@ -3293,6 +3312,245 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 **Automated correspondence:**
 
 - `test_remaining_phase.RemainingPhaseTests.test_06_test_bulk_filters_preview_and_current_permissions`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-17-1"></a>
+## 17.1 - Array input limits schemas and safe validation
+
+**Objective:** Array input limits schemas and safe validation
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only; Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Inspect Swagger POST /test and all eleven catalogue POST routes: body offers one object and an array; response offers one record and created_count/items without pagination. Confirm excluded token/users/password/audit contracts are unchanged.
+2. With default api.max_batch_size=300, reject empty arrays, 301 objects, nested arrays, null/number/string elements, missing/unknown/immutable fields and invalid item values. Details use zero-based body item indexes and omit rejected input.
+3. In disposable configuration lower max_batch_size to 2 and retry 3 items; increase to 301 and verify the override. Invalid configuration types/ranges fail safely. Configure a small max_creation_body_bytes and reject an oversized streamed request before JSON parsing; preserve audit/log inspection limits.
+4. Inspect canonical Postman arrays and the generated 300-item pre-request script; all creation demonstrations remain isolated opt-in.
+
+**Approval criterion:** All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_batch_creation.BatchCreationUnitTests.test_invalid_shapes_item_indexes_and_configured_limit`
+- `test_batch_creation.BatchCreationUnitTests.test_openapi_shapes_examples_and_scope_exclusions`
+- `test_batch_creation.BatchCreationUnitTests.test_streamed_body_limit_before_parsing_and_capture_separation`
+- `test_batch_creation.BatchCreationUnitTests.test_configuration_bounds_defaults_and_bounded_summary`
+- `test_postman.PostmanTests.test_batch_examples_are_explicit_and_guarded`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-17-2"></a>
+## 17.2 - Ordered batch creation and single record compatibility
+
+**Objective:** Ordered batch creation and single record compatibility
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only; Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. In fresh disposable storage create an existing graph with the single-object endpoints; retain complete baseline records. Create arrays of 1, 3 and 300 records on each of the eleven catalogue endpoints and /test.
+2. Verify 201, exact created_count, request-order mapping, server IDs/automatic dates/source fields and complete presentation. Fetch created records by ID and compare full schemas/values. Classification responses reflect final persisted tiers after later inserts.
+3. Verify baseline records remain unchanged for append-only operations and sequence identities are not reset. Referenced records must already exist; no intra-array placeholders or cross-table creation is supported.
+
+**Approval criterion:** All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_batch_creation.BatchCreationIntegrationTests.test_all_resources_single_one_several_and_300_ordered_records`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-17-3"></a>
+## 17.3 - Indexed batch failures and complete rollback
+
+**Objective:** Indexed batch failures and complete rollback
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only; Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Place a valid first item before a schema-invalid second item; verify 422, details loc body/1 and zero created records. Repeat on /test.
+2. Use a missing foreign key, duplicate constrained tag/category relationship, wrong-work availability, invalid work-tags XOR, and mismatched watched_at source zone in later items. Verify safe 409/422 with zero-based item index and all prior inserts/audit mutation counts rolled back.
+3. Verify existing records and relationships are unchanged. Sequence gaps after rollback are allowed; never reset a sequence to remove them.
+
+**Approval criterion:** All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_batch_creation.BatchCreationIntegrationTests.test_validation_and_database_failures_roll_back_with_indexes`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-17-4"></a>
+## 17.4 - Sequential classification batch tiers and concurrency
+
+**Objective:** Sequential classification batch tiers and concurrency
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only; Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Create an existing disposable classification; submit append, tier=1 and tier=2 items in one array. Confirm sequential semantics, final contiguous tiers and response order by request rather than final tier.
+2. Put an invalid tier after a successful earlier insertion/shift. Verify the complete array and every shift roll back. Inspect zero-based body/1/tier error and unchanged existing classification metadata.
+3. Run two concurrent tier-insertion arrays. Verify both serialize under membership/actor/list locks, preserve contiguous unique tiers, and retain same-transaction mutation counts and bounded shift evidence.
+
+**Approval criterion:** All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_batch_creation.BatchCreationIntegrationTests.test_classification_sequential_tiers_final_records_rollback_and_concurrency`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-17-5"></a>
+## 17.5 - Batch creation roles transactional authority and connection reuse
+
+**Objective:** Batch creation roles transactional authority and connection reuse
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only; Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Verify supervisor and administrator may POST catalogue arrays and standard receives 403; standard/supervisor/administrator with existing test:write rules may POST test arrays. No administrator-only bulk confirmation is required for POST.
+2. Remove permission or revoke credential version between request authentication and transaction lock. Verify the whole array is rejected without creating records.
+3. Verify one business connection and one authorization recheck per array; reuse the prepared insert shape with RETURNING rather than performing per-item connection acquisition or post-insert reads. Classification final-tier refresh is one set query.
+
+**Approval criterion:** All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_batch_creation.BatchCreationIntegrationTests.test_roles_revalidation_and_one_business_connection`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-17-6"></a>
+## 17.6 - Batch audit atomicity bounded capture and large bodies
+
+**Objective:** Batch audit atomicity bounded capture and large bodies
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only; Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Inject a mandatory summary persistence failure after several array inserts in disposable storage; verify safe AUDIT_UNAVAILABLE, complete business rollback and no committed prefix or mutation evidence.
+2. Create 300 items whose serialized body exceeds the 1 MiB logging inspection ceiling but fits the default 4 MiB creation request budget. Verify success with 256-byte mutation capture, correct created_count/mutation_count, omitted bounded ID sample, and unchanged request/response body-capture limits.
+3. Immediately query the POST X-Interaction-ID in the protected audit API. Verify one HTTP interaction, affected resource, bounded created-ID/shift evidence and no full-record duplication in mutation summaries. Large transport bodies remain explicitly omitted by existing capture flags.
+
+**Approval criterion:** All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_batch_creation.BatchCreationIntegrationTests.test_audit_failure_atomicity_and_300_item_capture_limits`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |

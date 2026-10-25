@@ -86,9 +86,10 @@ def generate(collection):
         params += [dict(key='page', value='1'), dict(key='page_size', value='50'),
                    dict(key='order_by', value=resource.query.model_fields['order_by'].default, description='Choices: ' + ', '.join(resource.columns)),
                    dict(key='order_direction', value='asc', description='asc or desc; NULLS LAST; ID tie-breaker')]
-        params += [dict(key='created_at_from',value='2026-10-01T00:00:00+01:00',disabled=True,description='Inclusive offset-aware instant'),
-                   dict(key='created_at_to',value='2026-11-01T00:00:00Z',disabled=True,description='Exclusive offset-aware instant'),
-                   dict(key='display_timezone',value='Europe/Lisbon',disabled=True,description='IANA zone or original; read-only presentation')]
+        for key, schema in resource.query.model_fields.items():
+            if key == 'filter_timezone' or key.endswith(('_date', '_from', '_to')):
+                params.append(dict(key=key, value=str(schema.examples[0]), disabled=True, description=schema.description))
+        params.append(dict(key='display_timezone',value='Europe/Lisbon',disabled=True,description='IANA zone or original; read-only presentation'))
         field = next(iter(resource.fields))
         mutable = {field: examples[table][field]}
         if table == 'works':
@@ -152,7 +153,7 @@ def generate(collection):
     for key, field in AuditFilters.model_fields.items():
         value = {'page':'1','page_size':'50','order_by':'started_at','order_direction':'desc','interaction_id':'{{audit_interaction_id}}',
                  'status':'failure','display_timezone':'original','http_status':'422','actor_id':'1',
-                 'started_at_from':'2026-10-01T00:00:00Z','started_at_to':'2026-11-01T00:00:00Z'}.get(key,'')
+                 'started_at_from':'2026-10-01T00:00:00Z','started_at_to':'2026-11-01T00:00:00Z'}.get(key,str((field.examples or [''])[0]))
         audit_params.append(dict(key=key,value=value,disabled=key not in ('page','page_size','order_by','order_direction'),description=field.description or key))
     next_items = [
         request('NEXT - Audit filters and ordering','GET','/api_audit_logs',200,params=audit_params),
@@ -178,6 +179,8 @@ def generate(collection):
     collection['item'].append({'name':NEXT,'description':'Preview counts can change. Actual bulk mutations require explicit isolated opt-in and confirm=true. Capture an interaction ID, enable its audit filter, and use supervisor/admin to inspect sanitized evidence.', 'item':next_items})
     from scripts.sync_remaining_postman import augment
     augment(collection, request)
+    from scripts.sync_batch_postman import augment as augment_batches
+    augment_batches(collection, request, examples)
     # Existing collection GET requests keep their unchecked filters and now expose ordering.
     def visit(items):
         for item in items:
@@ -206,7 +209,7 @@ def generate(collection):
                 url['query'].append(dict(key=key, value=value))
         if route == '/test':
             from app.schemas.test import TestQuery
-            for key in ('created_at','created_at_timezone','created_at_from','created_at_to','display_timezone'):
+            for key in ('created_at','created_at_timezone','created_at_date','created_at_from','created_at_to','filter_timezone','display_timezone'):
                 if key not in known:
                     field = TestQuery.model_fields[key]
                     url['query'].append(dict(key=key,value=str(field.examples[0]),disabled=True,description=field.description))
@@ -218,6 +221,28 @@ def generate(collection):
                 param['description'] = 'Choices: ' + ('id, value, created_at, created_at_timezone' if route == '/test' else 'id, username, role, is_active, created_at')
             elif param['key'] == 'order_direction':
                 param['description'] = 'asc or desc; NULLS LAST, unique ID ascending tie-breaker'
+    from app.schemas.test import TestQuery
+    for item in visit(collection['item']):
+        spec = item['request']
+        url = spec['url']
+        raw = url['raw'] if isinstance(url, dict) else url
+        route = raw.split('{{base_url}}', 1)[-1].split('?', 1)[0].strip('/')
+        if route not in RESOURCES and route not in ('test', 'api_audit_logs'):
+            continue
+        if spec['method'] not in ('GET', 'PUT', 'DELETE'):
+            continue
+        schema = TestQuery if route == 'test' else AuditFilters if route == 'api_audit_logs' else RESOURCES[route].query
+        if not isinstance(url, dict):
+            url = spec['url'] = dict(raw=raw, host=['{{base_url}}'], path=[route], query=[])
+        params = url.setdefault('query', [])
+        known = {p['key'] for p in params}
+        for param in params:
+            key = param['key']
+            if key in schema.model_fields and (key == 'filter_timezone' or key.endswith(('_date', '_from', '_to'))):
+                param['description'] = schema.model_fields[key].description
+        for key, field in schema.model_fields.items():
+            if (key == 'filter_timezone' or key.endswith(('_date', '_from', '_to'))) and key not in known:
+                params.append(dict(key=key, value=str(field.examples[0]), disabled=True, description=field.description))
     # Keep raw URL and editable Params consistent. Values are URL-encoded once;
     # preserve variable braces so Postman can substitute captured IDs normally.
     from urllib.parse import urlencode

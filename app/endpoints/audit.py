@@ -20,6 +20,7 @@ def representation(record, request, selection):
 @router.get('', response_model=Page[AuditRecord])
 def collection(request: Request, actor: Reader, selection: Annotated[AuditFilters, Query()]):
     """Read sanitized audit metadata; returned audit bodies are not re-audited."""
+    selection.bind_filter_timezone(request.app.state.config)
     result = AuditRepository(request.app.state.database).page(selection)
     result['items'] = [representation(record, request, selection.display_timezone) for record in result['items']]
     if audit_context.get() is not None:

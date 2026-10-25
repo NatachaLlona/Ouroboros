@@ -25,13 +25,16 @@ class ClassificationOrdering:
 
     def __init__(self, cursor):
         self.cursor = cursor
+        self.size = None
         cursor.execute('SELECT pg_advisory_xact_lock(%s)', (719230819,))
         cursor.execute('SET CONSTRAINTS work_classifications_tier_unique DEFERRED')
 
     def position(self, requested, insertion=False):
         """Resolve append or validate a requested position against the locked list."""
-        self.cursor.execute('SELECT count(*) FROM public.work_classifications')
-        maximum = self.cursor.fetchone()[0] + int(insertion)
+        if self.size is None:
+            self.cursor.execute('SELECT count(*) FROM public.work_classifications')
+            self.size = self.cursor.fetchone()[0]
+        maximum = self.size + int(insertion)
         target = maximum if requested is None and insertion else requested
         if target is not None and not 1 <= target <= maximum:
             raise TierPositionError(maximum, insertion)
@@ -66,7 +69,9 @@ class ClassificationOrdering:
 
     def insert(self, requested):
         target = self.position(requested, insertion=True)
-        return target, self.shift(sql.SQL('tier >= %s'), (target,), 1)
+        shifted = self.sample([]) if target == self.size + 1 else self.shift(sql.SQL('tier >= %s'), (target,), 1)
+        self.size += 1
+        return target, shifted
 
     def move(self, old, target):
         target = old if target is None else self.position(target)

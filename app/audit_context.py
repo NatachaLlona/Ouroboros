@@ -60,6 +60,7 @@ def operation_evidence(cursor, resource, details, outcome):
         cursor.execute('''UPDATE public.api_audit_logs SET resource=%s, mutation_details=%s,
             business_outcome=%s, operation_summary=%s WHERE id_api_audit_logs=%s''',
             (resource, Jsonb(context.mutation_details), outcome, ('Preview ' if outcome == 'preview' else
+                'Batch create ' if context.mutation_details.get('operation') == 'batch_create' else
                 'Reorder ' if 'reordering' in context.mutation_details else 'Bulk ') + resource, context.audit_id))
     except psycopg.Error:
         raise AuditUnavailable('Mandatory audit unavailable') from None
@@ -78,7 +79,10 @@ def bounded_mutation_details(details, limit):
     value, flags = bounded_value(details, limit)
     if value is not None:
         return value
-    compact = {key: details[key] for key in ('matched_count', 'applied_count', 'dry_run') if key in details}
+    compact = {key: details[key] for key in ('matched_count', 'applied_count', 'dry_run',
+               'operation', 'requested_count', 'created_count', 'shifted_count') if key in details}
+    if 'created_ids' in details:
+        compact['created_ids_omitted'] = True
     compact['details_omitted'] = True
     ordering = details.get('reordering')
     if isinstance(ordering, dict):
@@ -87,7 +91,13 @@ def bounded_mutation_details(details, limit):
     value, flags = bounded_value(compact, limit)
     if value is not None:
         return value
-    if isinstance(ordering, dict):
+    if details.get('operation') == 'batch_create':
+        # At minimum capture size, batch totals take priority over reorder samples.
+        compact.pop('reordering', None)
+        value, flags = bounded_value(compact, limit)
+        if value is not None:
+            return value
+    if isinstance(ordering, dict) and 'reordering' in compact:
         compact['reordering'].pop('action', None)
         compact['reordering'].pop('shifted_count', None)
         value, flags = bounded_value(compact, limit)

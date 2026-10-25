@@ -14,7 +14,7 @@ Catalogue and audit reads accept `display_timezone=<IANA zone>|original`. The de
 
 GET, POST and PUT return the same canonical record schema. Equivalent display selections produce equivalent presentation. A full GET body is valid individual PUT input when its read-only fields are echoed unchanged; presentation is validated against its embedded display selection. To edit mutable values, omit the old presentation. Created fields, source offset and generated identity remain protected. Friendly strings never participate in SQL filtering or ordering.
 
-All eleven collection GET and bulk routes accept `created_at_from` inclusive and `created_at_to` exclusive. Either may be absent; supplied instants require offsets and from must precede to. Bounds combine with every other filter using AND; unknown historical NULL creation dates do not match a bound. Example: `2026-10-01T00:00:00+01:00` through `2026-11-01T00:00:00Z`. Encode plus signs in URLs; editable Postman Params handle encoding once.
+All eleven collection GET and bulk routes accept `created_at_date` and `created_at_from/to`. Calendar dates use filter_timezone; an upper calendar date includes its entire day. Timestamp lower bounds are inclusive and timestamp upper bounds remain exclusive. Either range bound may be absent; supplied instants require offsets and calculated UTC from must precede to. Bounds combine with every other filter using AND; unknown historical NULL creation dates do not match a bound. Example: `2026-10-01T00:00:00+01:00` through `2026-11-01T00:00:00Z`. Encode plus signs in URLs; editable Postman Params handle encoding once.
 
 ## 🧮 Administrator bulk operations
 
@@ -49,7 +49,7 @@ Migration 008 adds `api_audit_logs`, separate from the eleven domain tables. Its
 
 There are no actor/target foreign keys. Evidence survives legitimate user/catalogue deletion. No client can submit facts or mutate audit records through the API. This is application read-only access, **not cryptographic tamper resistance against the database master**.
 
-`GET /api_audit_logs` and `GET /api_audit_logs/{id}` require supervisor or administrator. Standard gets 403; write methods get 405. Collection filters are interaction_id, actor_id, actor_username, started_at_from (inclusive), started_at_to (exclusive), method, resource, status, http_status, error_code and target_id. Pagination remains page>=1, page_size 10–50. Whitelisted scalar order_by fields and asc/desc are explicit OpenAPI enums; JSON and presentation cannot be sorted. NULLS LAST applies in both directions, with ID ascending tie-break. Shared display_timezone applies.
+`GET /api_audit_logs` and `GET /api_audit_logs/{id}` require supervisor or administrator. Standard gets 403; write methods get 405. Collection filters are interaction_id, actor_id, actor_username, started_at_date/from/to, finished_at_date/from/to, filter_timezone (calendar rules below), method, resource, status, http_status, error_code and target_id. Pagination remains page>=1, page_size 10–50. Whitelisted scalar order_by fields and asc/desc are explicit OpenAPI enums; JSON and presentation cannot be sorted. NULLS LAST applies in both directions, with ID ascending tie-break. Shared display_timezone applies.
 
 Audit queries record access, sanitized criteria, matched/returned counts and a concise summary. Their response bodies are omitted to prevent copying audit history recursively.
 
@@ -84,3 +84,19 @@ Use the single [QA plan](QA_TEST_PLAN.md) and canonical Postman collection. Prev
 ## 🪜 Classification tiers and complete test CRUD
 
 Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.
+
+## Calendar-day filters
+
+All publicly filterable timestamp fields support `<field>_date`, `<field>_from` and `<field>_to`: created_at on test and all catalogue resources, added_at on watchlist_entries, watched_at on watch_history, and started_at/finished_at on api_audit_logs. Existing exact-instant filters remain available where previously exposed.
+
+`created_at_date=2026-10-25` matches the entire calendar day. `created_at_from=2026-10-01&created_at_to=2026-10-25` includes both calendar dates. Either bound may be omitted. The date-only upper bound becomes the beginning of the following local day, exclusively. A same-day date range is valid. Historical NULL dates never match supplied date filters.
+
+`filter_timezone=Europe/Lisbon` selects a validated IANA zone; omission uses configured application_timezone. It is independent of display_timezone and recorded source zones. Local midnights are converted separately to UTC, so DST days can span 23 or 25 hours. SQL compares stored timestamps directly against parameterized UTC boundaries, without row casts or formatting.
+
+From/to still accept timezone-aware ISO 8601 timestamps: the lower instant is inclusive and the upper instant is exclusive. For example, `created_at_to=2026-10-25T00:00:00Z` excludes that instant and everything after it; `created_at_to=2026-10-25` includes that entire local calendar day. Mixed date/timestamp bounds follow these same rules. Naive datetimes, invalid dates/zones, nonincreasing calculated boundaries, and exact-day plus same-field range combinations return 422. An upper calendar date that cannot advance to the following day is rejected.
+
+Collection GET, administrator bulk PUT/DELETE and previews share predicates. Compare GET count with preview matched_count using identical criteria; separate requests can observe intervening writes. Swagger lists date/date-time alternatives and examples. Postman calendar controls are editable and unchecked by default. Enable either exact-day or range controls for a field, not both. Actual bulk requests retain confirmation and disposable-data opt-in requirements.
+
+## Atomic array creation
+
+POST on the eleven catalogue resources and /test accepts one object or an ordered atomic array (default maximum 300). Single responses retain their full record shape; arrays return created_count/items with full final records, independently of GET pagination and administrator bulk PUT/DELETE. See [request, validation, configuration, audit and restart contracts](BATCH_CREATION.md).

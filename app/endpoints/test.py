@@ -11,6 +11,7 @@ from app.pagination import Page
 from app.schemas.catalogue import BulkResult
 from app.schemas.test import (QueryID, TestBulkQuery, TestBulkUpdate, TestCreate,
                               TestEntry, TestQuery, TestUpdate)
+from app.creation import CREATION_EXAMPLES, CreatedBatch, check_batch_size, creation_body
 
 router = APIRouter(prefix='/test', tags=['test'])
 TestReader = Annotated[dict, Security(require_scopes, scopes=['test:read'])]
@@ -24,10 +25,16 @@ def representation(record, request, display):
     return present(record, display, request.app.state.config.get('default_display_timezone', 'Europe/Lisbon'))
 
 
-@router.post('', response_model=TestEntry, status_code=201)
-def create_entry(payload: TestCreate, request: Request, actor: TestWriter, display_timezone: Display = None):
-    """Store unrestricted Unicode TEXT; PostgreSQL generates immutable metadata."""
+@router.post('', response_model=TestEntry | CreatedBatch[TestEntry], status_code=201)
+def create_entry(payload: creation_body(TestCreate, CREATION_EXAMPLES['test']),
+                 request: Request, actor: TestWriter, display_timezone: Display = None):
+    """Create one object or an atomic array; arrays return a mutation result, not a page."""
     log_event('DEBUG', 'Request validation completed')
+    check_batch_size(payload, request.app.state.config)
+    if isinstance(payload, list):
+        results = TestRepository(request.app.state.database).create_many(payload, actor)
+        log_event('INFO', 'Test batch created', {'created_count': len(results)})
+        return {'created_count': len(results), 'items': [representation(row, request, display_timezone) for row in results]}
     result = TestRepository(request.app.state.database).create(payload, actor)
     log_event('INFO', 'Test entry created', {'entry_id': result['id']})
     return representation(result, request, display_timezone)
@@ -37,6 +44,7 @@ def create_entry(payload: TestCreate, request: Request, actor: TestWriter, displ
 def get_entries(request: Request, actor: TestReader, selection: Annotated[TestQuery, Query()]):
     """Apply strict AND filters, then whitelisted ordering and SQL pagination."""
     log_event('DEBUG', 'Request validation completed')
+    selection.bind_filter_timezone(request.app.state.config)
     values = selection.model_dump(exclude={'display_timezone'})
     values['entry_id'] = values.pop('id')
     with request.app.state.database.connection() as connection:
@@ -78,6 +86,7 @@ def bulk_update(payload: TestBulkUpdate, request: Request, actor: Administrator,
     All matching rows are targeted without pagination. Unknown filters, sorting,
     display controls and immutable body fields are rejected.
     """
+    selection.bind_filter_timezone(request.app.state.config)
     result = TestRepository(request.app.state.database).bulk(actor, selection, payload)
     log_event('INFO', 'Test bulk previewed' if result['dry_run'] else 'Test bulk updated', {'actor_id': int(actor['sub']), **result})
     return result
@@ -90,6 +99,7 @@ def bulk_delete(request: Request, actor: Administrator, selection: Annotated[Tes
     Preview with dry_run=true or explicitly confirm=true for atomic execution.
     There is no TRUNCATE, cascade, page limit or sequence reset.
     """
+    selection.bind_filter_timezone(request.app.state.config)
     result = TestRepository(request.app.state.database).bulk(actor, selection)
     log_event('INFO', 'Test bulk previewed' if result['dry_run'] else 'Test records deleted', {'actor_id': int(actor['sub']), **result})
     return result

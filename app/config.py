@@ -138,6 +138,15 @@ def load_config(root=PROJECT_ROOT):
         audit.setdefault(field, 8192)
         if type(audit[field]) is not int or not 256 <= audit[field] <= 1048576:
             raise ConfigurationError('audit capture limits must be integers from 256 to 1048576 bytes')
+    api = config.setdefault('api', {})
+    if not isinstance(api, dict):
+        raise ConfigurationError('api must be an object')
+    for field, default, minimum, maximum in (
+            ('max_batch_size', 300, 1, 10000),
+            ('max_creation_body_bytes', 4194304, 1024, 67108864)):
+        api.setdefault(field, default)
+        if type(api[field]) is not int or not minimum <= api[field] <= maximum:
+            raise ConfigurationError(f'api.{field} must be an integer between {minimum} and {maximum}')
     validate_logging(config.get("logging"))
     return config
 

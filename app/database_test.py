@@ -6,10 +6,11 @@ from psycopg import errors, sql
 from app.audit_context import audit_context, bulk_context, operation_evidence
 from app.catalogue_repository import CatalogueError
 from app.collection_queries import select_page, template, where_clause
-from app.datetimes import present
+from app.datetimes import present, date_predicates
 from app.errors import AuditUnavailable
 from app.logger import log_event
 from app.config import PROJECT_ROOT
+from app.creation import batch_context, batch_evidence, creation_item
 
 QUERY_DIRECTORY = PROJECT_ROOT / "sql" / "queries"
 TEST_COLUMNS = ('id', 'value', 'created_at', 'created_at_timezone')
@@ -50,7 +51,7 @@ def list_entries(connection, entry_id=None, value=None):
 
 
 def page_entries(connection, entry_id=None, value=None, page=1, page_size=50, order_by='id', order_direction='asc',
-                 created_at=None, created_at_timezone=None, created_at_from=None, created_at_to=None):
+                 created_at=None, created_at_timezone=None, created_at_from=None, created_at_to=None, created_at_date=None, filter_timezone=None):
     """Read a count and SQL-bounded page in one statement snapshot.
 
     Args:
@@ -67,14 +68,13 @@ def page_entries(connection, entry_id=None, value=None, page=1, page_size=50, or
     """
     return select_page(connection, 'test', TEST_COLUMNS, 'id',
         test_filters(dict(id=entry_id, value=value, created_at=created_at, created_at_timezone=created_at_timezone,
-                          created_at_from=created_at_from, created_at_to=created_at_to)),
+                          created_at_from=created_at_from, created_at_to=created_at_to, created_at_date=created_at_date, filter_timezone=filter_timezone)),
         page, page_size, order_by, order_direction)
 
 
 def test_filters(values):
     """Use the same trusted predicate for GET, previews and confirmed mutations."""
-    return [(name, 'ILIKE' if name == 'value' else '=', values.get(name)) for name in TEST_COLUMNS] + [
-        ('created_at', '>=', values.get('created_at_from')), ('created_at', '<', values.get('created_at_to'))]
+    return [(name, 'ILIKE' if name == 'value' else '=', values.get(name)) for name in TEST_COLUMNS] + date_predicates(values, ('created_at',))
 
 
 def lock_test_actor(cursor, actor, administrator=False):
@@ -128,6 +128,19 @@ class TestRepository:
                            (payload.value,))
             result = self.mapped(cursor.fetchone())
         return result
+
+    def create_many(self, payloads, actor):
+        """Use one connection, actor check and insert statement for the whole array."""
+        batch_context('test', len(payloads))
+        statement = self.statement('catalogue_insert.sql', fields=sql.Identifier('value'), values=sql.Placeholder())
+        results = []
+        with self.writing(actor) as cursor:
+            for index, payload in enumerate(payloads):
+                with creation_item(index):
+                    cursor.execute(statement, (payload.value,))
+                    results.append(self.mapped(cursor.fetchone()))
+            batch_evidence(cursor, 'test', results, 'id')
+        return results
 
     def read(self, entry_id):
         with self.database.connection() as connection, connection.cursor() as cursor:

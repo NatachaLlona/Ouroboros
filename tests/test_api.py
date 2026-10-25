@@ -361,7 +361,7 @@ class APITests(unittest.TestCase):
 
     def test_swagger_explicit_query_parameters(self):
         schema = self.app.openapi()
-        for path, names in (("/test", {"id", "value", "created_at", "created_at_timezone", "created_at_from", "created_at_to", "display_timezone", "page", "page_size", "order_by", "order_direction"}),
+        for path, names in (("/test", {"id", "value", "created_at", "created_at_timezone", "created_at_date", "filter_timezone", "created_at_from", "created_at_to", "display_timezone", "page", "page_size", "order_by", "order_direction"}),
                             ("/users", {"page", "page_size", "order_by", "order_direction"})):
             params = schema["paths"][path]["get"]["parameters"]
             self.assertEqual({p["name"] for p in params}, names)

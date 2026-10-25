@@ -15,6 +15,7 @@
 | Historical Foundation review (not current Ouroboros evidence) | [Final review](FINAL_REVIEW.md) |
 | Current next-phase implementation, checks and limitations | [Next-phase review](NEXT_PHASE_REVIEW.md) |
 | Classification tiers and complete integer test CRUD | [Tier/test contracts](TIERS_AND_TEST_CRUD.md) |
+| Atomic object/array POST, 300-item batches, byte limits and restart | [Batch creation](BATCH_CREATION.md) |
 | Current performance/security/architecture review | [Remaining phase review](REMAINING_PHASE_REVIEW.md) |
 
 **Maintenance:** QA case IDs/names/actions live in the catalogue, not a separate handwritten list. QA_TEST_PLAN.md is generated from that catalogue and QA_SETUP.md. Read the plan before testing; do not treat a documented case as executed. The normal installation's private files/data never belong in an evidence package.

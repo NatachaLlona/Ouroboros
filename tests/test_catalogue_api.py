@@ -124,7 +124,7 @@ class CatalogueAPITests(unittest.TestCase):
                 self.assertEqual(self.call('GET', path).json(), row)
                 self.assertEqual(self.call('PUT', path, json=row).json(), row)
                 listed = self.call('GET', '/' + table, params={'id_' + table: row['id_' + table]}).json()
-                self.assertEqual(listed['items'], [row])
+                self.assertEqual([{key: value for key, value in item.items() if key != 'references'} for item in listed['items']], [row])
                 self.assertEqual(listed['count'], 1)
                 for immutable in RESOURCES[table].immutable:
                     changed = dict(row)
@@ -348,10 +348,14 @@ class CatalogueAPITests(unittest.TestCase):
             refs = [routes['/' + table]['post']['responses']['201']['content']['application/json']['schema'],
                     routes['/' + table + '/{id}']['get']['responses']['200']['content']['application/json']['schema'],
                     routes['/' + table + '/{id}']['put']['responses']['200']['content']['application/json']['schema']]
-            self.assertEqual(refs[0], refs[1])
+            self.assertIn(refs[1], refs[0]['anyOf'])
+            refs[0] = refs[1]
             self.assertEqual(refs[1], refs[2])
             page_ref = routes['/' + table]['get']['responses']['200']['content']['application/json']['schema']['$ref'].split('/')[-1]
-            self.assertEqual(schema['components']['schemas'][page_ref]['properties']['items']['items'], refs[0])
+            item_schema = schema['components']['schemas'][page_ref]['properties']['items']['items']
+            self.assertEqual(item_schema['$ref'].split('/')[-1], resource.list_record.__name__)
+            if resource.list_record is resource.record:
+                self.assertEqual(item_schema, refs[0])
         for path, fields in [('/test', ['id', 'value','created_at','created_at_timezone']), ('/users', ['id', 'username', 'role', 'is_active', 'created_at'])]:
             parameters = {p['name']: p for p in schema['paths'][path]['get']['parameters']}
             self.assertEqual(parameters['order_by']['schema']['enum'], fields)

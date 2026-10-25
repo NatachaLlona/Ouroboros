@@ -7,11 +7,24 @@ from app.config import PROJECT_ROOT
 
 
 class PostmanTests(unittest.TestCase):
+    def test_batch_examples_are_explicit_and_guarded(self):
+        from app.schemas.catalogue import RESOURCES
+        collection = json.loads((PROJECT_ROOT / 'postman/Ouroboros.postman_collection.json').read_text(encoding='utf-8'))
+        group = next(item for item in collection['item'] if item['name'] == 'Atomic array creation (isolated opt-in only)')
+        for table in (*RESOURCES, 'test'):
+            item = next(item for item in group['item'] if item['name'] == 'BATCH ' + table + ' - Create array (opt-in)')
+            self.assertEqual(len(json.loads(item['request']['body']['raw'])), 2)
+            scripts = '\n'.join(line for event in item['event'] if event['listen'] == 'prerequest' for line in event['script']['exec'])
+            self.assertIn('catalogue_destructive_opt_in', scripts)
+            self.assertIn('skipRequest', scripts)
+        three_hundred = next(item for item in group['item'] if item['name'] == 'BATCH test - Create 300 (opt-in)')
+        self.assertIn('length:300', str(three_hundred['event']))
+
     def test_collection_schema_and_safe_defaults(self):
         collection=json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         schema=json.loads((PROJECT_ROOT/"tests/schemas/postman-v2.1.schema.json").read_text())
         jsonschema.validate(collection,schema)
-        self.assertEqual(len(collection["item"]),16)
+        self.assertEqual(len(collection["item"]),17)
         variables={item["key"]:item["value"] for item in collection["variable"]}
         for key, value in variables.items():
             if key != "base_url": self.assertEqual(value,"",key)

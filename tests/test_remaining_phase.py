@@ -156,7 +156,7 @@ class RemainingPhaseTests(unittest.TestCase):
         schema = self.client.get('/openapi.json').json()
         refs = [schema['paths'][path][method]['responses'][status]['content']['application/json']['schema'] for path,method,status in (
             ('/test','post','201'),('/test/{id}','get','200'),('/test/{id}','put','200'))]
-        self.assertEqual(refs[0],refs[1]); self.assertEqual(refs[1],refs[2])
+        self.assertIn(refs[1],refs[0]['anyOf']); self.assertEqual(refs[1],refs[2])
 
     def test_06_test_bulk_filters_preview_and_current_permissions(self):
         rows = [self.call('POST','/test',role='standard',expected=201,json={'value':value}).json() for value in ('Exact%_\\','Other','Other')]
@@ -187,3 +187,38 @@ class RemainingPhaseTests(unittest.TestCase):
         with patch.object(TestRepository,'update',revoke):
             self.call('PUT','/test/' + str(later['id']),role='standard',expected=401,json={'value':'denied'})
         self.assertEqual(self.call('GET','/test/' + str(later['id'])).json()['value'],'Later')
+
+    def test_07_calendar_get_and_preview_counts(self):
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+        # These rows belong exclusively to this test's disposable database.
+        for stamp in ('2026-10-24T22:59:59Z','2026-10-24T23:00:00Z','2026-10-25T01:30:00Z','2026-10-25T23:59:59.999999Z','2026-10-26T00:00:00Z',None):
+            self.create('watch_history',id_works=self.create('works',title='Calendar',title_language='en')['id_works'],watched_at=stamp)
+        for criteria, expected in [({'watched_at_date':'2026-10-25'},3),({'watched_at_from':'2026-10-25','watched_at_to':'2026-10-25'},3),({'watched_at_to':'2026-10-25'},4),({'watched_at_from':'2026-10-25'},4),({'watched_at_from':'2026-10-24T23:00:00Z','watched_at_to':'2026-10-25T01:30:00Z'},1)]:
+            criteria['filter_timezone']='Europe/Lisbon'
+            read=self.call('GET','/watch_history',params=criteria)
+            self.assertEqual(read.status_code,200)
+            self.assertEqual(read.json()['count'],expected)
+            for method in ('PUT','DELETE'):
+                preview=self.call(method,'/watch_history',role='administrator',params={**criteria,'dry_run':True},**({'json':{'observations':'Preview only'}} if method=='PUT' else {}))
+                self.assertEqual(preview.status_code,200)
+                self.assertEqual(preview.json()['matched_count'],expected)
+        self.assertEqual(self.call('GET','/watch_history').json()['count'],6)
+        for criteria in ({'watched_at_date':'2026-02-30'},{'watched_at_from':'2026-10-26','watched_at_to':'2026-10-25'},{'watched_at_date':'2026-10-25','watched_at_to':'2026-10-25'},{'watched_at_from':'2026-10-25T00:00:00'},{'filter_timezone':'original'}):
+            self.assertEqual(self.call('GET','/watch_history',params=criteria,expected=422).status_code,422)
+        for field in ('started_at','finished_at'):
+            today=datetime.now(timezone.utc).astimezone(ZoneInfo('Europe/Lisbon')).date().isoformat()
+            response=self.call('GET','/api_audit_logs',params={field+'_date':today,'filter_timezone':'Europe/Lisbon'})
+            self.assertEqual(response.status_code,200)
+            self.assertGreater(response.json()['count'],0)
+
+        work=self.create('works',title='Added day',title_language='en')
+        entry=self.create('watchlist_entries',id_works=work['id_works'])
+        test=self.call('POST','/test',role='standard',json={'value':'Calendar test'},expected=201).json()
+        for resource, record, fields in [('works',work,('created_at',)),('watchlist_entries',entry,('created_at','added_at')),('test',test,('created_at',))]:
+            for field in fields:
+                day=datetime.fromisoformat(record[field].replace('Z','+00:00')).astimezone(ZoneInfo('Europe/Lisbon')).date().isoformat()
+                criteria={field+'_date':day,'filter_timezone':'Europe/Lisbon'}
+                count=self.call('GET','/'+resource,params=criteria).json()['count']
+                self.assertGreater(count,0)
+                self.assertEqual(self.call('DELETE','/'+resource,role='administrator',params={**criteria,'dry_run':True}).json()['matched_count'],count)

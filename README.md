@@ -2,6 +2,8 @@
 
 Ouroboros is a relational entertainment-consumption catalogue across books, films, series, and other media. It records works, platform availability, watchlist entries, consumption experiences, classifications, and dynamic tags. 🐍
 
+Catalogue and test creation accepts one object or an atomic ordered array, with a configurable default maximum of 300 records. See [object and array creation](docs/BATCH_CREATION.md) for examples, permissions and request limits.
+
 Built from **Foundation**, it retains authentication, password change/reset, health checks, logging and QA infrastructure. Migrations **005–010** add eleven catalogue resources, supervisor permissions, central auditing, UTC/source context, filtered administrator bulk operations, independent classification tiers and complete integer-ID test CRUD. Existing records are preserved without catalogue seeds. See the [catalogue model](docs/CATALOGUE.md), [CRUD API guide](docs/CATALOGUE_API.md), [tier/test contracts](docs/TIERS_AND_TEST_CRUD.md) and [performance/security review](docs/REMAINING_PHASE_REVIEW.md). Frontend, advanced search and AI remain planned.
 
 
@@ -461,6 +463,11 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
 
 **Verification status:** JSON syntax and the official v2.1 schema are checked automatically. Basic and administrative request definitions are replayed against the real API with isolated PostgreSQL. HTTP/OpenAPI tests do not constitute visual Swagger verification, Postman desktop import, or execution of Postman's JavaScript sandbox; those remain manual. Migration **003** is applied by the next normal startup; verification uses isolated resources and does not migrate or promote users in the normal database.
 
+
+## Atomic object and array creation
+
+Catalogue and /test POST endpoints accept either one object or an atomic array of up to 300 records by default. Object responses are unchanged; arrays return 201 with created_count and full items in request order. Configure api.max_batch_size and api.max_creation_body_bytes separately from audit/log capture. See [examples, permissions, limits and restart instructions](docs/BATCH_CREATION.md). Existing normal records are never reset or seeded.
+
 <!-- postman-json:start -->
 <details>
 <summary>📄 <strong>Complete importable Postman Collection v2.1 JSON</strong></summary>
@@ -842,6 +849,16 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
       "key": "test_record",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "batch_tag_first_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "batch_tag_second_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1037,19 +1054,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "key": "created_at_from",
               "value": "2026-10-01T00:00:00+01:00",
               "disabled": true,
-              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+              "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
             },
             {
               "key": "created_at_to",
               "value": "2026-11-01T00:00:00Z",
               "disabled": true,
-              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+              "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
             },
             {
               "key": "display_timezone",
               "value": "Europe/Lisbon",
               "disabled": true,
               "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            },
+            {
+              "key": "created_at_date",
+              "value": "2026-10-25",
+              "disabled": true,
+              "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+            },
+            {
+              "key": "filter_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
             }
           ]
         },
@@ -1147,19 +1176,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "key": "created_at_from",
               "value": "2026-10-01T00:00:00+01:00",
               "disabled": true,
-              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+              "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
             },
             {
               "key": "created_at_to",
               "value": "2026-11-01T00:00:00Z",
               "disabled": true,
-              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+              "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
             },
             {
               "key": "display_timezone",
               "value": "Europe/Lisbon",
               "disabled": true,
               "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            },
+            {
+              "key": "created_at_date",
+              "value": "2026-10-25",
+              "disabled": true,
+              "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+            },
+            {
+              "key": "filter_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
             }
           ]
         },
@@ -1263,19 +1304,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "key": "created_at_from",
               "value": "2026-10-01T00:00:00+01:00",
               "disabled": true,
-              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+              "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
             },
             {
               "key": "created_at_to",
               "value": "2026-11-01T00:00:00Z",
               "disabled": true,
-              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+              "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
             },
             {
               "key": "display_timezone",
               "value": "Europe/Lisbon",
               "disabled": true,
               "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            },
+            {
+              "key": "created_at_date",
+              "value": "2026-10-25",
+              "disabled": true,
+              "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+            },
+            {
+              "key": "filter_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
             }
           ]
         },
@@ -1377,19 +1430,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "key": "created_at_from",
               "value": "2026-10-01T00:00:00+01:00",
               "disabled": true,
-              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+              "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
             },
             {
               "key": "created_at_to",
               "value": "2026-11-01T00:00:00Z",
               "disabled": true,
-              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+              "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
             },
             {
               "key": "display_timezone",
               "value": "Europe/Lisbon",
               "disabled": true,
               "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            },
+            {
+              "key": "created_at_date",
+              "value": "2026-10-25",
+              "disabled": true,
+              "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+            },
+            {
+              "key": "filter_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
             }
           ]
         },
@@ -1499,19 +1564,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               "key": "created_at_from",
               "value": "2026-10-01T00:00:00+01:00",
               "disabled": true,
-              "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+              "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
             },
             {
               "key": "created_at_to",
               "value": "2026-11-01T00:00:00Z",
               "disabled": true,
-              "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+              "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
             },
             {
               "key": "display_timezone",
               "value": "Europe/Lisbon",
               "disabled": true,
               "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+            },
+            {
+              "key": "created_at_date",
+              "value": "2026-10-25",
+              "disabled": true,
+              "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+            },
+            {
+              "key": "filter_timezone",
+              "value": "Europe/Lisbon",
+              "disabled": true,
+              "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
             }
           ]
         },
@@ -1889,19 +1966,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -2369,19 +2458,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -3137,19 +3238,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -3352,19 +3465,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -3845,19 +3970,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -4318,19 +4455,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -4660,19 +4809,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -5200,19 +5361,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -5400,19 +5573,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -5503,19 +5688,31 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 }
               ]
             },
@@ -5947,16 +6144,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -6082,16 +6291,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -6216,16 +6437,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -6334,6 +6567,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -6671,16 +6928,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -6824,16 +7093,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -6976,16 +7257,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -7094,6 +7387,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -7431,16 +7748,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -7584,16 +7913,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -7736,16 +8077,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -7854,6 +8207,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -8173,16 +8550,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -8308,16 +8697,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -8442,16 +8843,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -8560,6 +8973,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -8879,16 +9316,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -9014,16 +9463,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -9148,16 +9609,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -9266,6 +9739,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -9579,16 +10076,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -9708,16 +10217,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -9836,16 +10357,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -9954,6 +10487,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -10267,16 +10824,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -10396,16 +10965,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -10524,16 +11105,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -10642,6 +11235,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -10967,16 +11584,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -11108,16 +11737,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -11248,16 +11889,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -11366,6 +12019,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -11703,16 +12380,46 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "added_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -11856,16 +12563,46 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "added_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -12008,16 +12745,46 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "added_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -12126,6 +12893,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "added_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "added_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -12469,16 +13278,46 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "watched_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -12628,16 +13467,46 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "watched_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -12786,16 +13655,46 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "watched_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -12904,6 +13803,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "watched_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "watched_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -13235,16 +14176,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -13382,16 +14335,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -13528,16 +14493,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "description": "asc or desc; NULLS LAST; ID tie-breaker"
                     },
                     {
-                      "key": "created_at_from",
-                      "value": "2026-10-01T00:00:00+01:00",
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
                       "disabled": true,
-                      "description": "Inclusive offset-aware instant"
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                     },
                     {
                       "key": "created_at_to",
-                      "value": "2026-11-01T00:00:00Z",
+                      "value": "2026-10-25",
                       "disabled": true,
-                      "description": "Exclusive offset-aware instant"
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     },
                     {
                       "key": "display_timezone",
@@ -13646,6 +14623,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                       "key": "confirm",
                       "value": "false",
                       "description": "Change to true ONLY in an explicitly selected disposable destructive flow."
+                    },
+                    {
+                      "key": "filter_timezone",
+                      "value": "Europe/Lisbon",
+                      "disabled": true,
+                      "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                    },
+                    {
+                      "key": "created_at_date",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                    },
+                    {
+                      "key": "created_at_from",
+                      "value": "2026-10-01",
+                      "disabled": true,
+                      "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                    },
+                    {
+                      "key": "created_at_to",
+                      "value": "2026-10-25",
+                      "disabled": true,
+                      "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                     }
                   ]
                 },
@@ -13917,16 +14918,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "description": "asc or desc; NULLS LAST; ID tie-breaker"
                 },
                 {
-                  "key": "created_at_from",
-                  "value": "2026-10-01T00:00:00+01:00",
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
                   "disabled": true,
-                  "description": "Inclusive offset-aware instant"
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
-                  "value": "2026-11-01T00:00:00Z",
+                  "value": "2026-10-25",
                   "disabled": true,
-                  "description": "Exclusive offset-aware instant"
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
@@ -13981,6 +14994,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -14108,16 +15145,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "description": "asc or desc; NULLS LAST; ID tie-breaker"
                 },
                 {
-                  "key": "created_at_from",
-                  "value": "2026-10-01T00:00:00+01:00",
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
                   "disabled": true,
-                  "description": "Inclusive offset-aware instant"
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
-                  "value": "2026-11-01T00:00:00Z",
+                  "value": "2026-10-25",
                   "disabled": true,
-                  "description": "Exclusive offset-aware instant"
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
@@ -14290,16 +15339,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "description": "asc or desc; NULLS LAST; ID tie-breaker"
                 },
                 {
-                  "key": "created_at_from",
-                  "value": "2026-10-01T00:00:00+01:00",
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
                   "disabled": true,
-                  "description": "Inclusive offset-aware instant"
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
-                  "value": "2026-11-01T00:00:00Z",
+                  "value": "2026-10-25",
                   "disabled": true,
-                  "description": "Exclusive offset-aware instant"
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
@@ -14472,16 +15533,28 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "description": "asc or desc; NULLS LAST; ID tie-breaker"
                 },
                 {
-                  "key": "created_at_from",
-                  "value": "2026-10-01T00:00:00+01:00",
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
                   "disabled": true,
-                  "description": "Inclusive offset-aware instant"
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
-                  "value": "2026-11-01T00:00:00Z",
+                  "value": "2026-10-25",
                   "disabled": true,
-                  "description": "Exclusive offset-aware instant"
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "display_timezone",
@@ -14540,6 +15613,12 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               ],
               "query": [
                 {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
                   "key": "interaction_id",
                   "value": "{{audit_interaction_id}}",
                   "disabled": true,
@@ -14553,31 +15632,55 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 },
                 {
                   "key": "actor_username",
-                  "value": "",
+                  "value": "qa_supervisor",
                   "disabled": true,
                   "description": "Exact authenticated username snapshot."
+                },
+                {
+                  "key": "started_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 },
                 {
                   "key": "started_at_from",
                   "value": "2026-10-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Inclusive UTC instant lower bound; explicit offset required."
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "started_at_to",
                   "value": "2026-11-01T00:00:00Z",
                   "disabled": true,
-                  "description": "Exclusive UTC instant upper bound, after from."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                },
+                {
+                  "key": "finished_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "finished_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "finished_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "method",
-                  "value": "",
+                  "value": "GET",
                   "disabled": true,
                   "description": "Exact HTTP method snapshot."
                 },
                 {
                   "key": "resource",
-                  "value": "",
+                  "value": "works",
                   "disabled": true,
                   "description": "Exact catalogue/infrastructure resource name."
                 },
@@ -14595,13 +15698,13 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 },
                 {
                   "key": "error_code",
-                  "value": "",
+                  "value": "VALIDATION_ERROR",
                   "disabled": true,
                   "description": "Exact stable code from the versioned error catalogue."
                 },
                 {
                   "key": "target_id",
-                  "value": "",
+                  "value": "WK0000001",
                   "disabled": true,
                   "description": "Exact individual target ID; bulk operations have no individual target."
                 },
@@ -14719,7 +15822,59 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 }
               ]
             },
-            "url": "{{base_url}}/api_audit_logs",
+            "url": {
+              "raw": "{{base_url}}/api_audit_logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api_audit_logs"
+              ],
+              "query": [
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "started_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "started_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "started_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                },
+                {
+                  "key": "finished_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "finished_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "finished_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                }
+              ]
+            },
             "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.1 - Central audit lifecycle and safe errors. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
@@ -14770,6 +15925,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -14832,6 +16011,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -14893,6 +16096,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "titlle",
                   "value": "Misspelled"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -14951,16 +16178,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15029,16 +16270,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15110,16 +16365,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15174,16 +16443,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15251,16 +16534,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15329,16 +16626,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15410,16 +16721,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15474,16 +16799,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15551,16 +16890,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15629,16 +16982,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15710,16 +17077,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15774,16 +17155,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15851,16 +17246,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -15929,16 +17338,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16010,16 +17433,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16074,16 +17511,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16151,16 +17602,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16229,16 +17694,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16310,16 +17789,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16374,16 +17867,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16451,16 +17958,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16529,16 +18050,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16610,16 +18145,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16674,16 +18223,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16751,16 +18314,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16829,16 +18406,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16910,16 +18501,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -16974,16 +18579,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -17051,16 +18670,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -17129,16 +18762,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -17210,16 +18857,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -17274,16 +18935,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -17351,16 +19026,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "added_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17429,16 +19136,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "added_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17510,16 +19249,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "added_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17574,16 +19345,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "added_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "added_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17651,16 +19454,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "watched_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17729,16 +19564,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "watched_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17810,16 +19677,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "watched_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17874,16 +19773,48 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "watched_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "watched_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -17951,16 +19882,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -18029,16 +19974,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -18110,16 +20069,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -18174,16 +20147,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -18431,6 +20418,12 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
               ],
               "query": [
                 {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
                   "key": "id",
                   "value": "1",
                   "disabled": true,
@@ -18455,16 +20448,22 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "description": "Exact recorded source zone."
                 },
                 {
-                  "key": "created_at_from",
-                  "value": "2026-10-01T00:00:00+01:00",
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
                   "disabled": true,
-                  "description": "Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match."
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
-                  "value": "2026-11-01T00:00:00Z",
+                  "value": "2026-10-25",
                   "disabled": true,
-                  "description": "Exclusive creation instant upper bound, after from. Historical null dates do not match."
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "page",
@@ -18596,6 +20595,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -18658,6 +20681,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "confirm",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -18845,16 +20892,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -18927,16 +20988,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -19013,16 +21088,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "dry_run",
                   "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -19081,16 +21170,30 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                 {
                   "key": "created_at_from",
                   "value": "2026-10-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
                 },
                 {
                   "key": "created_at_to",
                   "value": "2026-11-01T00:00:00Z",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 },
                 {
                   "key": "confirm",
                   "value": "false"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
                 }
               ]
             },
@@ -19159,6 +21262,1282 @@ Open the response **Headers**, copy **X-Interaction-ID**, then search that exact
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                   "if (pm.response.code >= 400) { pm.test(\"16.5 - Complete test CRUD integer identity and representation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Atomic array creation (isolated opt-in only)",
+      "description": "Use fresh owned QA data and pre-existing captured catalogue IDs. Creates are explicit isolated opt-in; array POST uses normal creation permissions, independently of administrator bulk PUT/DELETE. Inspect each response interaction before running another request.",
+      "item": [
+        {
+          "name": "BATCH works - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/works",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"title\": \"El dragón 🐉\",\n    \"title_language\": \"es\",\n    \"synopsis\": \"An English synopsis.\"\n  },\n  {\n    \"title\": \"Second array item\",\n    \"title_language\": \"es\",\n    \"synopsis\": \"An English synopsis.\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH platforms - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/platforms",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"platform_name\": \"QA Library\",\n    \"platform_is_paid\": false,\n    \"platform_is_episodes\": true,\n    \"platform_is_duration_time\": true,\n    \"price_amount\": null,\n    \"price_currency\": null\n  },\n  {\n    \"platform_name\": \"Second array item\",\n    \"platform_is_paid\": false,\n    \"platform_is_episodes\": true,\n    \"platform_is_duration_time\": true,\n    \"price_amount\": null,\n    \"price_currency\": null\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH work_availabilities - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/work_availabilities",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_platforms\": \"{{catalogue_id_platforms}}\",\n    \"duration_minutes\": \"120.5\",\n    \"episode_quantity\": 3\n  },\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_platforms\": \"{{catalogue_id_platforms}}\",\n    \"duration_minutes\": \"120.5\",\n    \"episode_quantity\": 3\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH tags - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/tags",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"tag_name\": \"support_without_dependence\",\n    \"display_name_tags\": \"Support 💕\",\n    \"description_tags\": \"Reusable preference tag.\"\n  },\n  {\n    \"tag_name\": \"support_without_dependence_second\",\n    \"display_name_tags\": \"Second array item\",\n    \"description_tags\": \"Reusable preference tag.\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "pm.collectionVariables.set(\"batch_tag_first_id\",pm.response.json().items[0].id_tags);",
+                  "pm.collectionVariables.set(\"batch_tag_second_id\",pm.response.json().items[1].id_tags);",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH tag_categories - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/tag_categories",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"tag_category_name\": \"relationships\",\n    \"display_name_tag_categories\": \"Vínculos\"\n  },\n  {\n    \"tag_category_name\": \"relationships_second\",\n    \"display_name_tag_categories\": \"Second array item\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH tag_category_relationships - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/tag_category_relationships",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"id_tags\": \"{{batch_tag_first_id}}\",\n    \"id_tag_categories\": \"{{catalogue_id_tag_categories}}\"\n  },\n  {\n    \"id_tags\": \"{{batch_tag_second_id}}\",\n    \"id_tag_categories\": \"{{catalogue_id_tag_categories}}\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH tag_relationships - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/tag_relationships",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"id_tags_source\": \"{{catalogue_id_tags}}\",\n    \"id_tags_target\": \"{{catalogue_id_tags}}\"\n  },\n  {\n    \"id_tags_source\": \"{{catalogue_id_tags}}\",\n    \"id_tags_target\": \"{{catalogue_id_tags}}\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH work_classifications - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/work_classifications",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"work_classification_name\": \"qa_classification\",\n    \"display_name_work_classifications\": \"QA only\"\n  },\n  {\n    \"work_classification_name\": \"qa_classification_second\",\n    \"display_name_work_classifications\": \"QA only\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH watchlist_entries - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/watchlist_entries",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_work_availabilities\": \"{{catalogue_id_work_availabilities}}\",\n    \"observations\": \"Trailer impressions.\"\n  },\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_work_availabilities\": \"{{catalogue_id_work_availabilities}}\",\n    \"observations\": \"Second array item\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH watch_history - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/watch_history",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_work_availabilities\": \"{{catalogue_id_work_availabilities}}\",\n    \"watched_at\": null,\n    \"observations\": \"A separate experience.\"\n  },\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_work_availabilities\": \"{{catalogue_id_work_availabilities}}\",\n    \"watched_at\": null,\n    \"observations\": \"Second array item\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH work_tags - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/work_tags",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_tags\": \"{{catalogue_id_tags}}\",\n    \"id_tag_relationships\": null,\n    \"id_watchlist_entries\": \"{{catalogue_id_watchlist_entries}}\",\n    \"id_watch_history\": null\n  },\n  {\n    \"id_works\": \"{{catalogue_id_works}}\",\n    \"id_tags\": \"{{catalogue_id_tags}}\",\n    \"id_tag_relationships\": null,\n    \"id_watchlist_entries\": \"{{catalogue_id_watchlist_entries}}\",\n    \"id_watch_history\": null\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH test - Create array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"value\": \"First array item\"\n  },\n  {\n    \"value\": \"Second array item\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Ordered mutation result\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(2); pm.expect(r.items).to.have.length(2); pm.expect(r).not.to.have.property(\"page\"); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH test - One-item array (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"value\": \"One array item\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | One item is still a batch\",()=>pm.expect(pm.response.json().created_count).to.eql(1));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH test - Create 300 (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"value\": \"Generated by the pre-request script\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.update(JSON.stringify(Array.from({length:300},(_,i)=>({value:\"Batch item \" + i}))));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.2 - Ordered batch creation and single record compatibility | 300 ordered records\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(300); r.items.forEach((x,i)=>pm.expect(x.value).to.eql(\"Batch item \" + i)); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.2 - Ordered batch creation and single record compatibility | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH classifications - Sequential tiers (opt-in)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/work_classifications",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.4 - Sequential classification batch tiers and concurrency. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"work_classification_name\": \"batch_append\",\n    \"display_name_work_classifications\": \"Append\"\n  },\n  {\n    \"work_classification_name\": \"batch_first\",\n    \"display_name_work_classifications\": \"Insert first\",\n    \"tier\": 1\n  },\n  {\n    \"work_classification_name\": \"batch_second\",\n    \"display_name_work_classifications\": \"Insert second\",\n    \"tier\": 2\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.4 - Sequential classification batch tiers and concurrency | HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"17.4 - Sequential classification batch tiers and concurrency | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.4 - Sequential classification batch tiers and concurrency | Sequential final tiers\",()=>{ const r=pm.response.json(); pm.expect(r.created_count).to.eql(3); pm.expect(r.items[1].tier).to.eql(1); pm.expect(r.items[2].tier).to.eql(2); });",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.4 - Sequential classification batch tiers and concurrency | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH - Empty array rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 17.1 - Array input limits schemas and safe validation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.1 - Array input limits schemas and safe validation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH - Nested array rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 17.1 - Array input limits schemas and safe validation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  [\n    {\n      \"value\": \"Invalid\"\n    }\n  ]\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.1 - Array input limits schemas and safe validation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH - Non-object rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 17.1 - Array input limits schemas and safe validation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"value\": \"Valid\"\n  },\n  null\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.1 - Array input limits schemas and safe validation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH - Indexed validation rollback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 17.3 - Indexed batch failures and complete rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"value\": \"Must roll back\"\n  },\n  {\n    \"value\": null\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.3 - Indexed batch failures and complete rollback | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"17.3 - Indexed batch failures and complete rollback | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"17.3 - Indexed batch failures and complete rollback | Zero-based failing item\",()=>pm.expect(pm.response.json().error.details.some(d=>d.loc[0]===\"body\" && d.loc[1]===1)).to.eql(true));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.3 - Indexed batch failures and complete rollback | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH - Standard catalogue denied",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/works",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 17.5 - Batch creation roles transactional authority and connection reuse. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"title\": \"Denied\",\n    \"title_language\": \"en\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.5 - Batch creation roles transactional authority and connection reuse | HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"17.5 - Batch creation roles transactional authority and connection reuse | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.5 - Batch creation roles transactional authority and connection reuse | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH - Inspect captured interaction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisor_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api_audit_logs?interaction_id={{audit_interaction_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api_audit_logs"
+              ],
+              "query": [
+                {
+                  "key": "interaction_id",
+                  "value": "{{audit_interaction_id}}"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "started_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "started_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "started_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                },
+                {
+                  "key": "finished_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "finished_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "finished_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 17.6 - Batch audit atomicity bounded capture and large bodies. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.6 - Batch audit atomicity bounded capture and large bodies | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"17.6 - Batch audit atomicity bounded capture and large bodies | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.6 - Batch audit atomicity bounded capture and large bodies | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BATCH - Oversized array rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{standard_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/test",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Requires default api.max_batch_size=300 and explicit isolated opt-in; a larger configured limit can accept this body.\n\nQA scenario: 17.1 - Array input limits schemas and safe validation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"value\": \"Generated 301 items by pre-request script\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"catalogue_destructive_opt_in\") !== \"isolated\") { pm.execution.skipRequest(); }",
+                  "pm.request.body.update(JSON.stringify(Array.from({length:301},()=>({value:\"Oversized example\"}))));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"17.1 - Array input limits schemas and safe validation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"17.1 - Array input limits schemas and safe validation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
                 ]
               }
             }

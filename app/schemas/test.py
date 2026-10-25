@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StrictInt, StrictStr
 
-from app.datetimes import DisplayZone, Instant, ZoneName
+from app.datetimes import DisplayZone, Instant, ZoneName, date_filter_fields, CalendarDate, DateBound
 from app.pagination import integer_query
 from app.ordering import TestOrder
 from app.schemas.catalogue import (BulkSelection, PATTERN_HELP, Presentation, Selection,
@@ -42,8 +42,10 @@ class TestFilters(Selection):
     value: str | None = Field(default=None, description=PATTERN_HELP, examples=['%Ouroboros%', r'literal\%\_\\'])
     created_at: Instant | None = Field(default=None, description='Exact offset-aware creation instant.', examples=['2026-10-19T12:00:00Z'])
     created_at_timezone: str | None = Field(default=None, description='Exact recorded source zone.', examples=['Europe/Lisbon'])
-    created_at_from: Instant | None = Field(default=None, description='Inclusive creation instant lower bound; explicit UTC offset required. Historical null dates do not match.', examples=['2026-10-01T00:00:00+01:00'])
-    created_at_to: Instant | None = Field(default=None, description='Exclusive creation instant upper bound, after from. Historical null dates do not match.', examples=['2026-11-01T00:00:00Z'])
+    created_at_date: CalendarDate | None = date_filter_fields('created_at')['created_at_date'][1]
+    created_at_from: DateBound | None = date_filter_fields('created_at')['created_at_from'][1]
+    created_at_to: DateBound | None = date_filter_fields('created_at')['created_at_to'][1]
+
 
 
 class TestQuery(TestFilters):

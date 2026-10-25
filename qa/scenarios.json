@@ -6236,13 +6236,22 @@
       "steps": [
         "Upgrade a populated migration-006 disposable database. Verify unknown created_at/source context remain NULL; new insert with explicit NULL creation time receives an automatic timestamp.",
         "Check inclusive from/exclusive to creation bounds, AND filters, NULL exclusion, invalid/naive ranges and unknown display timezone rejection.",
-        "Create watched_at with explicit Lisbon offset/zone; verify UTC canonical value, retained source metadata and original display round trip. Change/clear date and confirm companion updates. Numeric offsets must not infer IANA geography."
+        "Create watched_at with explicit Lisbon offset/zone; verify UTC canonical value, retained source metadata and original display round trip. Change/clear date and confirm companion updates. Numeric offsets must not infer IANA geography.",
+        "For every applicable field enable _date=2026-10-25 and filter_timezone=Europe/Lisbon; verify the whole day. Then disable _date and use _from=2026-10-01 and _to=2026-10-25; verify the final day is included. Repeat each open-ended range.",
+        "Verify Lisbon 2026-03-29 (23 hours), Lisbon 2026-10-25 (25 hours), and America/New_York 2026-03-08. Keep display_timezone different and confirm unchanged matches. Omitted filter_timezone uses application_timezone.",
+        "Verify aware timestamp lower inclusion and upper exclusion remain unchanged. Reject invalid dates, naive timestamps, invalid zones, inverted ranges and exact-day/range conflicts with 422. NULL history never matches.",
+        "On owned disposable data compare GET count with PUT and DELETE dry_run matched_count using identical criteria for created_at, added_at and watched_at. Inspect started_at and finished_at calendar filters on protected audit reads. Previews preserve all domain records."
       ],
       "requests": [],
-      "expected": "All stated contracts hold in owned disposable storage; GUI evidence remains separately pending.",
+      "expected": "All stated contracts hold in owned disposable storage; GUI evidence remains separately pending. Calendar days and inclusive calendar ranges use configured/explicit filter zones with DST-aware UTC boundaries; timestamp bounds retain compatibility; GET and previews agree without changing domain data.",
       "tests": [
         "test_next_phase.NextPhaseTests.test_source_timezone_and_bounds",
-        "test_next_phase.NextPhaseTests.test_migration_preserves_unknown_historical_context"
+        "test_next_phase.NextPhaseTests.test_migration_preserves_unknown_historical_context",
+        "test_date_filters.DateFilterTests.test_whole_day_dst_and_inclusive_range",
+        "test_date_filters.DateFilterTests.test_open_bounds_timestamp_compatibility_and_default",
+        "test_date_filters.DateFilterTests.test_invalid_conflicting_and_naive",
+        "test_date_filters.DateFilterTests.test_all_fields_share_bulk_and_read_predicates",
+        "test_remaining_phase.RemainingPhaseTests.test_07_calendar_get_and_preview_counts"
       ],
       "type": "both",
       "integration": true,
@@ -6749,6 +6758,435 @@
         "REMAIN - Test PUT filtered actual (opt-in)",
         "REMAIN - Test DELETE preview",
         "REMAIN - Test DELETE filtered actual (opt-in)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "17.1",
+      "name": "Array input limits schemas and safe validation",
+      "objective": "Array input limits schemas and safe validation",
+      "prerequisites": [
+        "Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only",
+        "Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Inspect Swagger POST /test and all eleven catalogue POST routes: body offers one object and an array; response offers one record and created_count/items without pagination. Confirm excluded token/users/password/audit contracts are unchanged.",
+        "With default api.max_batch_size=300, reject empty arrays, 301 objects, nested arrays, null/number/string elements, missing/unknown/immutable fields and invalid item values. Details use zero-based body item indexes and omit rejected input.",
+        "In disposable configuration lower max_batch_size to 2 and retry 3 items; increase to 301 and verify the override. Invalid configuration types/ranges fail safely. Configure a small max_creation_body_bytes and reject an oversized streamed request before JSON parsing; preserve audit/log inspection limits.",
+        "Inspect canonical Postman arrays and the generated 300-item pre-request script; all creation demonstrations remain isolated opt-in."
+      ],
+      "requests": [],
+      "expected": "All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.",
+      "tests": [
+        "test_batch_creation.BatchCreationUnitTests.test_invalid_shapes_item_indexes_and_configured_limit",
+        "test_batch_creation.BatchCreationUnitTests.test_openapi_shapes_examples_and_scope_exclusions",
+        "test_batch_creation.BatchCreationUnitTests.test_streamed_body_limit_before_parsing_and_capture_separation",
+        "test_batch_creation.BatchCreationUnitTests.test_configuration_bounds_defaults_and_bounded_summary",
+        "test_postman.PostmanTests.test_batch_examples_are_explicit_and_guarded"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "BATCH - Empty array rejected",
+        "BATCH - Nested array rejected",
+        "BATCH - Non-object rejected",
+        "BATCH - Oversized array rejected"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "17.2",
+      "name": "Ordered batch creation and single record compatibility",
+      "objective": "Ordered batch creation and single record compatibility",
+      "prerequisites": [
+        "Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only",
+        "Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "In fresh disposable storage create an existing graph with the single-object endpoints; retain complete baseline records. Create arrays of 1, 3 and 300 records on each of the eleven catalogue endpoints and /test.",
+        "Verify 201, exact created_count, request-order mapping, server IDs/automatic dates/source fields and complete presentation. Fetch created records by ID and compare full schemas/values. Classification responses reflect final persisted tiers after later inserts.",
+        "Verify baseline records remain unchanged for append-only operations and sequence identities are not reset. Referenced records must already exist; no intra-array placeholders or cross-table creation is supported."
+      ],
+      "requests": [],
+      "expected": "All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.",
+      "tests": [
+        "test_batch_creation.BatchCreationIntegrationTests.test_all_resources_single_one_several_and_300_ordered_records"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "BATCH works - Create array (opt-in)",
+        "BATCH platforms - Create array (opt-in)",
+        "BATCH work_availabilities - Create array (opt-in)",
+        "BATCH tags - Create array (opt-in)",
+        "BATCH tag_categories - Create array (opt-in)",
+        "BATCH tag_category_relationships - Create array (opt-in)",
+        "BATCH tag_relationships - Create array (opt-in)",
+        "BATCH work_classifications - Create array (opt-in)",
+        "BATCH watchlist_entries - Create array (opt-in)",
+        "BATCH watch_history - Create array (opt-in)",
+        "BATCH work_tags - Create array (opt-in)",
+        "BATCH test - Create array (opt-in)",
+        "BATCH test - One-item array (opt-in)",
+        "BATCH test - Create 300 (opt-in)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "17.3",
+      "name": "Indexed batch failures and complete rollback",
+      "objective": "Indexed batch failures and complete rollback",
+      "prerequisites": [
+        "Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only",
+        "Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Place a valid first item before a schema-invalid second item; verify 422, details loc body/1 and zero created records. Repeat on /test.",
+        "Use a missing foreign key, duplicate constrained tag/category relationship, wrong-work availability, invalid work-tags XOR, and mismatched watched_at source zone in later items. Verify safe 409/422 with zero-based item index and all prior inserts/audit mutation counts rolled back.",
+        "Verify existing records and relationships are unchanged. Sequence gaps after rollback are allowed; never reset a sequence to remove them."
+      ],
+      "requests": [],
+      "expected": "All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.",
+      "tests": [
+        "test_batch_creation.BatchCreationIntegrationTests.test_validation_and_database_failures_roll_back_with_indexes"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "BATCH - Indexed validation rollback"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "17.4",
+      "name": "Sequential classification batch tiers and concurrency",
+      "objective": "Sequential classification batch tiers and concurrency",
+      "prerequisites": [
+        "Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only",
+        "Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Create an existing disposable classification; submit append, tier=1 and tier=2 items in one array. Confirm sequential semantics, final contiguous tiers and response order by request rather than final tier.",
+        "Put an invalid tier after a successful earlier insertion/shift. Verify the complete array and every shift roll back. Inspect zero-based body/1/tier error and unchanged existing classification metadata.",
+        "Run two concurrent tier-insertion arrays. Verify both serialize under membership/actor/list locks, preserve contiguous unique tiers, and retain same-transaction mutation counts and bounded shift evidence."
+      ],
+      "requests": [],
+      "expected": "All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.",
+      "tests": [
+        "test_batch_creation.BatchCreationIntegrationTests.test_classification_sequential_tiers_final_records_rollback_and_concurrency"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "BATCH classifications - Sequential tiers (opt-in)"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "17.5",
+      "name": "Batch creation roles transactional authority and connection reuse",
+      "objective": "Batch creation roles transactional authority and connection reuse",
+      "prerequisites": [
+        "Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only",
+        "Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Verify supervisor and administrator may POST catalogue arrays and standard receives 403; standard/supervisor/administrator with existing test:write rules may POST test arrays. No administrator-only bulk confirmation is required for POST.",
+        "Remove permission or revoke credential version between request authentication and transaction lock. Verify the whole array is rejected without creating records.",
+        "Verify one business connection and one authorization recheck per array; reuse the prepared insert shape with RETURNING rather than performing per-item connection acquisition or post-insert reads. Classification final-tier refresh is one set query."
+      ],
+      "requests": [],
+      "expected": "All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.",
+      "tests": [
+        "test_batch_creation.BatchCreationIntegrationTests.test_roles_revalidation_and_one_business_connection"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "BATCH - Standard catalogue denied"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "17.6",
+      "name": "Batch audit atomicity bounded capture and large bodies",
+      "objective": "Batch audit atomicity bounded capture and large bodies",
+      "prerequisites": [
+        "Read docs/BATCH_CREATION.md; use owned disposable QA storage and fresh accounts only",
+        "Use pre-existing explicit referenced IDs; enable catalogue_destructive_opt_in=isolated only for selected disposable examples"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Inject a mandatory summary persistence failure after several array inserts in disposable storage; verify safe AUDIT_UNAVAILABLE, complete business rollback and no committed prefix or mutation evidence.",
+        "Create 300 items whose serialized body exceeds the 1 MiB logging inspection ceiling but fits the default 4 MiB creation request budget. Verify success with 256-byte mutation capture, correct created_count/mutation_count, omitted bounded ID sample, and unchanged request/response body-capture limits.",
+        "Immediately query the POST X-Interaction-ID in the protected audit API. Verify one HTTP interaction, affected resource, bounded created-ID/shift evidence and no full-record duplication in mutation summaries. Large transport bodies remain explicitly omitted by existing capture flags."
+      ],
+      "requests": [],
+      "expected": "All stated object/array, atomicity, authorization and bounded evidence contracts hold. Only owned disposable resources are mutated; normal records remain untouched.",
+      "tests": [
+        "test_batch_creation.BatchCreationIntegrationTests.test_audit_failure_atomicity_and_300_item_capture_limits"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "BATCH - Inspect captured interaction"
       ],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",

@@ -8,6 +8,7 @@ from app.logger import log_event
 from app.pagination import Page
 from app.schemas.catalogue import BulkResult, RESOURCES
 from app.datetimes import DisplayZone, present
+from app.creation import CREATION_EXAMPLES, CreatedBatch, check_batch_size, creation_body
 
 CatalogueActor = Annotated[dict, Security(require_scopes, scopes=['catalogue:access'])]
 Administrator = Annotated[dict, Security(require_scopes, scopes=['users:manage'])]
@@ -24,14 +25,25 @@ def resource_router(resource):
     def representation(record, request, display):
         return present(record, display, request.app.state.config.get('default_display_timezone', 'Europe/Lisbon'))
 
-    @router.post('', status_code=201, response_model=resource.record)
-    def create(payload: resource.create, request: Request, actor: CatalogueActor, display_timezone: Display = None):
-        """Create one record; IDs, fixed metadata and defaults come from PostgreSQL."""
+    @router.post('', status_code=201, response_model=resource.record | CreatedBatch[resource.record])
+    def create(payload: creation_body(resource.create, CREATION_EXAMPLES[resource.table]),
+               request: Request, actor: CatalogueActor, display_timezone: Display = None):
+        """Create one object or an atomic ordered array with the same permissions.
+
+        Array results are mutation results, not paginated GET collections. No
+        implicit references between items or cross-table creation are supported.
+        """
+        check_batch_size(payload, request.app.state.config)
+        if isinstance(payload, list):
+            results = repository(request).create_many(payload, actor)
+            log_event('INFO', 'Catalogue batch created', {'resource': resource.table, 'created_count': len(results)})
+            return {'created_count': len(results), 'items': [representation(row, request, display_timezone) for row in results]}
         return representation(repository(request).create(payload, actor), request, display_timezone)
 
-    @router.get('', response_model=Page[resource.record])
+    @router.get('', response_model=Page[resource.list_record])
     def collection(request: Request, actor: CatalogueActor, selection: Annotated[resource.query, Query()]):
         """Filter with AND, then order and paginate in one database snapshot."""
+        selection.bind_filter_timezone(request.app.state.config)
         result = repository(request).page(selection)
         result['items'] = [representation(record, request, selection.display_timezone) for record in result['items']]
         return result
@@ -75,6 +87,7 @@ def resource_router(resource):
         No page/order/display parameters are accepted. All matching rows are
         targeted atomically, including unchanged values in updated_count.
         """
+        selection.bind_filter_timezone(request.app.state.config)
         result = repository(request).bulk(actor, selection, payload)
         log_event('INFO', 'Catalogue bulk previewed' if result['dry_run'] else 'Catalogue bulk updated',
                   {'actor_id':int(actor['sub']), 'resource':resource.table, **result})
@@ -89,6 +102,7 @@ def resource_router(resource):
         """
         audit = {'actor_id':int(actor['sub']), 'resource':resource.table, 'target_id':None}
         try:
+            selection.bind_filter_timezone(request.app.state.config)
             result = repository(request).bulk(actor, selection)
         except CatalogueError as error:
             log_event('WARNING','Catalogue deletion rejected',{**audit,'outcome':'rejected','status':error.status})

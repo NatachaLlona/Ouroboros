@@ -1,9 +1,10 @@
 """UTC canonical instants, validated source context and read-only presentation."""
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, time, timezone, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Annotated
 import re
-from pydantic import AfterValidator, AwareDatetime, BeforeValidator
+from pydantic import (AfterValidator, AwareDatetime, BeforeValidator, Field,
+                      PlainValidator, TypeAdapter, WithJsonSchema)
 
 
 def utcnow():
@@ -126,4 +127,59 @@ def present(record, selection=None, default='Europe/Lisbon', source_zones=None):
         elif field.endswith('_at') and value is None:
             dates[field] = None
     result['presentation'] = {'display_timezone': selected, 'dates': dates}
+    return result
+
+
+# Calendar inputs are deliberately distinct from offset-aware instants.
+
+
+def calendar_date(value):
+    if type(value) is date:
+        return value
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        raise ValueError('Supply a calendar date in YYYY-MM-DD format')
+    return date.fromisoformat(value)
+
+
+def date_or_instant(value):
+    if type(value) is date or isinstance(value, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        return calendar_date(value)
+    return INSTANT_ADAPTER.validate_python(value)
+
+
+INSTANT_ADAPTER = TypeAdapter(Instant)
+CalendarDate = Annotated[date, BeforeValidator(calendar_date)]
+DateBound = Annotated[date | datetime, PlainValidator(date_or_instant),
+    WithJsonSchema({'anyOf': [{'type': 'string', 'format': 'date'}, {'type': 'string', 'format': 'date-time'}]})]
+
+
+def date_filter_fields(field):
+    return {
+        field + '_date': (CalendarDate | None, Field(default=None, description='Entire calendar day in filter_timezone; cannot combine with range bounds.', examples=['2026-10-25'])),
+        field + '_from': (DateBound | None, Field(default=None, description='Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match.', examples=['2026-10-01', '2026-10-01T00:00:00Z'])),
+        field + '_to': (DateBound | None, Field(default=None, description='Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match.', examples=['2026-10-25', '2026-10-26T00:00:00Z']))}
+
+
+def date_predicates(values, fields, default='Europe/Lisbon'):
+    """Calculate UTC boundaries once, leaving stored SQL columns untouched."""
+    zone = ZoneInfo(zone_name(values.get('filter_timezone') or default))
+    result = []
+    def boundary(value, final=False):
+        if type(value) is date:
+            if final:
+                value += timedelta(days=1)
+            return datetime.combine(value, time.min, zone).astimezone(timezone.utc)
+        return value
+    for field in fields:
+        day, start, end = (values.get(field + suffix) for suffix in ('_date', '_from', '_to'))
+        if day is not None:
+            if start is not None or end is not None:
+                raise ValueError('Exact calendar day cannot be combined with range bounds')
+            start, end = day, day
+        try:
+            start, end = boundary(start), boundary(end, True)
+            check_range(start, end)
+        except (OverflowError, ValueError):
+            raise ValueError('Supply a valid increasing date range') from None
+        result.extend([(field, '>=', start), (field, '<', end)])
     return result

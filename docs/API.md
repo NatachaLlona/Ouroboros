@@ -8,7 +8,7 @@ See the running instance's **`/docs`** for the exact OpenAPI schema. The main ap
 | --- | --- | --- |
 | GET `/health` | Public, no body | 200 status ok after real query; 503 unavailable |
 | POST `/token` | Public URL-encoded API username/password; password grant, optional space-separated scope | 200 access_token/token_type/expires_in, no-store headers; invalid/inactive credentials 401; unavailable scopes 403 |
-| POST `/test` | test:write or current administrator; strict `{"value":"text"}` | 201 id/value; no artificial value-length cap |
+| POST `/test` | test:write or current administrator; strict value object or array of such objects | 201 full record for an object; created_count/full items for an atomic array. No per-field text cap; creation request budgets apply |
 | GET `/test` | test:read or administrator; optional positive BIGINT id and raw ILIKE value pattern | 200 paginated items ordered by ID; id/value combine with AND |
 | POST `/users` | Active administrator; username/password and optional fixed role | 201 public account; omitted role means standard; duplicate 409 |
 | GET `/users` | Active administrator; shared pagination | 200 public accounts ordered by ID |
@@ -65,3 +65,7 @@ For manual QA use owned disposable storage and fresh private accounts. Inspect S
 ## 🪜 Classification tiers and complete test CRUD
 
 Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.
+
+## Object and array creation
+
+POST /test and the eleven catalogue POST creation endpoints accept one object or a nonempty atomic array. Single-object 201 responses remain full records; array 201 responses contain created_count and full items in request order, without GET pagination. Each item uses the existing create schema and creation permissions. See [the batch creation contract](BATCH_CREATION.md) for zero-based item errors, transaction/audit guarantees, classification tiers, configurable api.max_batch_size (default 300) and api.max_creation_body_bytes (default 4 MiB), client examples and restart instructions. Capture/inspection budgets are independent and remain bounded. No migration, reset or seed is required; preserve existing normal records and leave unconfirmed listeners alone.

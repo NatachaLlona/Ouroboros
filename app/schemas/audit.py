@@ -1,10 +1,10 @@
 """Read-only public audit schemas and strictly allowlisted query controls."""
 from decimal import Decimal
 from typing import Any, Literal, Annotated
-from pydantic import BaseModel, ConfigDict, Field, BeforeValidator, model_validator
-from app.datetimes import Instant, DisplayZone, check_range
+from pydantic import BaseModel, ConfigDict, Field, BeforeValidator
+from app.datetimes import Instant, DisplayZone, CalendarDate, DateBound, date_filter_fields
 from app.pagination import integer_query
-from app.schemas.catalogue import Presentation
+from app.schemas.catalogue import Presentation, Selection
 
 AuditStatus = Literal['in_progress', 'success', 'failure']
 BusinessOutcome = Literal['not_started','committed','rolled_back','read_only','preview']
@@ -50,14 +50,18 @@ class AuditRecord(BaseModel):
     presentation: Presentation
 
 
-class AuditFilters(BaseModel):
+class AuditFilters(Selection):
     """All audit criteria are values, never SQL identifiers or write instructions."""
     model_config = ConfigDict(extra='forbid')
     interaction_id: str | None = Field(default=None, description='Exact server interaction ID, also returned in X-Interaction-ID.', examples=['202610191200001234567890'])
     actor_id: Annotated[int | None, BeforeValidator(integer_query), Field(gt=0, le=9223372036854775807)] = Field(default=None, description='Exact historical actor ID; no account FK.', examples=[1])
     actor_username: str | None = Field(default=None, description='Exact authenticated username snapshot.', examples=['qa_supervisor'])
-    started_at_from: Instant | None = Field(default=None, description='Inclusive UTC instant lower bound; explicit offset required.', examples=['2026-10-01T00:00:00+01:00'])
-    started_at_to: Instant | None = Field(default=None, description='Exclusive UTC instant upper bound, after from.', examples=['2026-11-01T00:00:00Z'])
+    started_at_date: CalendarDate | None = date_filter_fields('started_at')['started_at_date'][1]
+    started_at_from: DateBound | None = date_filter_fields('started_at')['started_at_from'][1]
+    started_at_to: DateBound | None = date_filter_fields('started_at')['started_at_to'][1]
+    finished_at_date: CalendarDate | None = date_filter_fields('finished_at')['finished_at_date'][1]
+    finished_at_from: DateBound | None = date_filter_fields('finished_at')['finished_at_from'][1]
+    finished_at_to: DateBound | None = date_filter_fields('finished_at')['finished_at_to'][1]
     method: str | None = Field(default=None, description='Exact HTTP method snapshot.', examples=['GET', 'PUT'])
     resource: str | None = Field(default=None, description='Exact catalogue/infrastructure resource name.', examples=['works'])
     status: AuditStatus | None = Field(default=None, description='Request status; handled 4xx count as failure.', examples=['failure'])
@@ -69,8 +73,3 @@ class AuditFilters(BaseModel):
     order_by: Literal[AUDIT_ORDER] = Field(default='sequence_api_audit_logs', description='Public stored scalar column; JSON/presentation fields are not sortable.', examples=['started_at'])
     order_direction: Literal['asc','desc'] = Field(default='asc', description='NULLS LAST in both directions; unique audit ID ascending tie-breaker.', examples=['asc','desc'])
     display_timezone: DisplayZone | None = Field(default=None, description='Configured display zone by default, explicit IANA zone or original (UTC for audit clocks).', examples=['Europe/Lisbon','original'])
-
-    @model_validator(mode='after')
-    def date_bounds(self):
-        check_range(self.started_at_from, self.started_at_to)
-        return self

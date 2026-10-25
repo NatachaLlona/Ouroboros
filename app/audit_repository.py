@@ -1,5 +1,6 @@
 """Read-only audit queries, independent of domain deletion lifetimes."""
 from psycopg import sql
+from app.datetimes import date_predicates
 from app.collection_queries import select_page
 from app.catalogue_repository import CatalogueError
 from app.schemas.audit import AUDIT_COLUMNS
@@ -22,7 +23,7 @@ class AuditRepository:
         values = selection.model_dump()
         filters = [(field, '=', values[field]) for field in ('interaction_id','actor_id','actor_username','method',
             'resource','status','http_status','error_code','target_id')]
-        filters += [('started_at','>=',values['started_at_from']), ('started_at','<',values['started_at_to'])]
+        filters += date_predicates(values, ('started_at', 'finished_at'))
         with self.database.connection() as connection:
             return select_page(connection, 'api_audit_logs', AUDIT_COLUMNS, 'id_api_audit_logs', filters,
                 values['page'], values['page_size'], values['order_by'], values['order_direction'])
