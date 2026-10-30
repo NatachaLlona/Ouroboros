@@ -199,7 +199,7 @@ class APIUserStore:
                 raise UserManagementError(409, "Choose an existing active user to promote, or a unique username for a new administrator")
         return user
 
-    def page(self, page=1, page_size=50, order_by='id', order_direction='asc'):
+    def page(self, page=1, page_size=50, order_by='id', order_direction='asc', **selection):
         """Return public accounts and count from one SQL statement snapshot.
 
         Args:
@@ -212,9 +212,13 @@ class APIUserStore:
             A collection envelope excluding all password/hash columns.
         """
         from app.collection_queries import select_page
+        from app.datetimes import date_predicates
+        filters = [(name, '=', selection.get(name)) for name in ('id', 'username', 'role', 'is_active')]
+        filters.append(('username', 'ILIKE', selection.get('username_pattern')))
+        filters.extend(date_predicates(selection, ['created_at']))
         with self.database.connection() as connection:
             return select_page(connection, 'api_users', ('id', 'username', 'role', 'is_active', 'created_at'),
-                'id', [], page, page_size, order_by, order_direction)
+                'id', filters, page, page_size, order_by, order_direction)
 
     def create_managed(self, actor_id, username, password_hash, role, credential_version=None):
         """Create an account atomically after rechecking the API actor.

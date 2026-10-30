@@ -148,6 +148,8 @@ def load_config(root=PROJECT_ROOT):
         if type(api[field]) is not int or not minimum <= api[field] <= maximum:
             raise ConfigurationError(f'api.{field} must be an integer between {minimum} and {maximum}')
     validate_logging(config.get("logging"))
+    from app.browser_sessions import browser_settings
+    browser_settings(config)
     return config
 
 

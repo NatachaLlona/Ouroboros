@@ -38,9 +38,8 @@ class QARoleLifecycleTests(unittest.TestCase):
         cls.config = json.loads((PROJECT_ROOT/".app.config.example").read_text())
         shutil.copy(PROJECT_ROOT/"compose.yaml", cls.root)
         shutil.copytree(PROJECT_ROOT/"sql", cls.root/"sql")
-        with socket.socket() as channel:
-            channel.bind(("127.0.0.1", 0))
-            port = channel.getsockname()[1]
+        from support_ports import approved_port
+        port = approved_port('database')
         cls.database_config = {**cls.config["database"], "name": "qa_lifecycle", "user": "qa_master", "port": port, "startup_timeout": 240}
         cls.master_password = secrets.token_urlsafe(32)
         cls.secret = write_secret(cls.master_password, cls.root)

@@ -2,6 +2,19 @@ name: Ouroboros QA checks
 
 'on':
   workflow_dispatch:
+    inputs:
+      qa_database_port:
+        description: 'Operator-selected disposable PostgreSQL host port'
+        required: true
+        type: string
+      qa_api_port:
+        description: 'Operator-selected isolated HTTP QA port (distinct from database)'
+        required: true
+        type: string
+      qa_derived_database_port:
+        description: 'Operator-selected second PostgreSQL host port for concurrent project isolation'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -11,6 +24,10 @@ jobs:
     name: Isolated preparation, scenarios and reports
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      OUROBOROS_QA_DB_PORT: ${{ inputs.qa_database_port }}
+      OUROBOROS_QA_API_PORT: ${{ inputs.qa_api_port }}
+      OUROBOROS_QA_DERIVED_DB_PORT: ${{ inputs.qa_derived_database_port }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -21,6 +38,18 @@ jobs:
           cache: pip
       - name: Install verification dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Prepare compatible Node build tool
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build and test Angular production client
+        working-directory: frontend
+        run: |
+          npm ci --no-fund
+          npm run build
+          npm test
       - name: Verify Python and Docker prerequisites
         run: python scripts/run_checks.py --preflight-only
       - name: Run catalogue scenarios in isolated infrastructure

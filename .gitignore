@@ -75,3 +75,9 @@ postman/local/
 
 # Sanitized local QA reports (regenerate instead of versioning)
 reports/
+
+# Local frontend toolchain and generated dependencies/assets
+.tools/
+node_modules/
+.angular/
+frontend/dist/

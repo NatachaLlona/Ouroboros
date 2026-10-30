@@ -1,10 +1,12 @@
 # Ouroboros
 
+Current phase-one registration controls: see [Individual registration UI](docs/REGISTRATION_UI.md). It documents the unanswered checkboxes, exact comma-decimal input, currency/access selectors, conditional address, twenty-result anchored autocomplete, cancel-first unsaved-change protection, compact consultation filters and session-only recent searches. No API or database contract changes are required.
+
 Ouroboros is a relational entertainment-consumption catalogue across books, films, series, and other media. It records works, platform availability, watchlist entries, consumption experiences, classifications, and dynamic tags. 🐍
 
 Catalogue and test creation accepts one object or an atomic ordered array, with a configurable default maximum of 300 records. See [object and array creation](docs/BATCH_CREATION.md) for examples, permissions and request limits.
 
-Built from **Foundation**, it retains authentication, password change/reset, health checks, logging and QA infrastructure. Migrations **005–010** add eleven catalogue resources, supervisor permissions, central auditing, UTC/source context, filtered administrator bulk operations, independent classification tiers and complete integer-ID test CRUD. Existing records are preserved without catalogue seeds. See the [catalogue model](docs/CATALOGUE.md), [CRUD API guide](docs/CATALOGUE_API.md), [tier/test contracts](docs/TIERS_AND_TEST_CRUD.md) and [performance/security review](docs/REMAINING_PHASE_REVIEW.md). Frontend, advanced search and AI remain planned.
+Built from **Foundation**, it retains authentication, password change/reset, health checks, logging and QA infrastructure. Migrations **005–010** add eleven catalogue resources, supervisor permissions, central auditing, UTC/source context, filtered administrator bulk operations, independent classification tiers and complete integer-ID test CRUD. Existing records are preserved without catalogue seeds. See the [catalogue model](docs/CATALOGUE.md), [CRUD API guide](docs/CATALOGUE_API.md), [tier/test contracts](docs/TIERS_AND_TEST_CRUD.md) and [performance/security review](docs/REMAINING_PHASE_REVIEW.md). The Portuguese Angular 22 frontend supports home/login and individual platform/tag/work-classification creation on the existing FastAPI origin; advanced search and AI remain planned. See [frontend setup and security](docs/FRONTEND.md).
 
 
 ## 🧾 Audit and safe bulk operations
@@ -20,9 +22,14 @@ Migrations 007–008 add creation/source timezone context, a persistent central 
 | [Scenario catalogue](qa/scenarios.json) | Stable IDs/names, prerequisites, steps, criteria and mapped automatic tests |
 | [Developer guide](NEXTGENERATION.md) | Development and Git conventions |
 
-**Run mandatory automated checks with one command:**
+**Run frontend build/tests, then the mandatory backend checks:**
 
 ```powershell
+Set-Location frontend
+npm.cmd ci --no-fund
+npm.cmd run build
+npm.cmd test
+Set-Location ..
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe scripts/run_checks.py
 ```
@@ -35,13 +42,17 @@ The feature branch **`feat/initial-tables` must be reviewed before any merge int
 
 ## Setup and run
 
-Install Python 3.10 or newer and Docker Desktop with Docker Compose. Open Docker Desktop and wait until the Linux container Engine is ready.
+Install Python 3.10 or newer, official Node 24.15.0 for the frontend build, and Docker Desktop with Docker Compose. Open Docker Desktop and wait until the Linux container Engine is ready. Node is not a production runtime. See [Angular Windows commands](docs/ANGULAR.md), including the project-local Node option in this workspace.
 
 From the project root in PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Set-Location frontend
+npm.cmd ci --no-fund
+npm.cmd run build
+Set-Location ..
 .\.venv\Scripts\python.exe start.py
 ```
 
@@ -919,7 +930,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
             }
           ]
         },
-        "description": "QA scenario: 3.2 - Invalid credentials and bearer tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+        "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 3.2 - Invalid credentials and bearer tokens. See docs/QA_TEST_PLAN.md. Use private local credentials only."
       },
       "event": [
         {
@@ -936,7 +947,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               "} else { pm.collectionVariables.set(\"access_token\", \"\"); }",
               "// Central error and interaction contract",
               "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-              "if (pm.response.code >= 400) { pm.test(\"3.2 - Invalid credentials and bearer tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+              "if (pm.response.code >= 400) { pm.test(\"3.2 - Invalid credentials and bearer tokens | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+              "// Login throttling response contract",
+              "if (pm.response.code === 429) { pm.test(\"3.2 - Invalid credentials and bearer tokens | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
             ]
           }
         }
@@ -1646,7 +1659,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 2.2 - Administrator login and endpoint access. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 2.2 - Administrator login and endpoint access. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -1663,7 +1676,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "} else { pm.collectionVariables.set(\"admin_token\", \"\"); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"2.2 - Administrator login and endpoint access | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"2.2 - Administrator login and endpoint access | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"2.2 - Administrator login and endpoint access | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -1752,6 +1767,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -1821,7 +1890,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 2.4 - Standard login and permissions. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -1838,7 +1907,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "} else { pm.collectionVariables.set(\"standard_token\", \"\"); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"2.4 - Standard login and permissions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"2.4 - Standard login and permissions | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -1876,6 +1947,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -2363,6 +2488,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -2596,6 +2775,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -2765,7 +2998,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 2.6 - Promotion with a new token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 2.6 - Promotion with a new token. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -2782,7 +3015,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "} else { pm.collectionVariables.set(\"promoted_token\", \"\"); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"2.6 - Promotion with a new token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"2.6 - Promotion with a new token | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"2.6 - Promotion with a new token | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -2820,6 +3055,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -3040,6 +3329,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -3375,6 +3718,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -3605,7 +4002,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -3618,7 +4015,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_old_token\", pm.response.json().access_token); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"8.2 - Change own password as administrator | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -3654,7 +4053,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -3667,7 +4066,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_old_token\", pm.response.json().access_token); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"8.1 - Change own password as standard | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -4057,7 +4458,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -4069,7 +4470,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "pm.test(\"8.1 - Change own password as standard | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"8.1 - Change own password as standard | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -4105,7 +4508,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 8.1 - Change own password as standard. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -4118,7 +4521,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_standard_new_token\", pm.response.json().access_token); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"8.1 - Change own password as standard | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"8.1 - Change own password as standard | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -4155,6 +4560,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -4268,6 +4727,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -4330,7 +4843,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -4342,7 +4855,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "pm.test(\"8.2 - Change own password as administrator | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"8.2 - Change own password as administrator | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -4378,7 +4893,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 8.2 - Change own password as administrator. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -4391,7 +4906,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) { pm.collectionVariables.set(\"password_admin_new_token\", pm.response.json().access_token); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"8.2 - Change own password as administrator | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"8.2 - Change own password as administrator | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -4762,35 +5279,57 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               ],
               "query": [
                 {
-                  "key": "page",
-                  "value": "2",
-                  "description": "One-based page, minimum 1"
-                },
-                {
-                  "key": "page_size",
-                  "value": "10",
-                  "description": "10–50; default 50"
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
                 },
                 {
                   "key": "id",
                   "value": "{{test_id}}",
                   "disabled": true,
-                  "description": "Optional exact ID"
+                  "description": "Exact account ID."
                 },
                 {
-                  "key": "value",
-                  "value": "%Ouroboros%",
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
                   "disabled": true,
-                  "description": "Optional raw ILIKE pattern; AND with id"
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                },
+                {
+                  "key": "page",
+                  "value": "2",
+                  "disabled": false,
+                  "description": "One-based page."
+                },
+                {
+                  "key": "page_size",
+                  "value": "10",
+                  "disabled": false,
+                  "description": "10–50 records per page."
                 },
                 {
                   "key": "order_by",
                   "value": "id",
+                  "disabled": false,
                   "description": "Choices: id, value, created_at, created_at_timezone"
                 },
                 {
                   "key": "order_direction",
                   "value": "asc",
+                  "disabled": false,
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
                 },
                 {
@@ -4806,34 +5345,15 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "description": "Exact recorded source zone."
                 },
                 {
-                  "key": "created_at_from",
-                  "value": "2026-10-01T00:00:00+01:00",
-                  "disabled": true,
-                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
-                },
-                {
-                  "key": "created_at_to",
-                  "value": "2026-11-01T00:00:00Z",
-                  "disabled": true,
-                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
-                },
-                {
                   "key": "display_timezone",
                   "value": "Europe/Lisbon",
                   "disabled": true,
                   "description": "IANA zone or original; default is configured display zone. Canonical dates remain UTC."
                 },
                 {
-                  "key": "created_at_date",
-                  "value": "2026-10-25",
-                  "disabled": true,
-                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
-                },
-                {
-                  "key": "filter_timezone",
-                  "value": "Europe/Lisbon",
-                  "disabled": true,
-                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                  "key": "value",
+                  "value": "%Ouroboros%",
+                  "disabled": true
                 }
               ]
             },
@@ -4897,7 +5417,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -4910,7 +5430,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_admin_token\", String(pm.response.json().access_token));",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"9.1 - Administrator reset and target token revocation | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -4996,7 +5518,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -5009,7 +5531,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_old_token\", String(pm.response.json().access_token));",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"9.1 - Administrator reset and target token revocation | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -5045,7 +5569,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -5058,7 +5582,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_peer_token\", String(pm.response.json().access_token));",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"9.1 - Administrator reset and target token revocation | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -5448,7 +5974,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -5460,7 +5986,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "pm.test(\"9.1 - Administrator reset and target token revocation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"9.1 - Administrator reset and target token revocation | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -5496,7 +6024,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "QA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Login admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 9.1 - Administrator reset and target token revocation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -5509,7 +6037,9 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "if (pm.response.code === 200) pm.collectionVariables.set(\"reset_target_new_token\", String(pm.response.json().access_token));",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
-                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                  "if (pm.response.code >= 400) { pm.test(\"9.1 - Administrator reset and target token revocation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"9.1 - Administrator reset and target token revocation | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }"
                 ]
               }
             }
@@ -5776,6 +6306,60 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "key": "order_direction",
                   "value": "asc",
                   "description": "asc or desc; NULLS LAST, unique ID ascending tie-breaker"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
                 }
               ]
             },
@@ -5824,7 +6408,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               "type": "noauth"
             },
             "url": "{{base_url}}/token",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nLogin admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
@@ -5850,6 +6434,8 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                   "pm.collectionVariables.set(\"catalogue_token\", pm.response.json().access_token);",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                   "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -6651,7 +7237,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"platform_name\": \"QA Library\",\n  \"platform_is_paid\": false,\n  \"platform_is_episodes\": true,\n  \"platform_is_duration_time\": true,\n  \"price_amount\": null,\n  \"price_currency\": null\n}",
+                  "raw": "{\n  \"platform_name\": \"QA Library\",\n  \"platform_is_paid\": false,\n  \"platform_is_episodes\": true,\n  \"platform_is_duration_time\": true,\n  \"price_amount\": null,\n  \"price_currency\": null,\n  \"platform_access_types\": [\n    \"application\",\n    \"website\"\n  ],\n  \"platform_url\": \"https://example.org/library\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -6886,6 +7472,18 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "description": "Optional exact boolean match (true or false)."
                     },
                     {
+                      "key": "platform_access_types",
+                      "value": "website",
+                      "disabled": true,
+                      "description": "Contains this access type; AND with other filters. Choices: application, website, link."
+                    },
+                    {
+                      "key": "platform_url",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
                       "key": "price_amount",
                       "value": "12.5",
                       "disabled": true,
@@ -6920,7 +7518,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     {
                       "key": "order_by",
                       "value": "sequence_platforms",
-                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, price_amount, price_currency, created_at, created_at_timezone"
+                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, platform_access_types, platform_url, price_amount, price_currency, created_at, created_at_timezone"
                     },
                     {
                       "key": "order_direction",
@@ -7051,6 +7649,18 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "description": "Optional exact boolean match (true or false)."
                     },
                     {
+                      "key": "platform_access_types",
+                      "value": "website",
+                      "disabled": true,
+                      "description": "Contains this access type; AND with other filters. Choices: application, website, link."
+                    },
+                    {
+                      "key": "platform_url",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
                       "key": "price_amount",
                       "value": "12.5",
                       "disabled": true,
@@ -7085,7 +7695,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     {
                       "key": "order_by",
                       "value": "sequence_platforms",
-                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, price_amount, price_currency, created_at, created_at_timezone"
+                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, platform_access_types, platform_url, price_amount, price_currency, created_at, created_at_timezone"
                     },
                     {
                       "key": "order_direction",
@@ -7215,6 +7825,18 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "description": "Optional exact boolean match (true or false)."
                     },
                     {
+                      "key": "platform_access_types",
+                      "value": "website",
+                      "disabled": true,
+                      "description": "Contains this access type; AND with other filters. Choices: application, website, link."
+                    },
+                    {
+                      "key": "platform_url",
+                      "value": "%Ouroboros%",
+                      "disabled": true,
+                      "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                    },
+                    {
                       "key": "price_amount",
                       "value": "12.5",
                       "disabled": true,
@@ -7249,7 +7871,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     {
                       "key": "order_by",
                       "value": "sequence_platforms",
-                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, price_amount, price_currency, created_at, created_at_timezone"
+                      "description": "Choices: id_platforms, sequence_platforms, prefix_platforms, fantasy_name_platforms, platform_name, platform_is_paid, platform_is_episodes, platform_is_duration_time, platform_access_types, platform_url, price_amount, price_currency, created_at, created_at_timezone"
                     },
                     {
                       "key": "order_direction",
@@ -7779,7 +8401,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -7790,6 +8412,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"platform\": {\"field\": \"id_platforms\", \"fields\": [\"id_platforms\", \"platform_name\", \"fantasy_name_platforms\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -7944,7 +8567,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -7954,6 +8577,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     "exec": [
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"platform\": {\"field\": \"id_platforms\", \"fields\": [\"id_platforms\", \"platform_name\", \"fantasy_name_platforms\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -8108,7 +8732,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -8128,6 +8752,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_work_availabilities)).to.eql([pm.collectionVariables.get(\"catalogue_id_work_availabilities\")]));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"platform\": {\"field\": \"id_platforms\", \"fields\": [\"id_platforms\", \"platform_name\", \"fantasy_name_platforms\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -8288,7 +8913,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tags",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"tag_name\": \"support_without_dependence\",\n  \"display_name_tags\": \"Support 💕\",\n  \"description_tags\": \"Reusable preference tag.\"\n}",
@@ -8333,7 +8958,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -8374,7 +8999,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"tag_name\": \"support_without_dependence\"\n}",
@@ -8424,7 +9049,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{{catalogue_record_tags}}",
@@ -8581,7 +9206,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -8728,7 +9353,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -8874,7 +9499,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -8918,7 +9543,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tags/{{catalogue_id_tags}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -9000,7 +9625,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -9054,7 +9679,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tag_categories",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"tag_category_name\": \"relationships\",\n  \"display_name_tag_categories\": \"Vínculos\"\n}",
@@ -9099,7 +9724,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -9140,7 +9765,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"tag_category_name\": \"relationships\"\n}",
@@ -9190,7 +9815,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{{catalogue_record_tag_categories}}",
@@ -9347,7 +9972,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -9494,7 +10119,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -9640,7 +10265,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -9684,7 +10309,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/tag_categories/{{catalogue_id_tag_categories}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -9766,7 +10391,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -10107,7 +10732,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -10118,6 +10743,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "const projection = {\"tag\": {\"field\": \"id_tags\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"tag_category\": {\"field\": \"id_tag_categories\", \"fields\": [\"id_tag_categories\", \"tag_category_name\", \"display_name_tag_categories\", \"fantasy_name_tag_categories\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -10248,7 +10874,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -10258,6 +10884,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     "exec": [
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "const projection = {\"tag\": {\"field\": \"id_tags\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"tag_category\": {\"field\": \"id_tag_categories\", \"fields\": [\"id_tag_categories\", \"tag_category_name\", \"display_name_tag_categories\", \"fantasy_name_tag_categories\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -10388,7 +11015,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -10408,6 +11035,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_tag_category_relationships)).to.eql([pm.collectionVariables.get(\"catalogue_id_tag_category_relationships\")]));",
+                      "const projection = {\"tag\": {\"field\": \"id_tags\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"tag_category\": {\"field\": \"id_tag_categories\", \"fields\": [\"id_tag_categories\", \"tag_category_name\", \"display_name_tag_categories\", \"fantasy_name_tag_categories\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -10855,7 +11483,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -10866,6 +11494,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "const projection = {\"source_tag\": {\"field\": \"id_tags_source\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"target_tag\": {\"field\": \"id_tags_target\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -10996,7 +11625,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -11006,6 +11635,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     "exec": [
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "const projection = {\"source_tag\": {\"field\": \"id_tags_source\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"target_tag\": {\"field\": \"id_tags_target\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -11136,7 +11766,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -11156,6 +11786,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_tag_relationships)).to.eql([pm.collectionVariables.get(\"catalogue_id_tag_relationships\")]));",
+                      "const projection = {\"source_tag\": {\"field\": \"id_tags_source\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"target_tag\": {\"field\": \"id_tags_target\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -11316,7 +11947,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/work_classifications",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"work_classification_name\": \"qa_classification\",\n  \"display_name_work_classifications\": \"QA only\"\n}",
@@ -11361,7 +11992,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -11402,7 +12033,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"work_classification_name\": \"qa_classification\"\n}",
@@ -11452,7 +12083,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.1 - Catalogue CRUD and full record round trips. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
                 "body": {
                   "mode": "raw",
                   "raw": "{{catalogue_record_work_classifications}}",
@@ -11615,7 +12246,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -11768,7 +12399,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -11920,7 +12551,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -11964,7 +12595,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   ]
                 },
                 "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -12046,7 +12677,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Skipped by default. Select this request explicitly on disposable data and set catalogue_destructive_opt_in=isolated locally; DELETE ALL also requires confirm=true. Referenced records return safe 409; never cascade. Delete leaves before parents.\n\nQA scenario: 14.5 - Atomic catalogue deletion and safe destructive audit. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -12429,7 +13060,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -12440,6 +13071,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"work_availability\": {\"field\": \"id_work_availabilities\", \"fields\": [\"id_work_availabilities\", \"id_works\", \"id_platforms\", \"fantasy_name_work_availabilities\"]}, \"predicted_classification\": {\"field\": \"id_work_classifications_predicted\", \"fields\": [\"id_work_classifications\", \"work_classification_name\", \"display_name_work_classifications\", \"fantasy_name_work_classifications\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -12612,7 +13244,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -12622,6 +13254,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     "exec": [
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"work_availability\": {\"field\": \"id_work_availabilities\", \"fields\": [\"id_work_availabilities\", \"id_works\", \"id_platforms\", \"fantasy_name_work_availabilities\"]}, \"predicted_classification\": {\"field\": \"id_work_classifications_predicted\", \"fields\": [\"id_work_classifications\", \"work_classification_name\", \"display_name_work_classifications\", \"fantasy_name_work_classifications\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -12794,7 +13427,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -12814,6 +13447,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_watchlist_entries)).to.eql([pm.collectionVariables.get(\"catalogue_id_watchlist_entries\")]));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"work_availability\": {\"field\": \"id_work_availabilities\", \"fields\": [\"id_work_availabilities\", \"id_works\", \"id_platforms\", \"fantasy_name_work_availabilities\"]}, \"predicted_classification\": {\"field\": \"id_work_classifications_predicted\", \"fields\": [\"id_work_classifications\", \"work_classification_name\", \"display_name_work_classifications\", \"fantasy_name_work_classifications\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -13327,7 +13961,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -13338,6 +13972,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"work_availability\": {\"field\": \"id_work_availabilities\", \"fields\": [\"id_work_availabilities\", \"id_works\", \"id_platforms\", \"fantasy_name_work_availabilities\"]}, \"classification\": {\"field\": \"id_work_classifications\", \"fields\": [\"id_work_classifications\", \"work_classification_name\", \"display_name_work_classifications\", \"fantasy_name_work_classifications\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -13516,7 +14151,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -13526,6 +14161,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     "exec": [
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"work_availability\": {\"field\": \"id_work_availabilities\", \"fields\": [\"id_work_availabilities\", \"id_works\", \"id_platforms\", \"fantasy_name_work_availabilities\"]}, \"classification\": {\"field\": \"id_work_classifications\", \"fields\": [\"id_work_classifications\", \"work_classification_name\", \"display_name_work_classifications\", \"fantasy_name_work_classifications\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -13704,7 +14340,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -13724,6 +14360,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_watch_history)).to.eql([pm.collectionVariables.get(\"catalogue_id_watch_history\")]));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"work_availability\": {\"field\": \"id_work_availabilities\", \"fields\": [\"id_work_availabilities\", \"id_works\", \"id_platforms\", \"fantasy_name_work_availabilities\"]}, \"classification\": {\"field\": \"id_work_classifications\", \"fields\": [\"id_work_classifications\", \"work_classification_name\", \"display_name_work_classifications\", \"fantasy_name_work_classifications\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -14207,7 +14844,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -14218,6 +14855,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Page envelope\", () => { const p=pm.response.json(); pm.expect(p.count).to.be.a(\"number\"); pm.expect(p.items).to.be.an(\"array\"); pm.expect(p.page).to.eql(1); pm.expect(p.page_size).to.eql(50); });",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"tag\": {\"field\": \"id_tags\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"tag_relationship\": {\"field\": \"id_tag_relationships\", \"fields\": [\"id_tag_relationships\", \"id_tags_source\", \"id_tags_target\", \"fantasy_name_tag_relationships\"]}, \"watchlist_entry\": {\"field\": \"id_watchlist_entries\", \"fields\": [\"id_watchlist_entries\", \"id_works\", \"fantasy_name_watchlist_entries\"]}, \"watch_history_entry\": {\"field\": \"id_watch_history\", \"fields\": [\"id_watch_history\", \"id_works\", \"fantasy_name_watch_history\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -14366,7 +15004,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -14376,6 +15014,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     "exec": [
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"tag\": {\"field\": \"id_tags\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"tag_relationship\": {\"field\": \"id_tag_relationships\", \"fields\": [\"id_tag_relationships\", \"id_tags_source\", \"id_tags_target\", \"fantasy_name_tag_relationships\"]}, \"watchlist_entry\": {\"field\": \"id_watchlist_entries\", \"fields\": [\"id_watchlist_entries\", \"id_works\", \"fantasy_name_watchlist_entries\"]}, \"watch_history_entry\": {\"field\": \"id_watch_history\", \"fields\": [\"id_watch_history\", \"id_works\", \"fantasy_name_watch_history\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -14524,7 +15163,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                     }
                   ]
                 },
-                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+                "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked. Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.\n\nQA scenario: 14.3 - Catalogue filters ordering and stable pagination. See docs/QA_TEST_PLAN.md. Use private local credentials only."
               },
               "event": [
                 {
@@ -14544,6 +15183,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | HTTP 200\", () => pm.response.to.have.status(200));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                       "pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Exact ID\", () => pm.expect(pm.response.json().items.map(r=>r.id_work_tags)).to.eql([pm.collectionVariables.get(\"catalogue_id_work_tags\")]));",
+                      "const projection = {\"work\": {\"field\": \"id_works\", \"fields\": [\"id_works\", \"title\", \"title_language\", \"fantasy_name_works\"]}, \"tag\": {\"field\": \"id_tags\", \"fields\": [\"id_tags\", \"tag_name\", \"display_name_tags\", \"fantasy_name_tags\"]}, \"tag_relationship\": {\"field\": \"id_tag_relationships\", \"fields\": [\"id_tag_relationships\", \"id_tags_source\", \"id_tags_target\", \"fantasy_name_tag_relationships\"]}, \"watchlist_entry\": {\"field\": \"id_watchlist_entries\", \"fields\": [\"id_watchlist_entries\", \"id_works\", \"fantasy_name_watchlist_entries\"]}, \"watch_history_entry\": {\"field\": \"id_watch_history\", \"fields\": [\"id_watch_history\", \"id_works\", \"fantasy_name_watch_history\"]}}; pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Collection references preserve authoritative IDs and identifying names\",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });",
                       "// Central error and interaction contract",
                       "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                       "if (pm.response.code >= 400) { pm.test(\"14.3 - Catalogue filters ordering and stable pagination | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -14744,7 +15384,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               "type": "noauth"
             },
             "url": "{{base_url}}/token",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nLogin admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
@@ -14770,6 +15410,8 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                   "pm.collectionVariables.set(\"supervisor_token\", pm.response.json().access_token);",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                   "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -14787,7 +15429,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               "type": "noauth"
             },
             "url": "{{base_url}}/token",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nLogin admission: 10 attempts per exact account and 50 per direct client in 300 seconds; all admitted attempts count. At the limit expect 429 LOGIN_THROTTLED and Retry-After seconds; wait before retrying. Do repeated-attempt checks only on disposable QA. Existing passwords remain valid; newly set passwords require 15–1024 Unicode characters. See docs/BACKEND_REVIEW.md.\n\nQA scenario: 14.4 - Supervisor authorization and current token transitions. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
@@ -14813,6 +15455,8 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                   "pm.test(\"14.4 - Supervisor authorization and current token transitions | HTTP 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"14.4 - Supervisor authorization and current token transitions | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
                   "pm.collectionVariables.set(\"standard_token\", pm.response.json().access_token);",
+                  "// Login throttling response contract",
+                  "if (pm.response.code === 429) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Bounded login retry\",()=>{pm.expect(pm.response.json().error.code).to.eql(\"LOGIN_THROTTLED\");pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);}); }",
                   "// Central error and interaction contract",
                   "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
                   "if (pm.response.code >= 400) { pm.test(\"14.4 - Supervisor authorization and current token transitions | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
@@ -17273,7 +17917,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"tag_name\": \"support_without_dependence\"\n}",
@@ -17365,7 +18009,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"tag_name\": \"support_without_dependence\"\n}",
@@ -17460,7 +18104,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -17538,7 +18182,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -17629,7 +18273,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"tag_category_name\": \"relationships\"\n}",
@@ -17721,7 +18365,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"tag_category_name\": \"relationships\"\n}",
@@ -17816,7 +18460,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -17894,7 +18538,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -18697,7 +19341,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"work_classification_name\": \"qa_classification\"\n}",
@@ -18789,7 +19433,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"work_classification_name\": \"qa_classification\"\n}",
@@ -18884,7 +19528,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -18962,7 +19606,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 15.4 - Filtered bulk confirmation previews and rollback. See docs/QA_TEST_PLAN.md. Use private local credentials only."
           },
           "event": [
             {
@@ -20708,7 +21352,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
                 }
               ]
             },
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"tier\": 1\n}",
@@ -20757,7 +21401,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               ]
             },
             "url": "{{base_url}}/work_classifications",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"work_classification_name\": \"isolated_tier_example\",\n  \"display_name_work_classifications\": \"Tier example\",\n  \"tier\": 1\n}",
@@ -20814,7 +21458,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               ]
             },
             "url": "{{base_url}}/work_classifications/{{catalogue_id_work_classifications}}",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged.\n\nQA scenario: 16.2 - Classification append insert move and bounded shift evidence. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"tier\": 1\n}",
@@ -21355,7 +21999,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
             "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
-              "raw": "[\n  {\n    \"platform_name\": \"QA Library\",\n    \"platform_is_paid\": false,\n    \"platform_is_episodes\": true,\n    \"platform_is_duration_time\": true,\n    \"price_amount\": null,\n    \"price_currency\": null\n  },\n  {\n    \"platform_name\": \"Second array item\",\n    \"platform_is_paid\": false,\n    \"platform_is_episodes\": true,\n    \"platform_is_duration_time\": true,\n    \"price_amount\": null,\n    \"price_currency\": null\n  }\n]",
+              "raw": "[\n  {\n    \"platform_name\": \"QA Library\",\n    \"platform_is_paid\": false,\n    \"platform_is_episodes\": true,\n    \"platform_is_duration_time\": true,\n    \"price_amount\": null,\n    \"price_currency\": null,\n    \"platform_access_types\": [\n      \"application\",\n      \"website\"\n    ],\n    \"platform_url\": \"https://example.org/library\"\n  },\n  {\n    \"platform_name\": \"Second array item\",\n    \"platform_is_paid\": false,\n    \"platform_is_episodes\": true,\n    \"platform_is_duration_time\": true,\n    \"price_amount\": null,\n    \"price_currency\": null,\n    \"platform_access_types\": [\n      \"application\",\n      \"website\"\n    ],\n    \"platform_url\": \"https://example.org/library\"\n  }\n]",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21468,7 +22112,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               ]
             },
             "url": "{{base_url}}/tags",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "[\n  {\n    \"tag_name\": \"support_without_dependence\",\n    \"display_name_tags\": \"Support 💕\",\n    \"description_tags\": \"Reusable preference tag.\"\n  },\n  {\n    \"tag_name\": \"support_without_dependence_second\",\n    \"display_name_tags\": \"Second array item\",\n    \"description_tags\": \"Reusable preference tag.\"\n  }\n]",
@@ -21528,7 +22172,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               ]
             },
             "url": "{{base_url}}/tag_categories",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "[\n  {\n    \"tag_category_name\": \"relationships\",\n    \"display_name_tag_categories\": \"Vínculos\"\n  },\n  {\n    \"tag_category_name\": \"relationships_second\",\n    \"display_name_tag_categories\": \"Second array item\"\n  }\n]",
@@ -21702,7 +22346,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               ]
             },
             "url": "{{base_url}}/work_classifications",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.2 - Ordered batch creation and single record compatibility. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "[\n  {\n    \"work_classification_name\": \"qa_classification\",\n    \"display_name_work_classifications\": \"QA only\"\n  },\n  {\n    \"work_classification_name\": \"qa_classification_second\",\n    \"display_name_work_classifications\": \"QA only\"\n  }\n]",
@@ -22117,7 +22761,7 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
               ]
             },
             "url": "{{base_url}}/work_classifications",
-            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.4 - Sequential classification batch tiers and concurrency. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. Optional description; at most 4000 extended grapheme clusters (Unicode 16.0.0, UAX #29). Spaces and composed emojis count. Omit on PUT to preserve; null clears. Over-limit input returns VALIDATION_ERROR; never truncated. Existing stored descriptions are returned unchanged. Atomic same-resource array; no page envelope. Zero-based error item indexes. Default maximum 300; api.max_batch_size and api.max_creation_body_bytes apply. Skipped unless explicitly opted into owned disposable QA. Referenced IDs must already exist; no implicit intra-array references.\n\nQA scenario: 17.4 - Sequential classification batch tiers and concurrency. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
             "body": {
               "mode": "raw",
               "raw": "[\n  {\n    \"work_classification_name\": \"batch_append\",\n    \"display_name_work_classifications\": \"Append\"\n  },\n  {\n    \"work_classification_name\": \"batch_first\",\n    \"display_name_work_classifications\": \"Insert first\",\n    \"tier\": 1\n  },\n  {\n    \"work_classification_name\": \"batch_second\",\n    \"display_name_work_classifications\": \"Insert second\",\n    \"tier\": 2\n  }\n]",
@@ -22544,6 +23188,465 @@ Catalogue and /test POST endpoints accept either one object or an atomic array o
           ]
         }
       ]
+    },
+    {
+      "name": "Backend review regressions (isolated QA)",
+      "item": [
+        {
+          "name": "REVIEW users - Optional public filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/users?page=1&page_size=50&order_by=id&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%admin%",
+                  "disabled": true,
+                  "description": "Case-insensitive PostgreSQL ILIKE pattern. % matches any sequence; _ matches one character; backslash escapes %, _ and backslash. No wildcards are added. Omit to disable; empty matches empty text."
+                },
+                {
+                  "key": "role",
+                  "value": "standard",
+                  "disabled": true,
+                  "description": "Exact current role."
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Exact active status, including false."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "One-based page."
+                },
+                {
+                  "key": "page_size",
+                  "value": "50",
+                  "disabled": false,
+                  "description": "10–50 records per page."
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "disabled": false,
+                  "description": "Public scalar fields only; ID ascending breaks ties."
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc",
+                  "disabled": false,
+                  "description": "NULLS LAST in both directions."
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. See docs/BACKEND_REVIEW.md. Passwords newly set must contain 15–1024 Unicode characters; existing credentials remain valid. Token attempts are limited to 10/account and 50/client in 300 seconds; 429 LOGIN_THROTTLED includes Retry-After. Perform repeated login checks only against disposable QA.\n\nQA scenario: 18.2 - Public administrator user filters. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"18.2 - Public administrator user filters | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"18.2 - Public administrator user filters | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"18.2 - Public administrator user filters | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REVIEW users - Enabled combined filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/users?role=standard&is_active=false&username_pattern=%25qa%25&order_by=username&order_direction=asc&page=1&page_size=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "standard"
+                },
+                {
+                  "key": "is_active",
+                  "value": "false"
+                },
+                {
+                  "key": "username_pattern",
+                  "value": "%qa%"
+                },
+                {
+                  "key": "order_by",
+                  "value": "username"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "id",
+                  "value": "{{standard_user_id}}",
+                  "disabled": true,
+                  "description": "Exact account ID."
+                },
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "Exact case-sensitive username."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. See docs/BACKEND_REVIEW.md. Passwords newly set must contain 15–1024 Unicode characters; existing credentials remain valid. Token attempts are limited to 10/account and 50/client in 300 seconds; 429 LOGIN_THROTTLED includes Retry-After. Perform repeated login checks only against disposable QA.\n\nQA scenario: 18.2 - Public administrator user filters. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"18.2 - Public administrator user filters | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"18.2 - Public administrator user filters | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"18.2 - Public administrator user filters | AND filters\",()=>{for(const row of pm.response.json().items){pm.expect(row.role).to.eql(\"standard\");pm.expect(row.is_active).to.eql(false);pm.expect(row.username.toLowerCase()).to.include(\"qa\");}});",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"18.2 - Public administrator user filters | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REVIEW platforms - Access type and URL filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{catalogue_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/platforms?platform_access_types=website&platform_url=%25example.org%25&order_by=platform_url&order_direction=asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platforms"
+              ],
+              "query": [
+                {
+                  "key": "platform_access_types",
+                  "value": "website"
+                },
+                {
+                  "key": "platform_url",
+                  "value": "%example.org%"
+                },
+                {
+                  "key": "order_by",
+                  "value": "platform_url"
+                },
+                {
+                  "key": "order_direction",
+                  "value": "asc"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. See docs/BACKEND_REVIEW.md. Passwords newly set must contain 15–1024 Unicode characters; existing credentials remain valid. Token attempts are limited to 10/account and 50/client in 300 seconds; 429 LOGIN_THROTTLED includes Retry-After. Perform repeated login checks only against disposable QA.\n\nQA scenario: 18.1 - Platform access information and migration preservation. See docs/QA_TEST_PLAN.md. Use private local credentials only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"18.1 - Platform access information and migration preservation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"18.1 - Platform access information and migration preservation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "pm.test(\"18.1 - Platform access information and migration preservation | Access membership and URL pattern\",()=>{for(const row of pm.response.json().items){pm.expect(row.platform_access_types).to.include(\"website\");pm.expect(row.platform_url.toLowerCase()).to.include(\"example.org\");}});",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"18.1 - Platform access information and migration preservation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REVIEW platforms - Preview access replacement",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/platforms?platform_access_types=website&dry_run=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platforms"
+              ],
+              "query": [
+                {
+                  "key": "platform_access_types",
+                  "value": "website"
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true"
+                },
+                {
+                  "key": "filter_timezone",
+                  "value": "Europe/Lisbon",
+                  "disabled": true,
+                  "description": "IANA zone for calendar filters; defaults to application_timezone, independent of display_timezone."
+                },
+                {
+                  "key": "created_at_date",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Entire calendar day in filter_timezone; cannot combine with range bounds."
+                },
+                {
+                  "key": "created_at_from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Inclusive lower bound: calendar date or ISO 8601 timestamp with UTC offset. NULL dates do not match."
+                },
+                {
+                  "key": "created_at_to",
+                  "value": "2026-10-25",
+                  "disabled": true,
+                  "description": "Calendar date includes the whole final local day; offset-aware timestamp is an exclusive instant. NULL dates do not match."
+                }
+              ]
+            },
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. See docs/BACKEND_REVIEW.md. Passwords newly set must contain 15–1024 Unicode characters; existing credentials remain valid. Token attempts are limited to 10/account and 50/client in 300 seconds; 429 LOGIN_THROTTLED includes Retry-After. Perform repeated login checks only against disposable QA.\n\nQA scenario: 18.1 - Platform access information and migration preservation. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_access_types\": [\n    \"application\",\n    \"website\",\n    \"link\"\n  ],\n  \"platform_url\": \"https://example.org/library\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"18.1 - Platform access information and migration preservation | HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"18.1 - Platform access information and migration preservation | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"18.1 - Platform access information and migration preservation | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "REVIEW password - Reject short new password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/users/{{standard_user_id}}/password",
+            "description": "Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md. See docs/BACKEND_REVIEW.md. Passwords newly set must contain 15–1024 Unicode characters; existing credentials remain valid. Token attempts are limited to 10/account and 50/client in 300 seconds; 429 LOGIN_THROTTLED includes Retry-After. Perform repeated login checks only against disposable QA.\n\nQA scenario: 18.3 - Consistent new password policy. See docs/QA_TEST_PLAN.md. Use private local credentials only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"short\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"18.3 - Consistent new password policy | HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"18.3 - Consistent new password policy | Interaction ID\", () => pm.expect(pm.response.headers.get(\"X-Interaction-ID\")).to.match(/^[0-9]{24}$/));",
+                  "// Central error and interaction contract",
+                  "if (!pm.request.url.toString().includes(\"/api_audit_logs\")) { pm.collectionVariables.set(\"audit_interaction_id\",pm.response.headers.get(\"X-Interaction-ID\")); }",
+                  "if (pm.response.code >= 400) { pm.test(\"18.3 - Consistent new password policy | Standard error envelope\",()=>{ const e=pm.response.json().error; pm.expect(e.code).to.match(/^[A-Z_]+$/); pm.expect(e.interaction_id).to.eql(pm.response.headers.get(\"X-Interaction-ID\")); pm.expect(e.message).to.be.a(\"string\"); }); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
@@ -22574,3 +23677,18 @@ See [NEXTGENERATION.md](NEXTGENERATION.md) for developer conventions.
 ## 🪜 Classification tiers and complete test CRUD
 
 Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](docs/TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.
+
+## Backend review update
+
+Platforms now support multiple access types (application, website, link) and an optional HTTP/HTTPS URL. Administrator user lists support public account and calendar-date filters. New passwords require 15-1024 Unicode characters; existing passwords remain valid. Token login attempts have bounded account/client limits with 429 and Retry-After. Apply migration011 through existing interactive startup before serving the updated backend. See [operation details, migration/restart and manual QA](docs/BACKEND_REVIEW.md). That backend review preceded the frontend/session integration described below.
+
+## First frontend
+
+Open **http://localhost:6969/** after normal startup. The Portuguese Angular 22 home offers **Cadastrar** and **Consultar**, with shared selection pages. Isolated items support creation, search, filters, ordering, pagination, editing and confirmed deletion by ID for platforms, tags and work classifications. Watched and Watchlist remain **Em breve**. See the current refinement walkthrough and approved ports in [ANGULAR.md](docs/ANGULAR.md). Strict TypeScript, standalone components and Signal Forms preserve the original SVGs and design. Build once with npm ci and npm run build under frontend/ before normal Python startup; Node is not needed to serve production assets. See [Windows build commands and Angular architecture](docs/ANGULAR.md). Configure the exact browser origin and explicitly opt into loopback development HTTP before using cookie sessions. Existing private configuration is preserved. See [setup, session security and the three-form walkthrough](docs/FRONTEND.md). Existing bearer API clients remain supported.
+# Current frontend delivery diagnosis
+
+For the source/build/live-HTTP comparison on port 6969, per-feature status, current listener findings and remaining browser checks, see [Frontend delivery diagnosis](docs/FRONTEND_DELIVERY_DIAGNOSIS.md). Production `npm run build` now stamps public build provenance; compare the loaded page's footer identifier with `/frontend/build-info.json` before attributing a discrepancy to caching. Existing interactive credentials remain private to startup/login.
+Platform registration now uses ordinary initially unchecked checkboxes, required name/access fields with red markers, concise help, and one outlined back-to-registration link. See [focused Platform checks](docs/REGISTRATION_UI.md).
+Form labels and contextual help now share one component and centralized “Nome Fantasia” wording. Help appears through accessible ⓘ tooltips; existing validation remains unchanged. See [Change 01 verification and manual checks](docs/REGISTRATION_UI.md).
+Tooltip and currency-dropdown presentation now uses scoped external CSS compatible with the existing CSP. See [current visual-correction results and pending browser checks](docs/REGISTRATION_UI.md).
+Descriptions now share an application-configured grapheme limit and live counter; classification positions reuse the searchable dropdown, with automatic backend append and a ten-row current-order view. See [description/tier contracts, checks and Windows commands](docs/DESCRIPTION_AND_TIERS.md).

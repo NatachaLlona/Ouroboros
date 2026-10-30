@@ -151,8 +151,14 @@ def require_scopes(security_scopes: SecurityScopes, request: Request,
     allowing future shared-authorization APIs without a static all-scopes grant.
     """
     if token is None:
-        raise HTTPException(401, "Bearer authentication required", headers={"WWW-Authenticate": "Bearer"})
-    payload = request.app.state.auth.decode(token)
+        sessions = request.app.state.browser_sessions
+        if request.cookies.get(sessions.cookie_name):
+            payload, _, _ = sessions.authenticate(request)
+        else:
+            raise HTTPException(401, "Bearer authentication required", headers={"WWW-Authenticate": "Bearer"})
+    else:
+        # Explicit API authorization always takes precedence over browser cookies.
+        payload = request.app.state.auth.decode(token)
     if payload["role"] != "administrator" and not set(security_scopes.scopes).issubset(payload["scopes"]):
         required = " ".join(security_scopes.scopes)
         raise HTTPException(403, "Insufficient permissions", headers={

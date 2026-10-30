@@ -29,7 +29,8 @@ class RequestAuditingMiddleware:
         self.codes = codes if codes is not None else load_error_codes()
 
     async def __call__(self, scope, receive, send):
-        if scope['type'] != 'http' or scope['path'].rstrip('/') in EXCLUSIONS:
+        if (scope['type'] != 'http' or scope['path'].rstrip('/') in EXCLUSIONS
+                or scope['method'] in ('GET', 'HEAD') and (scope['path'] in ('/', '/cadastros', '/consultas', '/cadastrar', '/consultar') or scope['path'].startswith('/frontend/'))):
             return await self.app(scope, receive, send)
         identity = create_interaction_id()
         scope.setdefault('state', {})['interaction_id'] = identity

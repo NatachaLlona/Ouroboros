@@ -3420,7 +3420,7 @@
         "Use Authorize > Logout, close and authorize as standard with test scopes only. Confirm administration gives 403 and tests work.",
         "Try POST /token with password grant and empty optional fields; inspect form explanations. Confirm Try it out does not itself switch global authorization. Do not include tokens/passwords in screenshots.",
         "Authorize once through Authorize, then Close; reuse authorization for POST /test, GET /test and permitted GET /users without logging in again.",
-        "Expand GET /test and verify id/value/page/page_size controls, raw wildcard/escape examples and defaults 1/50; GET /users has only pagination controls.",
+        "Expand GET /test and verify id/value/page/page_size controls, raw wildcard/escape examples and defaults 1/50; GET /users has public account/date filters, pagination and whitelisted ordering controls.",
         "Set page=2 and page_size=10; execute and verify the envelope and ascending IDs. Record actual UI evidence separately."
       ],
       "requests": [],
@@ -4750,7 +4750,7 @@
         "Inspect OpenAPI query parameters for GET /test and GET /users.",
         "Separately execute visual scenario 6.1; OpenAPI inspection does not prove rendering."
       ],
-      "expected": "GET /test exposes id/value/page/page_size with descriptions/examples/defaults/constraints; GET /users exposes only page/page_size. No users filters exist in implementation or documentation.",
+      "expected": "GET /test exposes id/value/page/page_size with descriptions/examples/defaults/constraints; GET /users exposes public ID, exact username, username_pattern, role, is_active, creation-day/range/timezone filters, pagination and whitelisted ordering. Secrets are rejected.",
       "tests": [
         "test_api.APITests.test_swagger_explicit_query_parameters"
       ],
@@ -5404,12 +5404,14 @@
         "Create the disposable graph from 14.1. PUT only an English long Unicode synopsis; verify omitted title/language unchanged. Clear synopsis with null; try title=null and an unknown field (422).",
         "Copy each response to PUT; test invalid snake_case, negative prices, nonpositive duration/episodes and timezone-free timestamps (422).",
         "For work_tags switch from tag to relationship by sending id_tags=null plus id_tag_relationships. Sending both or neither (after merge) must be 422; both origins must be 422.",
-        "Create another work and attempt cross-work availability/origin assignments (409). Missing foreign IDs and duplicate tag/category pairs return 409. Repeated availabilities/watchlist/history/work_tags remain allowed."
+        "Create another work and attempt cross-work availability/origin assignments (409). Missing foreign IDs and duplicate tag/category pairs return 409. Repeated availabilities/watchlist/history/work_tags remain allowed.",
+        "Compare every relationship collection item with GET by ID: original foreign-key IDs stay intact, one-level identifying summaries match names, nullable references are null, and standard access is denied. No mutation audit evidence is created."
       ],
       "requests": [],
       "expected": "Partial updates preserve omissions, nullable clearing is explicit, and complete-record validation plus PostgreSQL constraints enforce all relationship rules.",
       "tests": [
-        "test_catalogue_api.CatalogueAPITests.test_02_partial_null_validation_relationships_and_repetitions"
+        "test_catalogue_api.CatalogueAPITests.test_02_partial_null_validation_relationships_and_repetitions",
+        "test_relationship_lists.RelationshipListIntegrationTests.test_all_relationship_projections_permissions_and_read_only_evidence"
       ],
       "type": "both",
       "integration": true,
@@ -5471,12 +5473,14 @@
         "In each resource GET use editable Postman Params for each supported filter and confirm AND behavior. Leave unused fields unchecked; empty text remains a real filter.",
         "Test exact IDs/FKs/technical names and independent true/false booleans. For text use dragon, dragon%, dr_gon, literal\\_under, 100\\% pure and empty text; injection text is data.",
         "Select every public field in order_by in both asc and desc. Compare NULLS LAST and permanent-ID ascending tie-breaks. Create at least 13 equal-sort rows; page_size=10 across pages must not repeat IDs.",
-        "Try order_by=password_hash, invalid direction, page=0, page=1.0 and page_size 9/51 (422). Request an empty high page and verify original count."
+        "Try order_by=password_hash, invalid direction, page=0, page=1.0 and page_size 9/51 (422). Request an empty high page and verify original count.",
+        "Rename a referenced identifying name and confirm the next collection read sees it. Compare IDs/count/order with the single-record projections; measure one page query plus one batched SELECT per needed target table, independent of page size."
       ],
       "requests": [],
       "expected": "Every filter is explicit, text wildcards are unmodified, all public scalar fields order correctly, and count/page items use one snapshot.",
       "tests": [
-        "test_catalogue_api.CatalogueAPITests.test_03_filters_patterns_order_fields_and_pagination"
+        "test_catalogue_api.CatalogueAPITests.test_03_filters_patterns_order_fields_and_pagination",
+        "test_relationship_lists.RelationshipListIntegrationTests.test_page_ids_count_order_names_renames_and_constant_query_counts"
       ],
       "type": "both",
       "integration": true,
@@ -5785,12 +5789,14 @@
       "steps": [
         "Run two simultaneous PUT requests to one work, one changing title and the other synopsis. Verify both independent changes persist.",
         "Use the mapped disposable automated test to force demotion after request authentication but before deletion. Supervisor ID deletion and administrator DELETE all must be rejected after privilege loss.",
-        "Review lock ordering: membership advisory lock, actor row/version, catalogue row. Verify user administration rechecks the actor/version and last-administrator protection remains enforced."
+        "Review lock ordering: membership advisory lock, actor row/version, catalogue row. Verify user administration rechecks the actor/version and last-administrator protection remains enforced.",
+        "Use only disposable integration data to overlap a reference rename with a collection read. Verify the page and all reference batches use a consistent snapshot and do not mix versions."
       ],
       "requests": [],
       "expected": "Concurrent independent fields survive, privileged writes cannot pass a stale role check, and consistent locking prevents demotion/write races.",
       "tests": [
-        "test_catalogue_api.CatalogueAPITests.test_06_concurrent_updates_and_transactional_privilege_rechecks"
+        "test_catalogue_api.CatalogueAPITests.test_06_concurrent_updates_and_transactional_privilege_rechecks",
+        "test_relationship_lists.RelationshipListIntegrationTests.test_consistent_snapshot_across_page_and_reference_batches"
       ],
       "type": "both",
       "integration": true,
@@ -5852,12 +5858,14 @@
         "Inspect /openapi.json: all eleven GET collections expose every filter plus page/page_size/order_by/order_direction. order_by and direction are real enums, as are roles.",
         "In Swagger visually confirm dropdowns, defaults, examples and nullable schemas; authorize once, reuse authorization, logout/re-authorize when switching accounts. Record this visual part separately.",
         "Compare POST, PUT, GET-by-ID and collection-item response schema references. Inspect all inherited /test and /users ordering fields; private hash/version/scopes must not be sortable.",
-        "In the canonical Postman JSON verify all filters in editable Params, optional fields unchecked, valid defaults, empty credentials, synchronized README JSON and skipped-by-default DELETE all with confirm=false. Actual JS sandbox execution requires separate evidence."
+        "In the canonical Postman JSON verify all filters in editable Params, optional fields unchecked, valid defaults, empty credentials, synchronized README JSON and skipped-by-default DELETE all with confirm=false. Actual JS sandbox execution requires separate evidence.",
+        "Inspect GET collection OpenAPI references.readOnly=true, identifying field readOnly annotations, and absence of references from single/write schemas. POST and PUT references must be rejected with 422."
       ],
       "requests": [],
       "expected": "OpenAPI and Postman contracts are explicit and synchronized; automated schema checks do not claim visual Swagger or Postman execution.",
       "tests": [
-        "test_catalogue_api.CatalogueAPITests.test_07_inherited_ordering_and_openapi_response_equivalence"
+        "test_catalogue_api.CatalogueAPITests.test_07_inherited_ordering_and_openapi_response_equivalence",
+        "test_relationship_lists.RelationshipListUnitTests.test_collection_only_schemas_and_unchanged_write_inputs"
       ],
       "type": "both",
       "integration": true,
@@ -7188,6 +7196,656 @@
       "postman_requests": [
         "BATCH - Inspect captured interaction"
       ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "18.1",
+      "name": "Platform access information and migration preservation",
+      "objective": "Platform access information and migration preservation. See docs/BACKEND_REVIEW.md for the operation contract.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh private role credentials only",
+        "Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Apply migrations 001 through 010 to an owned disposable database, retain a platform row and account metadata, then apply 011 twice. Verify all prior values and migration checksums survive; platform_access_types is [] and platform_url is null for historical unknowns.",
+        "POST one platform and an array with application, website and link combinations; test empty access types and nullable HTTP/HTTPS URLs. Reject duplicates, invalid types, null collections and non-HTTP URLs.",
+        "GET single and batch results, echo a full record through PUT, partially replace the access collection, and clear URL with null. Inspect Swagger enum choices.",
+        "Enable access membership and URL ILIKE filters, order by each new field, compare GET count with bulk preview and then explicitly confirm replacement/delete only in disposable data. Inspect same-transaction mutation audit evidence."
+      ],
+      "requests": [],
+      "expected": "All described validations and authorization checks hold; normal data and credentials are unchanged.",
+      "tests": [
+        "test_backend_review.BackendReviewUnitTests.test_platform_validation_and_shared_predicates",
+        "test_backend_review.BackendReviewIntegrationTests.test_platform_roundtrips_batch_bulk_audits_and_constraints",
+        "test_backend_review.BackendReviewIntegrationTests.test_migration_preserves_historical_records_and_replay"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "REVIEW platforms - Access type and URL filters",
+        "REVIEW platforms - Preview access replacement"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "18.2",
+      "name": "Public administrator user filters",
+      "objective": "Public administrator user filters. See docs/BACKEND_REVIEW.md for the operation contract.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh private role credentials only",
+        "Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "With an administrator token, use REVIEW users optional public filters. Leave unused controls disabled; enable ID, exact username, username_pattern with %, role and is_active=false independently, then combine them with AND.",
+        "Use the enabled combined-filter example; zero matches is a valid paginated result. Preserve page/page_size and whitelisted public ordering.",
+        "Compare created_at_date with inclusive calendar from/to on the same DST day in Europe/Lisbon. Omitted filter_timezone uses application_timezone; timestamp upper bounds are exclusive.",
+        "Check invalid dates, conflicting day/range filters, unknown parameters and secret ordering return 422. Supervisor and standard listing remain forbidden."
+      ],
+      "requests": [],
+      "expected": "All described validations and authorization checks hold; normal data and credentials are unchanged.",
+      "tests": [
+        "test_backend_review.BackendReviewHTTPTests.test_user_filters_strict_public_schema_and_configured_day",
+        "test_backend_review.BackendReviewIntegrationTests.test_users_combined_filters_calendar_days_and_secret_rejection"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "REVIEW users - Optional public filters",
+        "REVIEW users - Enabled combined filters"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "18.3",
+      "name": "Consistent new password policy",
+      "objective": "Consistent new password policy. See docs/BACKEND_REVIEW.md for the operation contract.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh private role credentials only",
+        "Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "In disposable first enrollment, user creation, own-password change and administrator reset, reject 14 characters and accept 15 characters; reject 1025 and accept 1024 Unicode characters.",
+        "Paste a passphrase with spaces and Unicode, including over 64 characters. Confirm no normalization, composition requirement or silent truncation.",
+        "Authenticate using an existing shorter password, then change it using the new policy; verify only the changed account token version is revoked. Do not rewrite other stored hashes.",
+        "Run the short-new-password Postman rejection example and verify the whole password body is absent from logs and audits."
+      ],
+      "requests": [],
+      "expected": "All described validations and authorization checks hold; normal data and credentials are unchanged.",
+      "tests": [
+        "test_backend_review.BackendReviewUnitTests.test_password_boundaries_and_unicode_without_normalization",
+        "test_backend_review.BackendReviewIntegrationTests.test_users_combined_filters_calendar_days_and_secret_rejection"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [
+        "REVIEW password - Reject short new password"
+      ],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "18.4",
+      "name": "Bounded account and client login throttling",
+      "objective": "Bounded account and client login throttling. See docs/BACKEND_REVIEW.md for the operation contract.",
+      "prerequisites": [
+        "Owned disposable QA database and fresh private role credentials only",
+        "Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Against an owned disposable instance only, send ten /token attempts for one account in five minutes, then verify 429 LOGIN_THROTTLED and positive Retry-After on the next attempt.",
+        "Use varying usernames from one client: fifty admitted attempts share the client limit. Changing X-Forwarded-For must not bypass limits. Credential failures remain generic 401 before the limit.",
+        "Wait for the indicated interval, then retry. Verify automatic expiry and absence of permanent lockouts. Automated fake-clock/concurrency checks validate exact expiry, capacity and simultaneous admission without waiting five minutes.",
+        "Confirm the single-worker limiter is capped at 10000 hashed entries and rejects new identities at capacity until expiry; no passwords, tokens or raw account/address keys are logged."
+      ],
+      "requests": [],
+      "expected": "All described validations and authorization checks hold; normal data and credentials are unchanged.",
+      "tests": [
+        "test_backend_review.BackendReviewUnitTests.test_throttle_account_client_expiry_capacity_and_concurrency",
+        "test_backend_review.BackendReviewHTTPTests.test_token_throttle_safe_429_and_untrusted_proxy_headers"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "19.1",
+      "name": "Public frontend home and accessible login modal",
+      "objective": "Public frontend home and accessible login modal. See docs/FRONTEND.md.",
+      "prerequisites": [
+        "Owned disposable QA instance and fresh private API credentials; never create demo records in normal data",
+        "Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development",
+        "Build Angular 22 with npm ci and npm run build under frontend/; npm test verifies client behavior separately from Python checks"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Open the public home. Verify Cadastrar and Consultar, the circular mark and single Ouroboros wordmark. Open both shared selection pages; Watched and Watchlist remain disabled as Em breve, while isolated items work. Check back/home navigation.",
+        "Open a protected isolated-item action while logged out. Inspect the accessible Portuguese login modal, eye/crossed-eye button, required asterisks, Tab/Shift+Tab, Enter, Escape and focus restoration.",
+        "Use disposable supervisor/admin credentials, verify the requested destination after login and reload both protected routes. Standard receives a permission explanation. API/static misses stay 404; docs/OpenAPI remain available.",
+        "Inspect Cadastrar selection: Cadastrar item retains /cadastros; no decorative Comece por aqui or duplicate Em breve badges. Only Voltar ao início is enlarged; other controls retain their size and the required-field legend stays in place."
+      ],
+      "requests": [],
+      "expected": "The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.",
+      "tests": [
+        "test_frontend.BrowserSessionTests.test_public_home_assets_and_protected_form"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "19.2",
+      "name": "Opaque browser sessions login expiry and logout",
+      "objective": "Opaque browser sessions login expiry and logout. See docs/FRONTEND.md.",
+      "prerequisites": [
+        "Owned disposable QA instance and fresh private API credentials; never create demo records in normal data",
+        "Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Authenticate on owned disposable QA, reload /cadastros and verify the session persists. Verify the cookie is HttpOnly, SameSite=Strict, host-only and Secure under HTTPS. Browser storage and URLs contain no credentials, bearer/refresh tokens or CSRF secrets.",
+        "Keep a draft, expire its session or log out in another tab, then submit. Login is requested again and the draft is retained. Reauthenticate without automatic resubmission. Review and deliberately submit once.",
+        "Click Sair: verify the server session is invalidated and cookie cleared. Replaying the old cookie fails. Inactivation or credential-version changes revoke access; demotion updates catalogue permissions.",
+        "Exercise shared /token and /browser/login account/client limits in disposable QA. Verify 429/Retry-After and the countdown, then automatic retry availability. Whole browser login/session/logout bodies, cookies and CSRF values are absent from logs/audits.",
+        "Remove browser configuration only in disposable QA and reproduce HTTP session/login rejection before password verification. Expect BROWSER_ORIGIN_REJECTED, not an account-permission explanation. Distinguish it from invalid credentials, CSRF, expired sessions, malformed service responses and network/server failures.",
+        "Verify the Angular HttpClient sends the existing in-memory synchronizer X-CSRF-Token header on mutations/logout. Passwords are cleared after login attempts, never retained for retries. Reauthentication retains non-secret drafts without automatically submitting them.",
+        "Use controlled clocks to verify two-hour idle renewal only after accepted authenticated activity, passive polling without renewal, fixed twelve-hour absolute expiry, and unchanged bearer lifetime."
+      ],
+      "requests": [],
+      "expected": "The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.",
+      "tests": [
+        "test_frontend.BrowserSessionTests.test_cookie_reload_rotation_expiry_logout_and_revocation",
+        "test_frontend.BrowserSessionTests.test_login_generic_errors_origin_checks_shared_throttle_and_body_omission",
+        "test_frontend.BrowserSessionTests.test_missing_browser_configuration_is_not_an_account_permission_error",
+        "test_frontend.BrowserSessionTests.test_idle_renewal_absolute_expiry_and_passive_reads"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "19.3",
+      "name": "Browser catalogue authorization CSRF and atomic audit",
+      "objective": "Browser catalogue authorization CSRF and atomic audit. See docs/FRONTEND.md.",
+      "prerequisites": [
+        "Owned disposable QA instance and fresh private API credentials; never create demo records in normal data",
+        "Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Login as administrator and supervisor: create one platform and one Unicode/emoji tag through the browser and verify persisted identifying data and single mutation audit evidence.",
+        "A standard account can authenticate but sees a clear catalogue-permission message; direct /cadastros and creation requests are denied.",
+        "Reject cookie mutations missing or mismatching CSRF, foreign Origin and demoted actors. Confirm no denied record was inserted. Existing bearer clients still work without cookie CSRF; explicit invalid Authorization never falls back to a cookie.",
+        "Compare browser can_create/current role and active metadata with bearer GET /platforms for administrator, supervisor and standard. Both catalogue roles succeed; standard remains forbidden. Never promote a normal account to work around an origin/configuration error."
+      ],
+      "requests": [],
+      "expected": "The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.",
+      "tests": [
+        "test_frontend.BrowserSessionTests.test_current_roles_inactivity_csrf_and_bearer_precedence",
+        "test_frontend.BrowserCreationIntegrationTests.test_cookie_platform_tag_creation_audit_and_transaction_authority",
+        "test_frontend.BrowserSessionTests.test_cookie_and_bearer_catalogue_permission_parity"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "19.4",
+      "name": "Portuguese catalogue registration form feedback",
+      "objective": "Verify shared phase-one create/edit/cancel forms, unsaved-change guards, cancel-first confirmations, exact optional prices, twenty-result autocomplete, compact consultation filters, bounded session-only recent searches and edit-return context.",
+      "prerequisites": [
+        "Owned disposable QA instance and fresh private API credentials; never create demo records in normal data",
+        "Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "On the owned disposable instance inspect Cadastrar item, Nome fantasia first, Classificação da Obra capitalization, required-field legend placement and scoped Voltar ao início enlargement. Future workflows remain disabled and no decorative card badges remain.",
+        "For all three required platform booleans, verify initial indeterminate/unanswered state, explicit true/false via mouse/Space, readable state labels and reset to unanswered. Unanswered blocks submission with field-level guidance; explicit false persists and loads correctly in edit mode.",
+        "Verify empty price and placeholder 00,00, explicit zero, comma parsing, blur display 23→23,00 / 23,5→23,50 / 23,50 unchanged, and exact focus restoration without caret rewriting. Reject grouping/symbol ambiguity. Inspect two-place presentation versus exact extra-precision API decimal. An empty creation price must be omitted, not null/zero/placeholder; PUT omission preserves and explicit clearing sends null. Currency starts empty and offers only EUR/USD/BRL code-first choices; no locale inference.",
+        "Access starts empty and offers only Aplicativo/application and Site/website. Site reveals URL; toggling away/back retains its unsaved draft. Non-Site creation omits hidden URL; Site→Aplicativo PUT clears old URL with null. Existing multi/link types and unknown currency codes are preserved on unrelated edits until explicit replacement.",
+        "Keep tag description/technical-name behavior unchanged. Typing does not reveal technical input; blur/Tab/Enter completes fantasy name without accidental POST. Test ghost suggestion/custom name preservation and empty/invalid suggestion guidance.",
+        "Search beginning/middle/end names and literal wildcard text. Inspect anchored dropdown with no form displacement, no more than twenty display names, muted Continue digitando para refinar a busca at the cap, no pagination/load more, no no-match block, recoverable failure, stale-response protection, scrolling/arrows/Enter/Escape and existing edit confirmation.",
+        "Use more than fifty owned disposable classifications. Verify all bounded pages load, actual numeric tier plus human-friendly name, implicit Adicionar ao final with no tier in POST, insertion at occupied positions, current edit tier preselection and valid 1..N moves. Failed/inconsistent page reads must not present partial order as complete and block saving until deliberate retry. Only backend transactions shift rows.",
+        "Create once, prevent duplicate clicks and inspect separate returned ID/name confirmation with immediately cleared fields, retained URL draft, touched/dirty state and autocomplete. Failure preserves non-secret data. Navigating away/back never restores submitted values. Confirm current role, CSRF and session-deadline behavior remains.",
+        "Retain consultation filters, ten-item paging, ordering, edit and confirmed individual delete regression checks from the prior refinement. No bulk frontend actions, Watchlist/Watched workflows or advanced work search.",
+        "Run npm test and production build under frontend/. The registration-controls, registration-navigation, autocomplete, tier-position and registration specs exercise the new DOM/payload cases. Record actual desktop/mobile/browser execution separately from Angular unit/DOM and Python HTTP results.",
+        "Verify exact shared primary labels Cadastrar and Salvar edição plus Cancelar. Test dirty cancel, route departure, resource switch, browser unload and logout. Keep editing retains values/session; discard permits departure. Clean/restored-original and successful-save cases never prompt. Ordinary saves receive no redundant confirmation.",
+        "For delete, existing-suggestion edit and discard dialogs, verify Cancelar is most prominent and initially focused, affirmative action is secondary/type=button, and Enter cannot implicitly choose a destructive affirmative action. Confirm explicit mouse/keyboard activation and safe Escape/in-flight behavior.",
+        "On all three consultation resources verify initial page 1/page_size 10, direct list, no Cadastrar action, a stationary Search below Filtros avançados, always-visible Clear, compact adjacent desktop values and mobile stacking. Checkbox picker reveals only chosen public fields; remove one and prove its predicate leaves the next query.",
+        "Apply six distinct successful searches, a failed search and paging. Keep at most the five successful applied criteria per resource, not results or credentials. Reapply at page 1; clear history; logout/expire/new login must clear session-only history and contexts.",
+        "Open an edit from a filtered, ordered non-first page. Save or cancel and verify restored resource, page, successful applied filters, ordering and scroll after rows render. Deleting the last item on the last page refreshes count and corrects the page.",
+        "Description policy: all three description fields accept at most the configured Unicode 16 extended grapheme count, default 4000, with live counters and no tooltip. Verify plain text/spaces, combining accents, family/profession/flag emojis, paste and IME composition without splitting; direct POST/PUT/arrays/bulk reject overflow with standard 422; historical oversized reads and unrelated edits preserve original text. Synopsis and observations remain unchanged. Tier shares the searchable dropdown: implicit append first, numeric-only positions across all pages, edit preselection; current-order list pages ten tier-sorted rows with total. See docs/DESCRIPTION_AND_TIERS.md."
+      ],
+      "requests": [],
+      "expected": "The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.",
+      "tests": [
+        "test_frontend.BrowserCreationIntegrationTests.test_cookie_platform_tag_creation_audit_and_transaction_authority",
+        "test_description_contract.DescriptionContractTests.test_shared_unicode_conformance_and_generated_limit",
+        "test_description_contract.DescriptionContractTests.test_all_description_inputs_limit_graphemes_without_limiting_other_text_or_outputs",
+        "test_description_contract.DescriptionHTTPTests.test_direct_api_overflow_returns_standard_error_without_mutations",
+        "test_description_contract.DescriptionIntegrationTests.test_real_description_crud_legacy_preservation_and_validation_rollback"
+      ],
+      "type": "both",
+      "integration": true,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "19.5",
+      "name": "Frontend contrast responsive layout and secure deployment",
+      "objective": "Frontend contrast responsive layout and secure deployment. See docs/FRONTEND.md.",
+      "prerequisites": [
+        "Owned disposable QA instance and fresh private API credentials; never create demo records in normal data",
+        "Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development"
+      ],
+      "actor": "Supervisor or administrator as specified; standard for negative checks",
+      "steps": [
+        "Check desktop and 390px/360px mobile layouts: cards and form/mascot stack, labels/controls remain readable, no horizontal clipping, 44px touch targets and visible keyboard focus. Respect reduced motion.",
+        "Compare exact palette variables and measured text/control contrast. The friendly original illustration is a snake; imagery cannot cover inputs. Check all assets load locally and the CSP blocks unapproved scripts/frames.",
+        "Without explicit development configuration, browser sessions require HTTPS. HTTP is allowed only for the configured loopback origin and loopback peers with browser.allow_loopback_http=true. Never enable this for production.",
+        "Confirm bounded process-local session expiry and capacity, no token persistence, safe DOM text rendering and no secrets in screenshots/reports. Record visual/browser evidence separately from HTTP unit/integration assertions.",
+        "Record optimized initial and lazy bundle sizes, measurement conditions and browser console/asset failures. Check no-store HTML, immutable hashed JS/CSS and revalidated SVGs. Older hashed lazy chunks remain available across rebuilds; Node is not a production service.",
+        "Verify 390px and 360px layouts, dialog keyboard/Escape/focus restoration, no horizontal clipping and reduced-motion CSS. Save screenshots containing no secrets. Never claim an unexecuted browser or hosted CI check passed.",
+        "Verify exact #E6BD68 decorative markers, unchanged legend placement and palette. Record 1.731:1 paper / 1.602:1 cream accent contrast and dark accompanying label/legend contrast; semantic required status cannot depend on the gold alone. Browser geometry/focus checks remain separate from CSS/DOM tests.",
+        "Before visual acceptance, inspect listener ownership and current directory; compare the loaded footer/meta build ID, public build-info.json source/index/asset hashes and real HTTP graph on 6969. Inspect cache headers and existing worker registrations without deleting cookies or drafts. Follow docs/FRONTEND_DELIVERY_DIAGNOSIS.md; record unavailable browser checks separately.",
+        "Focused Platform acceptance supersedes earlier tri-state instructions: verify three unchecked native booleans submit false untouched; only name/access red #DC3545 markers plus legend; exact name/price help and no currency help; both empty prompts Selecione uma opção; one outlined back-to-registration link and logo home. Inspect omitted blank price and conditional URL on disposable writes. See docs/REGISTRATION_UI.md.",
+        "Change 01 supersedes permanent field-help wording: in all three resource create/edit forms and search, verify centralized Nome Fantasia label and exact approved emoji tooltip; shared red #DC3545 required markers with spacing; no redundant optional wording. Hover, keyboard-focus and tap help, close with Escape/outside click, retain field associations and visible errors. Escape must not close a parent dialog or submit. Repeat desktop/mobile and screen reader manually; see docs/REGISTRATION_UI.md.",
+        "Tooltip/currency visual correction supersedes earlier Description help: check small raised borderless help glyph beside label text with hover/focus/touch and Escape/outside closure; no Description tooltip; exact approved money help. Verify CSP-compatible external shared-fields.css in the built stylesheet, no injected component styles or unsafe-inline relaxation. Check normal currency trigger, anchored search-first panel, plain scrollable rows without markers/button options/duplicate placeholder, code/name filtering, click/arrows/Enter/Escape/outside selection behavior. Preserve conditional price/currency rules. Record physical browser/mobile/screen-reader checks separately; see docs/REGISTRATION_UI.md.",
+        "Focused Soft Amber revision: verify shared --soft-amber #D99A45 only changes information glyph color, preserving exact glyph size/position and required red #DC3545. Tooltip box sits above/right with rightward offset, not centered; interactions and box appearance remain unchanged. Price error now ends with centavos, with unchanged parsing/negative validation and formatting. Record physical visual review separately from automated tests; see docs/REGISTRATION_UI.md."
+      ],
+      "requests": [],
+      "expected": "The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.",
+      "tests": [
+        "test_frontend.FrontendAssetTests.test_palette_contrast_and_no_persistent_browser_secrets",
+        "test_frontend.BrowserSessionTests.test_secure_defaults_capacity_and_settings_validation"
+      ],
+      "type": "both",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
       "log_evidence": {
         "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
         "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",

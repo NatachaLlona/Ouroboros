@@ -19,10 +19,17 @@ def main():
     for directory, patterns in (
         ('app', ('*.py', '*.json')), ('tests', ('*.py', '*.schema.json')),
         ('scripts', ('*.py',)), ('sql', ('*.sql',)), ('qa', ('*.json',)),
+        ('frontend/src', ('*.html', '*.css', '*.ts')),
+        ('frontend/assets', ('*.svg',)), ('frontend/styles', ('*.css',)),
+        ('frontend/scripts', ('*.mjs',)),
         ('docs', ('*.md',)), ('.github/workflows', ('*.yml', '*.yaml')),
     ):
         for pattern in patterns:
             files.update((ROOT / directory).rglob(pattern))
+    files.update(ROOT / 'frontend' / name for name in (
+        'package.json', 'package-lock.json', 'angular.json', 'tsconfig.json',
+        'tsconfig.app.json', 'tsconfig.spec.json'))
+    files.add(ROOT/'qa/UNICODE_LICENSE.txt')
     files.update(ROOT / 'reports' / name for name in ('summary.md', 'results.json', 'junit.xml'))
     for name in ('performance.json','pagination-plans.json','bandit.json','ruff.json','dependency-audit.json','dependency-dev-audit.json'):
         report = ROOT / 'reports' / name
@@ -35,7 +42,7 @@ def main():
             if not path.is_file() or path.is_symlink():
                 raise ValueError('Required public source/report missing or symlinked')
             relative = path.resolve().relative_to(ROOT)
-            if '__pycache__' in relative.parts:
+            if any(part in relative.parts for part in ('__pycache__', 'node_modules', '.angular', 'dist', 'out-tsc')):
                 continue
             archive.write(path, 'Ouroboros/' + relative.as_posix())
     with ZipFile(output) as archive:

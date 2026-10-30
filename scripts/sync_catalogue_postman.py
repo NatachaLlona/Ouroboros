@@ -10,6 +10,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app.schemas.catalogue import RESOURCES, PATTERN_HELP
+from app.schemas.relationships import RELATIONSHIPS, SUMMARY_FIELDS
+from app.text_limits import DESCRIPTION_INPUT_HELP
 
 PATH = ROOT / 'postman/Ouroboros.postman_collection.json'
 GROUP = 'Catalogue CRUD (isolated database; supervisor or administrator)'
@@ -26,6 +28,9 @@ def request(name, method, route, status, token='catalogue_token', body=None, par
     url = '{{base_url}}' + route
     spec = dict(method=method, header=[], auth=bearer(token), url=url,
                 description='Use only an isolated QA database. Captured IDs/tokens stay local. See docs/CATALOGUE_API.md.')
+    table = route.strip('/').split('/')[0]
+    if table in RESOURCES and any(key.startswith('description_') for key in RESOURCES[table].fields):
+        spec['description'] += ' '+DESCRIPTION_INPUT_HELP+' Existing stored descriptions are returned unchanged.'
     if params is not None:
         spec['url'] = {'raw': url, 'host': ['{{base_url}}'], 'path': route.strip('/').split('/'), 'query': params}
     if body is not None:
@@ -52,7 +57,8 @@ def generate(collection):
     examples = {
         'works': dict(title='El dragón 🐉', title_language='es', synopsis='An English synopsis.'),
         'platforms': dict(platform_name='QA Library', platform_is_paid=False, platform_is_episodes=True,
-                          platform_is_duration_time=True, price_amount=None, price_currency=None),
+                          platform_is_duration_time=True, price_amount=None, price_currency=None,
+                          platform_access_types=['application', 'website'], platform_url='https://example.org/library'),
         'work_availabilities': dict(id_works='{{catalogue_id_works}}', id_platforms='{{catalogue_id_platforms}}', duration_minutes='120.5', episode_quantity=3),
         'tags': dict(tag_name='support_without_dependence', display_name_tags='Support 💕', description_tags='Reusable preference tag.'),
         'tag_categories': dict(tag_category_name='relationships', display_name_tag_categories='Vínculos'),
@@ -112,6 +118,14 @@ def generate(collection):
         items[6]['event'].insert(0, {'listen': 'prerequest', 'script': {'type': 'text/javascript', 'exec': [
             f'pm.request.url.query.upsert({{key: "{resource.key}", value: pm.collectionVariables.get("{id_var}"), disabled: false}});']}})
         items[6]['request']['description'] += ' This explicitly selected filter demonstration enables the captured ID at runtime; exported optional Params remain unchecked.'
+        if table in RELATIONSHIPS:
+            projection = {reference.alias: {'field': reference.field, 'fields': list(SUMMARY_FIELDS[reference.table])}
+                          for reference in RELATIONSHIPS[table]}
+            check = 'const projection = ' + json.dumps(projection) + ';'
+            check += ' pm.test("Collection references preserve authoritative IDs and identifying names",()=>{ for(const row of pm.response.json().items){ pm.expect(Object.keys(row.references).sort()).to.eql(Object.keys(projection).sort()); for(const [alias,spec] of Object.entries(projection)){ const ref=row.references[alias]; if(row[spec.field]===null){pm.expect(ref).to.eql(null);}else{pm.expect(Object.keys(ref).sort()).to.eql(spec.fields.slice().sort());pm.expect(ref[spec.fields[0]]).to.eql(row[spec.field]);} } } });'
+            for index in (4, 5, 6):
+                items[index]['event'][-1]['script']['exec'].append(check)
+                items[index]['request']['description'] += ' Collection-only references contain one-level identifying values; single/write records stay unchanged. Remove references before PUT.'
         for item in items[-2:]:
             item['event'].insert(0, {'listen': 'prerequest', 'script': {'type': 'text/javascript', 'exec': [
                 'if (pm.variables.get("catalogue_destructive_opt_in") !== "isolated") { pm.execution.skipRequest(); }']}})
@@ -181,6 +195,8 @@ def generate(collection):
     augment(collection, request)
     from scripts.sync_batch_postman import augment as augment_batches
     augment_batches(collection, request, examples)
+    from scripts.sync_backend_postman import augment as augment_backend
+    augment_backend(collection, request)
     # Existing collection GET requests keep their unchecked filters and now expose ordering.
     def visit(items):
         for item in items:

@@ -21,6 +21,9 @@ class RelationshipListUnitTests(unittest.TestCase):
     setUp = api.APITests.setUp
 
     def test_collection_only_schemas_and_unchanged_write_inputs(self):
+        from dataclasses import replace
+        self.users.users[self.user.id] = replace(self.user, role='supervisor')
+        headers = api.APITests.bearer(self)
         schema = self.app.openapi()
         for table, resource in RESOURCES.items():
             operation = schema['paths']['/' + table]
@@ -34,9 +37,14 @@ class RelationshipListUnitTests(unittest.TestCase):
             self.assertNotIn('references', resource.query.model_fields)
             if table in RELATIONSHIPS:
                 self.assertTrue(schema['components']['schemas'][item]['properties']['references']['readOnly'])
+                for mode in ('validation', 'serialization'):
+                    self.assertTrue(resource.list_record.model_json_schema(mode=mode)['properties']['references']['readOnly'])
                 for model in (resource.create, resource.update):
                     with self.assertRaises(ValidationError):
                         model.model_validate({**CREATION_EXAMPLES[table], 'references': {}})
+                for method, path in (('POST', '/' + table), ('PUT', '/' + table + '/UNUSED')):
+                    self.assertEqual(self.client.request(method, path, headers=headers,
+                        json={**CREATION_EXAMPLES[table], 'references': {}}).status_code, 422)
         fields = RESOURCES['tag_category_relationships'].list_record.model_fields['references'].annotation.model_fields
         self.assertEqual(set(fields), {'tag', 'tag_category'})
         self.assertEqual(set(SUMMARY_FIELDS['tags']), {'id_tags', 'tag_name', 'display_name_tags', 'fantasy_name_tags'})

@@ -8,16 +8,41 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import (BaseModel, BeforeValidator, ConfigDict, Field,
+from pydantic import (BaseModel, BeforeValidator, AfterValidator, HttpUrl, TypeAdapter, ConfigDict, Field,
                       StrictBool, StrictInt, StrictStr, create_model, model_validator)
 from app.pagination import integer_query
 from pydantic_core import PydanticCustomError
 from app.datetimes import Instant, SourceInstant, ZoneName, DisplayZone, check_range, date_filter_fields, date_predicates
 from app.schemas.relationships import collection_record
+from app.text_limits import DESCRIPTION_MAX_LENGTH, GRAPHEME_UNICODE_VERSION, DESCRIPTION_INPUT_HELP, validate_description
 
 Text = StrictStr
+Description = Annotated[StrictStr, AfterValidator(validate_description),
+    Field(json_schema_extra={'x-max-graphemes': DESCRIPTION_MAX_LENGTH, 'x-unicode-version': GRAPHEME_UNICODE_VERSION})]
 Technical = Annotated[StrictStr, Field(pattern=r'^[a-z][a-z0-9]*(_[a-z0-9]+)*$')]
 PositiveInteger = Annotated[StrictInt, Field(gt=0, le=9223372036854775807)]
+AccessType = Literal['application', 'website', 'link']
+
+
+def unique_access_types(value):
+    """Preserve the submitted order but reject duplicate collection members."""
+    if len(value) != len(set(value)):
+        raise ValueError('Access types must be unique')
+    return value
+
+
+def http_url(value):
+    """Validate HTTP/HTTPS while preserving the supplied URL text for echoes."""
+    if not value.lower().startswith(('http://', 'https://')):
+        raise ValueError('URL must use HTTP or HTTPS with an authority')
+    if any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in value):
+        raise ValueError('URL must not contain whitespace or control characters')
+    TypeAdapter(HttpUrl).validate_python(value)
+    return value
+
+
+AccessTypes = Annotated[list[AccessType], Field(max_length=3, json_schema_extra={'uniqueItems': True}), AfterValidator(unique_access_types)]
+PlatformURL = Annotated[StrictStr, Field(max_length=2083, json_schema_extra={'format': 'uri'}), AfterValidator(http_url)]
 
 
 def decimal_input(value):
@@ -158,15 +183,16 @@ CONTRACTS = {
     'works': dict(title=(Text, ...), title_language=(Text, ...), synopsis=(Text | None, None)),
     'platforms': dict(platform_name=(Text, ...), platform_is_paid=(StrictBool, ...),
         platform_is_episodes=(StrictBool, ...), platform_is_duration_time=(StrictBool, ...),
+        platform_access_types=(AccessTypes, []), platform_url=(PlatformURL | None, None),
         price_amount=(Price | None, None), price_currency=(Text | None, None)),
     'work_availabilities': dict(id_works=(Text, ...), id_platforms=(Text, ...),
         duration_minutes=(Duration | None, None), episode_quantity=(PositiveInteger | None, None),
         publisher_profile=(Text | None, None), url=(Text | None, None)),
-    'tags': dict(tag_name=(Technical, ...), display_name_tags=(Text, ...), description_tags=(Text | None, None)),
-    'tag_categories': dict(tag_category_name=(Technical, ...), display_name_tag_categories=(Text, ...), description_tag_categories=(Text | None, None)),
+    'tags': dict(tag_name=(Technical, ...), display_name_tags=(Text, ...), description_tags=(Description | None, None)),
+    'tag_categories': dict(tag_category_name=(Technical, ...), display_name_tag_categories=(Text, ...), description_tag_categories=(Description | None, None)),
     'tag_category_relationships': dict(id_tags=(Text, ...), id_tag_categories=(Text, ...)),
     'tag_relationships': dict(id_tags_source=(Text, ...), id_tags_target=(Text, ...)),
-    'work_classifications': dict(work_classification_name=(Technical, ...), display_name_work_classifications=(Text, ...), description_work_classifications=(Text | None, None), tier=(PositiveInteger, None)),
+    'work_classifications': dict(work_classification_name=(Technical, ...), display_name_work_classifications=(Text, ...), description_work_classifications=(Description | None, None), tier=(PositiveInteger, None)),
     'watchlist_entries': dict(id_works=(Text, ...), id_work_availabilities=(Text | None, None),
         id_work_classifications_predicted=(Text | None, None), observations=(Text | None, None)),
     'watch_history': dict(id_works=(Text, ...), id_work_availabilities=(Text | None, None),
@@ -193,31 +219,53 @@ def build_resource(table, fields):
         automatic['watched_at_offset'] = (Text | None, Field(default=None, description='Server-recorded input UTC offset; updated automatically when watched_at changes.'))
     described_fields = {name: (annotation, Field(default=default, description=(
         'Optional long English synopsis; language compliance is a content policy, not automatically detected.' if name == 'synopsis'
+        else 'Unique access choices: application, website, link. Multiple choices are supported; [] means unknown or none specified. Null is not accepted.' if name == 'platform_access_types'
+        else 'Optional HTTP/HTTPS platform URL, up to 2083 characters. Omit on PUT to preserve; null clears. No URL is fetched.' if name == 'platform_url'
         else 'Editable completion instant with UTC offset; null means the historical completion date is unknown.' if name == 'watched_at'
         else 'Explicit IANA source zone; requires watched_at with a matching supplied offset. Never inferred from an offset.' if name == 'watched_at_timezone'
         else 'Positive unique classification position. Omit on POST to append; insert at 1 through N+1. Individual PUT moves within 1 through N. Null and booleans are rejected.' if name == 'tier'
+        else 'Optional description of this work-rating classification; unrelated to tag categories. Omit on PUT to preserve; null clears.' if name == 'description_work_classifications'
+        else 'Human-friendly name displayed as Nome fantasia in the UI; distinct from the fixed fantasy_name table metadata.' if name == 'platform_name' or name.startswith('display_name_')
+        else 'Technical name: lowercase ASCII letter first, then lowercase letters/digits, with single underscores between nonempty segments.' if name in ('tag_name', 'work_classification_name', 'tag_category_name')
         else 'Editable domain field; null is accepted only when the schema is nullable.')))
         for name, (annotation, default) in fields.items()}
     if table == 'work_classifications':
         # An omitted optional input appends, while explicit JSON null stays invalid.
         described_fields['tier'] = (PositiveInteger, Field(default_factory=lambda: None,
             description='Omit to append. Supply a positive position from 1 through N+1 to insert and shift following classifications.', examples=[1, 2]))
+    for name in fields:
+        if name.startswith('description_'):
+            described_fields[name] = (fields[name][0], Field(default=fields[name][1], description=DESCRIPTION_INPUT_HELP + (
+                ' Work-rating classification, unrelated to tag categories.' if table == 'work_classifications' else '')))
     create = create_model(title + 'Create', __base__=RecordInput, **described_fields)
     record_fields = dict(described_fields)
+    for name in fields:
+        if name.startswith('description_'):
+            record_fields[name] = (Text | None, Field(default=None, description=
+                'Stored description; historical values can exceed the current input limit. Returned unchanged, never truncated.'))
     if table == 'work_classifications':
         record_fields['tier'] = (PositiveInteger, Field(description='Independent required unique positive classification position; ordering never changes IDs or sequences.'))
     record = create_model(title + 'Record', __base__=RecordInput, **common, **record_fields, **automatic,
         presentation=(Presentation, Field(description='Read-only date/time display, separate from canonical UTC instants.', json_schema_extra={'readOnly': True})))
-    update_fields = {name: (annotation, Field(default=None, description=(
+    for name in {**common, **automatic}:
+        record.model_fields[name].json_schema_extra = {'readOnly': True}
+    record.model_rebuild(force=True)
+    update_fields = {name: (annotation, Field(default_factory=lambda: None, description=(
         'Immutable/server-controlled: omit or echo the current value unchanged.' if name in {**common, **automatic}
+        else 'Omit to preserve; positive tier moves within 1 through N and reorders atomically. Null is rejected.' if name == 'tier'
         else 'Omit to preserve; supplied null is allowed only for nullable fields.')))
                      for name, (annotation, _) in {**common, **fields, **automatic}.items()}
     update_fields['presentation'] = (Presentation, Field(default=None, description='May echo the unchanged GET presentation; it is never a mutable field.', json_schema_extra={'readOnly': True}))
+    for name in fields:
+        if name.startswith('description_'):
+            update_fields[name] = (fields[name][0], Field(default_factory=lambda: None, description=DESCRIPTION_INPUT_HELP))
     update = create_model(title + 'Update', __base__=UpdateInput, **update_fields)
     columns = tuple({**common, **fields, **automatic})
     filters = {}
     for name, (annotation, _) in {**common, **fields, **automatic}.items():
-        if name.startswith(('id_', 'sequence_', 'prefix_', 'fantasy_name_')) or name.endswith('_name'):
+        if name == 'platform_access_types':
+            description, example, filter_type = 'Contains this access type; AND with other filters. Choices: application, website, link.', 'website', AccessType
+        elif name.startswith(('id_', 'sequence_', 'prefix_', 'fantasy_name_')) or name.endswith('_name'):
             description = 'Optional exact match; combined with all supplied filters using AND.'
             example = 'WK0000001' if name.startswith('id_') else 'example'
             filter_type = int if name.startswith('sequence_') else str
@@ -244,6 +292,9 @@ def build_resource(table, fields):
             filters.update(date_filter_fields(field))
     bulk_query = create_model(title + 'BulkFilters', __base__=BulkSelection, **filters)
     bulk_fields = {name: (annotation, Field(default=None, description='Supplied mutable fields only; omitted fields are preserved.')) for name, (annotation, _) in fields.items()}
+    for name in fields:
+        if name.startswith('description_'):
+            bulk_fields[name] = (fields[name][0], Field(default=None, description=DESCRIPTION_INPUT_HELP))
     if table == 'work_classifications':
         bulk_fields.pop('tier')
     bulk_update = create_model(title + 'BulkUpdate', __base__=ClassificationBulkUpdate if table == 'work_classifications' else UpdateInput, **bulk_fields)

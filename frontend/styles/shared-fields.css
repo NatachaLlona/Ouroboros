@@ -1,0 +1,22 @@
+/* External, component-scoped styles: production CSP does not allow inline styles. */
+app-field-label{display:block}
+app-field-label .label-row{position:relative;display:inline-flex;align-items:baseline;gap:4px;max-width:100%;margin-bottom:5px}
+app-field-label label{margin:0;font-size:13px;font-weight:600}
+app-field-label .required-star{color:#DC3545;font-weight:800;margin-right:.3em}
+app-field-label .help-button{position:relative;top:-.35em;align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;flex:none;width:14px;height:14px;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--soft-amber);font:inherit;font-size:12px;line-height:1;cursor:pointer;appearance:none}
+app-field-label .help-button::before{content:'';position:absolute;inset:-9px}
+@media(pointer:coarse){app-field-label .help-button::before{inset:-15px}}
+app-field-label .field-tooltip{position:absolute;z-index:30;bottom:calc(100% + 6px);left:calc(100% + 6px);max-width:min(320px,calc(100vw - 80px));width:max-content;padding:10px 12px;border:1px solid var(--brown);border-radius:8px;background:var(--paper);color:var(--dark-grayish-green);font-size:13px;box-shadow:0 6px 18px #0002;overflow-wrap:anywhere}
+/* Bridge the small visual gap so hover help remains open as the pointer enters it. */
+app-field-label .label-row:has(.field-tooltip:not([hidden]))::after{content:'';position:absolute;bottom:100%;left:100%;width:7px;height:7px}
+
+.searchable-dropdown{display:block;position:relative}
+.searchable-dropdown .currency-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:46px;padding:11px 12px;border:1px solid var(--brown);border-radius:7px;background:var(--paper);color:var(--dark-grayish-green);font:inherit;text-align:left}
+.searchable-dropdown .currency-trigger[aria-invalid=true]{border-color:var(--danger)}
+.searchable-dropdown .currency-menu{position:absolute;top:100%;left:0;z-index:20;width:100%;padding:10px;background:var(--paper);border:1px solid var(--brown);border-radius:8px;box-shadow:0 8px 20px #0002}
+.searchable-dropdown ul{display:block;list-style:none;list-style-type:none;margin:8px 0 0;padding:0;max-height:180px;overflow-y:auto;overscroll-behavior:contain}
+.searchable-dropdown li{display:block;list-style:none;list-style-type:none;margin:0;padding:10px 8px;min-height:44px;border:0;border-radius:0;background:transparent;color:inherit;cursor:pointer}
+.searchable-dropdown li.active,.searchable-dropdown li:hover{background:var(--cream)}
+.description-control{position:relative}
+.description-control textarea{display:block;padding-bottom:32px}
+.description-counter{position:absolute;right:12px;bottom:8px;font-size:11px;line-height:1.4;color:var(--muted);pointer-events:none}

@@ -12,13 +12,16 @@ Record = TypeVar('Record')
 CREATION_EXAMPLES = {
     'works': {'title': 'Example', 'title_language': 'en'},
     'platforms': {'platform_name': 'Example', 'platform_is_paid': False,
-                  'platform_is_episodes': True, 'platform_is_duration_time': True},
+                  'platform_is_episodes': True, 'platform_is_duration_time': True,
+                  'platform_access_types': ['application', 'website'], 'platform_url': 'https://example.org/catalogue',
+                  'price_amount': None, 'price_currency': None},
     'work_availabilities': {'id_works': 'WK0000001', 'id_platforms': 'PL0000001'},
     'tags': {'tag_name': 'example', 'display_name_tags': 'Example', 'description_tags': 'Example description.'},
     'tag_categories': {'tag_category_name': 'example', 'display_name_tag_categories': 'Example'},
     'tag_category_relationships': {'id_tags': 'TG0000001', 'id_tag_categories': 'TC0000001'},
     'tag_relationships': {'id_tags_source': 'TG0000001', 'id_tags_target': 'TG0000002'},
-    'work_classifications': {'work_classification_name': 'example', 'display_name_work_classifications': 'Example'},
+    'work_classifications': {'work_classification_name': 'example', 'display_name_work_classifications': 'Example',
+                             'description_work_classifications': 'A work-rating category, independent of tag categories.'},
     'watchlist_entries': {'id_works': 'WK0000001'},
     'watch_history': {'id_works': 'WK0000001', 'watched_at': None},
     'work_tags': {'id_works': 'WK0000001', 'id_tags': 'TG0000001'},
@@ -51,11 +54,14 @@ def creation_body(schema, example):
                     else 'TG0000003' if key == 'id_tags'
                     else 'TG0000004' if key == 'id_tags_target'
                     else value) for key, value in example.items()}
+    examples = {'single': {'summary': 'Create one record', 'value': example},
+                'batch': {'summary': 'Create an ordered atomic batch', 'value': [example, second]}}
+    if 'work_classification_name' in example:
+        examples['insert_at_tier'] = {'summary': 'Insert at tier 1; omitted tier appends', 'value': {**example, 'tier': 1}}
     return Annotated[schema | batch_type, WrapValidator(validate), Body(
         description='One object returns one record. An array creates atomically and returns created_count/items in request order. '
                     'Default maximum 300 items; configured api.max_batch_size applies. Error item indexes are zero-based.',
-        openapi_examples={'single': {'summary': 'Create one record', 'value': example},
-                          'batch': {'summary': 'Create an ordered atomic batch', 'value': [example, second]}})]
+        openapi_examples=examples)]
 
 
 def check_batch_size(payload, config):

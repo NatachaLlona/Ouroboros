@@ -7,11 +7,11 @@ See the running instance's **`/docs`** for the exact OpenAPI schema. The main ap
 | Method / path | Authentication / input | Result |
 | --- | --- | --- |
 | GET `/health` | Public, no body | 200 status ok after real query; 503 unavailable |
-| POST `/token` | Public URL-encoded API username/password; password grant, optional space-separated scope | 200 access_token/token_type/expires_in, no-store headers; invalid/inactive credentials 401; unavailable scopes 403 |
+| POST `/token` | Public URL-encoded API username/password; password grant, optional space-separated scope | 200 access_token/token_type/expires_in, no-store headers; invalid/inactive credentials 401; unavailable scopes 403; throttled attempts 429 with Retry-After |
 | POST `/test` | test:write or current administrator; strict value object or array of such objects | 201 full record for an object; created_count/full items for an atomic array. No per-field text cap; creation request budgets apply |
 | GET `/test` | test:read or administrator; optional positive BIGINT id and raw ILIKE value pattern | 200 paginated items ordered by ID; id/value combine with AND |
 | POST `/users` | Active administrator; username/password and optional fixed role | 201 public account; omitted role means standard; duplicate 409 |
-| GET `/users` | Active administrator; shared pagination | 200 public accounts ordered by ID |
+| GET `/users` | Active administrator; public account/calendar-date AND filters, shared pagination and public ordering | 200 public account page; default ID ascending |
 | PUT `/users/{id}/role` | Active administrator; fixed replacement role | 200 public account; absent target 404; last active administrator demotion 409 |
 | PUT `/users/me/password` | Any active authenticated API account; strict SecretStr current_password/new_password; no ID/username | 204 without body; wrong confirmation/unchanged password 400; invalid/stale authentication 401; invalid body 422 |
 | PUT `/users/{id}/password` | Active administrator; strict SecretStr new_password only; positive BIGINT ID of another user | Empty 204; self-target 400, invalid token 401, standard caller 403, missing target 404, invalid body/path 422 |
@@ -38,11 +38,11 @@ The [catalogue-generated QA plan](QA_TEST_PLAN.md) owns executable case IDs and 
 
 Authorize once with **Authorize → credentials/scopes → Authorize → Close**. Subsequent permitted requests reuse that authorization until logout, expiration or revocation. POST `/token` alone does not authorize the interface. After changing/resetting credentials, log out and authorize with the new password.
 
-GET `/test` explicitly exposes optional `id`, `value`, `page` and `page_size`; GET `/users` exposes only optional `page` and `page_size`. **No users filters are implemented or documented.** Pagination defaults, bounds, examples and pattern escaping appear in each query control. Filters precede counting and pagination; both endpoints use ascending ID ordering. Raw `%Ouroboros%` in Swagger means contains; `literal\%\_\\` matches literal percent/underscore/backslash. Empty value matches empty text; omission disables it.
+GET `/test` explicitly exposes optional `id`, `value`, `page` and `page_size`; GET `/users` exposes public ID, exact username, username_pattern, role, is_active, created_at_date/from/to and filter_timezone, plus pagination and public ordering. See [the explicit filter table](BACKEND_REVIEW.md). Pagination defaults, bounds, examples and pattern escaping appear in each query control. Filters precede counting and pagination; both endpoints default to ascending ID ordering and support whitelisted order controls. Raw `%Ouroboros%` in Swagger means contains; `literal\%\_\\` matches literal percent/underscore/backslash. Empty value matches empty text; omission disables it.
 
 ## 🛡️ **Reset another user's password**
 
-PUT `/users/{id}/password` accepts only `{"new_password":"<private new password>"}`, with the same strict nonempty string policy as enrollment and self-service. No target current password is required. Self-targeting returns **400**: use `/users/me/password` and confirm the current password. This preserves a coherent self-service confirmation flow.
+PUT `/users/{id}/password` accepts only `{"new_password":"<private new password>"}`, with the same strict 15?1024 Unicode character new-password policy as enrollment and self-service. No target current password is required. Self-targeting returns **400**: use `/users/me/password` and confirm the current password. This preserves a coherent self-service confirmation flow.
 
 The shared administrator advisory lock serializes reset/role changes. Actor row locking rechecks current active administrator role and token credential version; a demoted actor is **403**, a stale actor version **401**. The target row lock serializes self-service and reset. Hash/version commit together; only target old tokens become invalid. Inactive targets stay inactive; unrelated accounts and the signing key are unchanged. Requests authorized before commit may finish; this does not cancel in-flight work. No new migration is needed beyond migration 004.
 
@@ -69,3 +69,21 @@ Migrations009–010 add independent classification tier positions and complete i
 ## Object and array creation
 
 POST /test and the eleven catalogue POST creation endpoints accept one object or a nonempty atomic array. Single-object 201 responses remain full records; array 201 responses contain created_count and full items in request order, without GET pagination. Each item uses the existing create schema and creation permissions. See [the batch creation contract](BATCH_CREATION.md) for zero-based item errors, transaction/audit guarantees, classification tiers, configurable api.max_batch_size (default 300) and api.max_creation_body_bytes (default 4 MiB), client examples and restart instructions. Capture/inspection budgets are independent and remain bounded. No migration, reset or seed is required; preserve existing normal records and leave unconfirmed listeners alone.
+
+## Backend review contract
+
+See [the backend review guide](BACKEND_REVIEW.md) for platform fields and their create/read/update/filter/order/bulk matrix, explicit GET /users parameters, 15?1024-character password policy and POST /token 429 LOGIN_THROTTLED with Retry-After. The supported single-worker server disables proxy headers. Existing passwords and hashes remain unchanged.
+
+## Browser clients
+
+Browser origin/transport rejection returns 403 BROWSER_ORIGIN_REJECTED, distinct from CSRF_REJECTED and genuine INSUFFICIENT_PERMISSIONS. /browser/session and successful browser login include current public role and is_active metadata alongside can_create. An active administrator or supervisor has catalogue access through either browser sessions or bearer tokens; standard does not. See the diagnosed normal-instance case and authorized promotion procedure in [Frontend](FRONTEND.md).
+
+GET /browser/session, POST /browser/login and POST /browser/logout provide opaque cookie sessions for the Angular frontend. Their bodies are omitted from logs/audits. Cookie mutations require exact Origin and X-CSRF-Token; failures return 403 CSRF_REJECTED. Login shares /token throttling and Retry-After. Catalogue writes continue using existing POST /platforms, POST /tags and POST /work_classifications, with current role/version checks and transactional auditing. Empty classification tier is omitted, preserving backend append semantics; explicit tier uses existing transactional insertion/reordering. No API contract changes are introduced by Angular. Explicit bearer Authorization takes precedence and /token stays unchanged. See [the browser contract](FRONTEND.md) and [Angular implementation](ANGULAR.md).
+
+## OpenAPI refinement audit
+
+The generated specification documents OAuth2 bearer **or** the existing browser-session cookie on protected operations, with current role/scope checks in both cases. Cookie mutations additionally require exact Origin and X-CSRF-Token. Swagger Authorize and Postman bearer behavior remain compatible. Token and browser login document the standardized 429 error envelope and Retry-After header.
+
+Catalogue examples cover a single object, an atomic array and explicit classification-tier insertion; classification description and tier are legitimate fields. POST tier omission appends, while explicit null is invalid. PUT nonnullable properties are optional by omission but do not advertise null defaults. Immutable fields may only be echoed unchanged; record metadata and presentation are read-only. FastAPI omits null-valued example keys; regression checks compare their validated create representations rather than requiring identical optional-key spelling. Generated frontend filters are exported from these same public models.
+
+Angular builds cannot refresh an older Python process's in-memory OpenAPI. Docs/OpenAPI responses use no-store. Identify a listener before any restart and use normal interactive credentials; never replace schemas or records to make stale documentation match. Current schema/request checks and actual Swagger UI checks must be reported separately.

@@ -8,7 +8,7 @@ from app.log_safety import redact
 
 def sensitive_operation(path):
     parts = path.rstrip('/').split('/')
-    return (len(parts) > 1 and parts[1] == 'token') or (len(parts) > 2 and parts[1] == 'users' and 'password' in parts[2:])
+    return (len(parts) > 1 and parts[1] in ('token', 'browser')) or (len(parts) > 2 and parts[1] == 'users' and 'password' in parts[2:])
 
 
 def safe_path(path):

@@ -147,7 +147,7 @@ class APITests(unittest.TestCase):
         schema = self.client.get("/openapi.json").json()
         security = schema["components"]["securitySchemes"]["OAuth2PasswordBearer"]["flows"]["password"]
         self.assertEqual(set(security["scopes"]), {"test:read", "test:write", "users:manage", "catalogue:access"})
-        self.assertEqual(schema["paths"]["/test"]["get"]["security"], [{"OAuth2PasswordBearer": ["test:read"]}])
+        self.assertEqual(schema["paths"]["/test"]["get"]["security"], [{"OAuth2PasswordBearer": ["test:read"]}, {"BrowserSession": []}])
         self.assertEqual(self.client.get("/docs").status_code, 200)
         with TestClient(self.app):
             pass
@@ -314,7 +314,7 @@ class APITests(unittest.TestCase):
     def test_openapi_administration_and_page_contract(self):
         schema = self.app.openapi()
         for path, method in (("/users", "get"), ("/users", "post"), ("/users/{id}/role", "put")):
-            self.assertEqual(schema["paths"][path][method]["security"], [{"OAuth2PasswordBearer": ["users:manage"]}])
+            self.assertEqual(schema["paths"][path][method]["security"], [{"OAuth2PasswordBearer": ["users:manage"]}, {"BrowserSession": []}])
         params = {item["name"]: item["schema"] for item in schema["paths"]["/users"]["get"]["parameters"]}
         self.assertEqual(params["page"]["default"], 1)
         self.assertEqual(params["page_size"]["default"], 50)
@@ -322,7 +322,7 @@ class APITests(unittest.TestCase):
         self.assertEqual(params["page_size"]["maximum"], 50)
         self.assertNotIn("password_hash", schema["components"]["schemas"]["PublicUser"]["properties"])
         self.assertEqual(schema["components"]["schemas"]["UserCreate"]["properties"]["password"]["format"], "password")
-        self.assertEqual(schema["paths"]["/users/me/password"]["put"]["security"],[{"OAuth2PasswordBearer":[]}])
+        self.assertEqual(schema["paths"]["/users/me/password"]["put"]["security"],[{"OAuth2PasswordBearer":[]}, {"BrowserSession": []}])
         self.assertNotIn("content",schema["paths"]["/users/me/password"]["put"]["responses"]["204"])
 
     def test_reset_password_validation_authorization_and_log_exclusion(self):
@@ -361,8 +361,36 @@ class APITests(unittest.TestCase):
 
     def test_swagger_explicit_query_parameters(self):
         schema = self.app.openapi()
+        from app.creation import CREATION_EXAMPLES
+        from app.schemas.catalogue import RESOURCES
+        for name, resource in RESOURCES.items():
+            operation = schema['paths']['/' + name]['post']
+            examples = operation['requestBody']['content']['application/json']['examples']
+            resource.create.model_validate(examples['single']['value'])
+            for item in examples['batch']['value']:
+                resource.create.model_validate(item)
+            # FastAPI omits nested null example keys; omitted optional fields
+            # must still validate to the same actual create representation.
+            self.assertEqual(resource.create.model_validate(examples['single']['value']).model_dump(),
+                             resource.create.model_validate(CREATION_EXAMPLES[name]).model_dump())
+            record = resource.record.model_json_schema()
+            for field in ('id_' + name, 'sequence_' + name, 'prefix_' + name, 'fantasy_name_' + name, 'created_at', 'created_at_timezone', 'presentation'):
+                self.assertTrue(record['properties'][field]['readOnly'])
+            # Optional nonnullable PUT fields are omitted, never suggested as null.
+            for field, property_schema in resource.update.model_json_schema()['properties'].items():
+                if field != 'presentation':
+                    self.assertNotIn('default', property_schema)
+        classification = RESOURCES['work_classifications'].create.model_json_schema()
+        self.assertIn('description_work_classifications', classification['properties'])
+        self.assertNotIn('tier', classification['required'])
+        self.assertNotIn('default', classification['properties']['tier'])
+        self.assertEqual(classification['properties']['tier']['type'], 'integer')
+        self.assertIn('insert_at_tier', schema['paths']['/work_classifications']['post']['requestBody']['content']['application/json']['examples'])
+        for path in ('/token', '/browser/login'):
+            self.assertIn('Retry-After', schema['paths'][path]['post']['responses']['429']['headers'])
+            self.assertEqual(schema['paths'][path]['post']['responses']['429']['content']['application/json']['schema']['$ref'], '#/components/schemas/ErrorResponse')
         for path, names in (("/test", {"id", "value", "created_at", "created_at_timezone", "created_at_date", "filter_timezone", "created_at_from", "created_at_to", "display_timezone", "page", "page_size", "order_by", "order_direction"}),
-                            ("/users", {"page", "page_size", "order_by", "order_direction"})):
+                            ("/users", {"page", "page_size", "order_by", "order_direction", "id", "username", "username_pattern", "role", "is_active", "created_at_date", "created_at_from", "created_at_to", "filter_timezone"})):
             params = schema["paths"][path]["get"]["parameters"]
             self.assertEqual({p["name"] for p in params}, names)
             for param in params:
@@ -371,7 +399,7 @@ class APITests(unittest.TestCase):
                 self.assertTrue(param["description"])
                 self.assertTrue(param["schema"]["examples"])
         reset = schema["paths"]["/users/{id}/password"]["put"]
-        self.assertEqual(reset["security"], [{"OAuth2PasswordBearer": ["users:manage"]}])
+        self.assertEqual(reset["security"], [{"OAuth2PasswordBearer": ["users:manage"]}, {"BrowserSession": []}])
         self.assertNotIn("content", reset["responses"]["204"])
 
     def test_password_body_exclusion_and_version_revocation(self):

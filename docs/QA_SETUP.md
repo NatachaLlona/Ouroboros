@@ -217,3 +217,17 @@ Migrations009–010 add independent classification tier positions and complete i
 ## Atomic array creation
 
 POST on the eleven catalogue resources and /test accepts one object or an ordered atomic array (default maximum 300). Single responses retain their full record shape; arrays return created_count/items with full final records, independently of GET pagination and administrator bulk PUT/DELETE. See [request, validation, configuration, audit and restart contracts](BATCH_CREATION.md).
+
+## Backend review QA
+
+Use fresh disposable credentials of 15?1024 Unicode characters for every newly created or changed API password; keep Postman credential variables private and empty in exports. Existing normal credentials must not be changed for QA. Follow scenarios 18.1?18.4 for platform access, public user filters, password boundaries and account/client throttling. Repeated login checks can yield 429; wait for Retry-After before retrying. GUI imports and JavaScript execution require separate evidence. See [the backend contract](BACKEND_REVIEW.md).
+
+## First frontend QA
+
+Follow [the explicit browser configuration and setup](FRONTEND.md) and scenarios 19.1?19.5. Use owned disposable QA for all example writes; never create demo records in normal data. Add only non-secret browser origin/development fields to an existing QA configuration; do not overwrite private settings. Build/test Angular first using npm ci, npm run build and npm test under frontend/. Open the public home, test the modal and create one platform, Unicode tag and work classification with omitted/explicit tier using disposable API accounts. Verify persisted backend ordering. See [Angular commands and isolated browser preview](ANGULAR.md). Record actual keyboard/mobile/UI screenshots separately from automation. Never screenshot a visible password, cookie, CSRF value or private temporary preview fixture.
+
+## Operator-selected refinement QA ports
+
+The main application remains 6969, normal PostgreSQL host 6669 and container PostgreSQL 5432. The owner selected 2469 for Angular preview/HTTP QA and 2424 for disposable PostgreSQL. Set OUROBOROS_QA_DB_PORT=2424 and OUROBOROS_QA_API_PORT=2469 before scripts/run_checks.py. Checks and preview must run sequentially; occupied ports fail without selecting another. The workflow_dispatch inputs require the operator to choose both distinct QA ports. No normal configuration, secrets or catalogue records are used by disposable tests. See [ANGULAR.md](ANGULAR.md) for exact Windows build/test/start commands and current UI walkthrough.
+
+The owner additionally selected **4242** for the second disposable PostgreSQL cluster used concurrently by the derived-project isolation test. Set **OUROBOROS_QA_DERIVED_DB_PORT=4242**. This is QA-only; never substitute it for normal 6669 or HTTP/Angular 2469. The hosted workflow requires all three QA port inputs from its operator.

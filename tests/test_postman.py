@@ -24,7 +24,7 @@ class PostmanTests(unittest.TestCase):
         collection=json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         schema=json.loads((PROJECT_ROOT/"tests/schemas/postman-v2.1.schema.json").read_text())
         jsonschema.validate(collection,schema)
-        self.assertEqual(len(collection["item"]),17)
+        self.assertEqual(len(collection["item"]),18)
         variables={item["key"]:item["value"] for item in collection["variable"]}
         for key, value in variables.items():
             if key != "base_url": self.assertEqual(value,"",key)

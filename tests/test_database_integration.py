@@ -25,9 +25,8 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
         root = Path(tempfile.mkdtemp(prefix="foundation-postgres-"))
         shutil.copy(PROJECT_ROOT / "compose.yaml", root)
         shutil.copytree(PROJECT_ROOT / "sql", root / "sql")
-        with socket.socket() as available:
-            available.bind(("127.0.0.1", 0))
-            port = available.getsockname()[1]
+        from support_ports import approved_port
+        port = approved_port('database')
         database = {"name": "foundation_test", "user": "foundation_test_master", "port": port,
                     "startup_timeout": 240, "connect_timeout": 10, "statement_timeout": 30}
         password = secrets.token_urlsafe(32)
@@ -50,7 +49,7 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                 self.assertEqual(read_entry(connection, entry_id), (entry_id, value))
                 with connection.cursor() as cursor:
                     cursor.execute("SELECT count(*) FROM public.foundation_migrations")
-                    self.assertEqual(cursor.fetchone()[0], 10)
+                    self.assertEqual(cursor.fetchone()[0], 11)
                     cursor.execute("SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND tablename='test'")
                     self.assertEqual(cursor.fetchone()[0], 1)
                     cursor.execute("SELECT data_type, is_identity, identity_generation FROM information_schema.columns WHERE table_schema='public' AND table_name='test' AND column_name='id'")
@@ -195,9 +194,8 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                             cursor.execute("SELECT pg_sleep(%s)",(0.04,))
                         log_event("INFO","Concurrent operation completed",component="probe")
                     return {"index":index}
-                with socket.socket() as available:
-                    available.bind(("127.0.0.1", 0))
-                    api_port = available.getsockname()[1]
+                from support_ports import approved_port
+                api_port = approved_port('api')
                 server = uvicorn.Server(uvicorn.Config(application, host="127.0.0.1", port=api_port,
                                                        access_log=False, log_config=None))
                 thread = threading.Thread(target=server.run, daemon=True)

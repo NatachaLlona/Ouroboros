@@ -1,6 +1,9 @@
 {
   "version": 1,
   "errors": [
+    {"code": "BROWSER_ORIGIN_REJECTED", "status": 403, "message": "The browser origin or transport is not permitted by this installation's configuration."},
+    {"code": "CSRF_REJECTED", "status": 403, "message": "Browser request verification failed; reload the session before retrying."},
+    {"code": "LOGIN_THROTTLED", "status": 429, "message": "Login attempt limit reached; retry after the indicated delay."},
     {"code": "RESOURCE_NOT_FOUND", "status": 404, "message": "The requested resource was not found."},
     {"code": "METHOD_NOT_ALLOWED", "status": 405, "message": "This method is not allowed for the resource."},
     {"code": "RELATIONSHIP_CONFLICT", "status": 409, "message": "A reference, duplicate relationship or dependency prevents this operation."},

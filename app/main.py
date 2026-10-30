@@ -166,6 +166,7 @@ def create_app(config, database, auth, logger):
         finally:
             with anyio.CancelScope(shield=True):
                 failures = await anyio.to_thread.run_sync(lambda: cleanup_actions([
+                    ("browser_sessions", app.state.browser_sessions.close),
                     ("database", database.close), ("authentication", auth.close),
                     ("thread_pool_limit", lambda: setattr(limiter, "total_tokens", previous_limit)),
                 ]))
@@ -183,6 +184,10 @@ def create_app(config, database, auth, logger):
     application.state.cleanup_failures = []
     application.state.database = database
     application.state.auth = auth
+    from app.browser_sessions import BrowserSessions
+    application.state.browser_sessions = BrowserSessions(config)
+    from app.login_throttle import LoginThrottle
+    application.state.login_throttle = LoginThrottle()
     application.state.logger = logger
     application.state.config = config
     application.state.error_codes = codes
@@ -191,6 +196,8 @@ def create_app(config, database, auth, logger):
     application.add_middleware(RequestLoggingMiddleware, logger=logger)
     from app.audit_middleware import RequestAuditingMiddleware
     application.add_middleware(RequestAuditingMiddleware, database=database, logger=logger, config=config, codes=codes)
+    from app.endpoints.browser import BrowserHeadersMiddleware
+    application.add_middleware(BrowserHeadersMiddleware)
 
     @application.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error):
@@ -243,6 +250,33 @@ def create_app(config, database, auth, logger):
     for router in catalogue.routers:
         application.include_router(router)
     application.include_router(audit.router)
+    from app.endpoints import browser
+    from fastapi.staticfiles import StaticFiles
+    application.include_router(browser.router)
+    class ProductionAssets(StaticFiles):
+        """Cache immutable hashed bundles; never cache HTML or missing assets."""
+        async def get_response(self, path, scope):
+            import re
+            if path.endswith('.html'):
+                from starlette.exceptions import HTTPException
+                raise HTTPException(404)
+            response = await super().get_response(path, scope)
+            hashed = re.search(r'-[A-Z0-9a-z_-]{8,}\.(?:js|css)$', path)
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable' if hashed else 'no-cache'
+            return response
+    application.mount('/frontend', ProductionAssets(directory=browser.BUILD, check_dir=False), name='frontend_assets')
+    original_openapi = application.openapi
+    def documented_openapi():
+        schema = original_openapi()
+        schema['components']['securitySchemes']['BrowserSession'] = {
+            'type': 'apiKey', 'in': 'cookie', 'name': application.state.browser_sessions.cookie_name,
+            'description': 'Opaque HttpOnly browser session. Sign in through the UI; mutations also require exact Origin and X-CSRF-Token. Swagger/Postman may continue using OAuth2 bearer tokens.'}
+        for path, operations in schema['paths'].items():
+            for operation in operations.values():
+                if isinstance(operation, dict) and operation.get('security') and {'BrowserSession': []} not in operation['security']:
+                    operation['security'].append({'BrowserSession': []})
+        return schema
+    application.openapi = documented_openapi
     return application
 
 
@@ -283,7 +317,7 @@ def run_api(application, config):
     import uvicorn
     # Built-in access logs include query strings; the application middleware logs safe fields.
     server = uvicorn.Server(uvicorn.Config(application, host=config["host"], port=config["port"],
-                                         access_log=False, log_config=None, workers=1))
+                                         access_log=False, log_config=None, workers=1, proxy_headers=False))
     try:
         server.run()
     except KeyboardInterrupt:

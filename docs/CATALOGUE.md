@@ -19,12 +19,12 @@ IDs concatenate the prefix and **at least seven decimal digits**: `WK0000001`, `
 
 ## 🗂️ **Exact tables and domain columns**
 
-All tables include the four metadata columns above. `?` means nullable; other columns are required. TEXT fields have no artificial length limit. FKs reference the matching permanent TEXT IDs.
+All tables include the four metadata columns above. `?` means nullable; other columns are required. TEXT fields have no artificial length limit except platform_url (2083 characters). FKs reference the matching permanent TEXT IDs.
 
 | Table | Prefix | Fixed fantasy name | Additional columns |
 | --- | --- | --- | --- |
 | `works` | WK | Obras | `title TEXT`, `title_language TEXT`, `synopsis TEXT?` |
-| `platforms` | PL | Plataformas | `platform_name TEXT`, `platform_is_paid BOOLEAN`, `platform_is_episodes BOOLEAN`, `platform_is_duration_time BOOLEAN`, `price_amount NUMERIC?`, `price_currency TEXT?` |
+| `platforms` | PL | Plataformas | `platform_name TEXT`, `platform_is_paid BOOLEAN`, `platform_is_episodes BOOLEAN`, `platform_is_duration_time BOOLEAN`, `platform_access_types TEXT[] DEFAULT '{}'`, `platform_url TEXT?`, `price_amount NUMERIC?`, `price_currency TEXT?` |
 | `work_availabilities` | AV | Disponibilidade de obras por plataformas | `id_works FK`, `id_platforms FK`, `duration_minutes NUMERIC?`, `episode_quantity BIGINT?`, `publisher_profile TEXT?`, `url TEXT?` |
 | `tags` | TG | Tags | `tag_name TEXT`, `display_name_tags TEXT`, `description_tags TEXT?` |
 | `tag_categories` | TC | Categorias de tags | `tag_category_name TEXT`, `display_name_tag_categories TEXT`, `description_tag_categories TEXT?` |

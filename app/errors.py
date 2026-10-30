@@ -47,7 +47,7 @@ def load_error_codes(path=None):
         required = {'RESOURCE_NOT_FOUND', 'METHOD_NOT_ALLOWED', 'RELATIONSHIP_CONFLICT', 'VALIDATION_ERROR',
                     'AUTHENTICATION_REQUIRED', 'INVALID_TOKEN', 'INVALID_CREDENTIALS', 'INSUFFICIENT_PERMISSIONS',
                     'CONFIRMATION_REQUIRED', 'DATABASE_UNAVAILABLE', 'AUDIT_UNAVAILABLE', 'INTERNAL_ERROR',
-                    'REQUEST_CANCELLED', 'TRANSPORT_FAILURE', 'USER_CONFLICT', 'PASSWORD_CHANGE_REJECTED'}
+                    'REQUEST_CANCELLED', 'TRANSPORT_FAILURE', 'USER_CONFLICT', 'PASSWORD_CHANGE_REJECTED', 'LOGIN_THROTTLED', 'CSRF_REJECTED', 'BROWSER_ORIGIN_REJECTED'}
         if set(result) != required:
             raise ValueError
         return result
@@ -62,8 +62,12 @@ def code_for(status, detail=None, path='', source=None):
     if status == 401:
         if detail == 'Bearer authentication required':
             return 'AUTHENTICATION_REQUIRED'
-        return 'INVALID_CREDENTIALS' if path.rstrip('/') == '/token' else 'INVALID_TOKEN'
-    return {400: 'PASSWORD_CHANGE_REJECTED', 403: 'INSUFFICIENT_PERMISSIONS', 404: 'RESOURCE_NOT_FOUND',
+        return 'INVALID_CREDENTIALS' if path.rstrip('/') in ('/token', '/browser/login') else 'INVALID_TOKEN'
+    if status == 403 and detail == 'CSRF verification failed':
+        return 'CSRF_REJECTED'
+    if status == 403 and detail in ('Browser origin rejected', 'Loopback HTTP development only'):
+        return 'BROWSER_ORIGIN_REJECTED'
+    return {429: 'LOGIN_THROTTLED', 400: 'PASSWORD_CHANGE_REJECTED', 403: 'INSUFFICIENT_PERMISSIONS', 404: 'RESOURCE_NOT_FOUND',
             405: 'METHOD_NOT_ALLOWED', 409: 'USER_CONFLICT' if source == 'users' else 'RELATIONSHIP_CONFLICT',
             422: 'VALIDATION_ERROR', 503: 'DATABASE_UNAVAILABLE'}.get(status, 'INTERNAL_ERROR')
 

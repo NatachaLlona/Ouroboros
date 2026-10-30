@@ -1,16 +1,16 @@
 """Administrator-only enrollment, paginated listing and role replacement."""
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Request, Response, Security
+from fastapi import APIRouter, Path, Request, Response, Security
 
 from app.api_credentials import PASSWORD_HASHER
 from app.api_users import UserManagementError
 from app.auth import require_scopes
 from app.logger import log_event
-from app.pagination import Page, pagination
+from app.pagination import Page
 from app.schemas.users import PasswordChange, PasswordReset, PublicUser, RoleUpdate, UserCreate
-from app.ordering import UserOrder, OrderDirection
 from fastapi import Query
+from app.schemas.users import UserQuery
 
 router = APIRouter(tags=["users"])
 Administrator = Annotated[dict, Security(require_scopes, scopes=["users:manage"])]
@@ -50,7 +50,7 @@ def reset_user_password(payload: PasswordReset, request: Request, actor: Adminis
     """Reset another user's password and revoke all of that user's old tokens.
 
     Args:
-        payload: Strict nonempty new password; the entire body is log-excluded.
+        payload: New password meeting the shared policy; the entire body is log-excluded.
         request: Request carrying the transactional account repository.
         actor: Active administrator, rechecked in the transaction.
         id: Target account ID; self-targeting returns 400 and requires self-service.
@@ -94,22 +94,22 @@ def create_user(payload: UserCreate, request: Request, actor: Administrator):
 
 
 @router.get("/users", response_model=Page[PublicUser])
-def list_users(request: Request, actor: Administrator, paging: Annotated[dict, Depends(pagination)],
-               order_by: Annotated[UserOrder, Query(description='Public scalar ordering field; ties use ID ascending.', examples=['id', 'username'])] = 'id',
-               order_direction: OrderDirection = 'asc'):
+def list_users(request: Request, actor: Administrator, selection: Annotated[UserQuery, Query()]):
     """List public accounts with whitelisted scalar ordering, defaulting to ID.
 
     Args:
         request: Request carrying the database-backed account repository.
         actor: Current active administrator verified by shared authorization.
-        paging: Shared validated one-based page and bounded page size.
-        order_by: Public scalar field, never a private credential column.
-        order_direction: asc or desc, with NULLS LAST and ID tie-breaks.
+        selection: Public AND filters, shared calendar boundaries, bounded
+            pagination and whitelisted ordering with ID tie-breaks.
 
     Returns:
         A public-only collection envelope from one database statement snapshot.
     """
-    return request.app.state.auth.users.page(**paging, order_by=order_by, order_direction=order_direction)
+    selection.bind_filter_timezone(request.app.state.config)
+    values = selection.model_dump(exclude_none=True)
+    controls = {key: values.pop(key) for key in ('page', 'page_size', 'order_by', 'order_direction')}
+    return request.app.state.auth.users.page(**controls, **values)
 
 
 @router.put("/users/{id}/role", response_model=PublicUser)

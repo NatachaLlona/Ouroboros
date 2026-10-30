@@ -100,3 +100,7 @@ Collection GET, administrator bulk PUT/DELETE and previews share predicates. Com
 ## Atomic array creation
 
 POST on the eleven catalogue resources and /test accepts one object or an ordered atomic array (default maximum 300). Single responses retain their full record shape; arrays return created_count/items with full final records, independently of GET pagination and administrator bulk PUT/DELETE. See [request, validation, configuration, audit and restart contracts](BATCH_CREATION.md).
+
+## Browser session privacy extension
+
+All /browser/* bodies, including rejected login input and CSRF-bearing responses, are wholly omitted from audit and technical previews. Cookie/CSRF/session keys receive recursive redaction as defense in depth; headers are not logged. Session endpoints remain in the central request lifecycle. Public static GET/HEAD shells/assets bypass database audit persistence, while technical request logs remain. Browser catalogue mutations use the existing mandatory audit triggers and transaction-time authority checks. See [session/CSRF contracts](FRONTEND.md).

@@ -8,6 +8,7 @@ import shutil
 import socket
 import tempfile
 import threading
+import time
 import unittest
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -37,9 +38,8 @@ class CatalogueAPITests(unittest.TestCase):
         shutil.copy(PROJECT_ROOT / 'compose.yaml', cls.root)
         shutil.copytree(PROJECT_ROOT / 'sql', cls.root / 'sql')
         cls.config = json.loads((PROJECT_ROOT / '.app.config.example').read_text(encoding='utf-8'))
-        with socket.socket() as available:
-            available.bind(('127.0.0.1', 0))
-            port = available.getsockname()[1]
+        from support_ports import approved_port
+        port = approved_port('database')
         cls.db = {**cls.config['database'], 'name': 'crud_base', 'user': 'crud_master', 'port': port, 'startup_timeout': 240}
         cls.master = secrets.token_urlsafe(32)
         cls.secret = write_secret(cls.master, cls.root)
@@ -47,6 +47,19 @@ class CatalogueAPITests(unittest.TestCase):
         cls.env = compose_environment(cls.db, cls.secret)
         cls.addClassCleanup(cls.cleanup)
         start_postgres(cls.db, cls.secret, cls.root, cls.project)
+        # Docker's local-socket healthcheck can observe the temporary init server
+        # before the published TCP listener is ready. Bound QA readiness by an
+        # authenticated connection to this run's own ephemeral endpoint.
+        from app.database import DatabaseError
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                with connect({**cls.db, 'name': 'postgres'}, cls.master):
+                    break
+            except DatabaseError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(.25)
         cls.api_password = secrets.token_urlsafe(24)
         cls.hashed = PASSWORD_HASHER.hash(cls.api_password)
 
@@ -379,6 +392,15 @@ class CatalogueAPITests(unittest.TestCase):
             table = raw.split('{{base_url}}', 1)[-1].split('?', 1)[0].strip('/')
             if spec['method'] == 'GET' and table in RESOURCES:
                 params = {p['key']: p for p in spec['url']['query']}
+                if item['name'].startswith('REVIEW '):
+                    # Focused enabled-filter examples intentionally select a
+                    # subset; the general collection requests below retain all controls.
+                    self.assertLessEqual(set(params), set(RESOURCES[table].query.model_fields))
+                    enabled = {key: value['value'] for key, value in params.items() if not value.get('disabled', False)}
+                    RESOURCES[table].query.model_validate(enabled)
+                    self.assertEqual(enabled['platform_access_types'], 'website')
+                    self.assertEqual(enabled['platform_url'], '%example.org%')
+                    continue
                 self.assertEqual(set(params), set(RESOURCES[table].query.model_fields))
                 for field in RESOURCES[table].columns:
                     self.assertTrue(params[field]['disabled'])

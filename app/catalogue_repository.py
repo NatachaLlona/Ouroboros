@@ -151,7 +151,13 @@ class CatalogueRepository:
                 if echoed != present(current, echoed['display_timezone'])['presentation']:
                     raise CatalogueError(422, 'Read-only presentation must be echoed unchanged')
             mutable = {key: value for key, value in supplied.items() if key in resource.fields}
-            resource.create.model_validate({key: mutable.get(key, current[key]) for key in resource.fields})
+            validation_values = {key: mutable.get(key, current[key]) for key in resource.fields}
+            # Omitted historical descriptions may exceed today's input policy.
+            # Validate only submitted descriptions; this copy is never persisted.
+            for key in resource.fields:
+                if key.startswith('description_') and key not in mutable:
+                    validation_values[key] = None
+            resource.create.model_validate(validation_values)
             mutable = self.source_context(mutable, current, preserve_echo='watched_at_offset' in supplied)
             if ordering is not None and 'tier' in mutable:
                 old_tier = current['tier']
@@ -209,6 +215,8 @@ class CatalogueRepository:
         """Use the identical predicate contract for collection and bulk operations."""
         resource = self.resource
         filters = [(name, 'ILIKE' if name in resource.pattern_fields else '=', values.get(name)) for name in resource.columns]
+        filters = [(name, '@>', [value]) if name == 'platform_access_types' and value is not None else (name, operator, value)
+                   for name, operator, value in filters]
         filters += date_predicates(values, [field for field in ('created_at', 'added_at', 'watched_at') if field in resource.columns])
         return filters
 

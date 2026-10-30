@@ -5,6 +5,7 @@ from argon2.low_level import Type
 from app.config import PROJECT_ROOT, save_config
 from app.credentials import read_password, write_secret
 from app.database import DatabaseError
+from app.password_policy import validate_new_password
 
 PASSWORD_HASHER = PasswordHasher(type=Type.ID)
 
@@ -73,6 +74,10 @@ def configure_api_credentials(config, users, root=PROJECT_ROOT):
         raise DatabaseError("API username already exists; choose another. Existing users cannot be replaced")
     password = read_password("API administrator password: ")
     try:
+        try:
+            validate_new_password(password)
+        except ValueError as error:
+            raise DatabaseError(str(error)) from None
         password_hash = PASSWORD_HASHER.hash(password)
     finally:
         password = None

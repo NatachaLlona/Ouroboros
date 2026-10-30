@@ -8,8 +8,11 @@
 | Component responsibilities, data and transactions | [Architecture](ARCHITECTURE.md) |
 | Catalogue schema, relationships and pending decisions | [Catalogue model](CATALOGUE.md) |
 | Catalogue CRUD, supervisor permissions, filter/order matrix and safe deletion | [Catalogue API](CATALOGUE_API.md) |
+| First frontend, browser sessions, configuration and walkthrough | [Frontend](FRONTEND.md) |
 | API, authentication, roles and pagination | [API contracts](API.md) |
+| Platform access, public user filters, passwords, login limits and migration011 | [Backend review contracts](BACKEND_REVIEW.md) |
 | Startup/shutdown, logs, troubleshooting and derived projects | [Operations](OPERATIONS.md) |
+| Angular 22 build, feature architecture, three forms and browser QA | [Angular frontend](ANGULAR.md) |
 | Stable scenario catalogue | [qa/scenarios.json](../qa/scenarios.json) |
 | Developer conventions and Git workflow | [NEXTGENERATION.md](../NEXTGENERATION.md) |
 | Historical Foundation review (not current Ouroboros evidence) | [Final review](FINAL_REVIEW.md) |
@@ -29,3 +32,7 @@ For manual QA use owned disposable storage and fresh private accounts. Inspect S
 ## 🪜 Classification tiers and complete test CRUD
 
 Migrations009–010 add independent classification tier positions and complete integer-ID test CRUD with shared creation dates, UTC presentation, strict filters and confirmed administrator bulk operations. See [the authoritative contracts](TIERS_AND_TEST_CRUD.md) for the one-time inspected backfill, atomic append/insert/move/delete behavior, bulk tier exception, scope matrix and restart instructions. Never reseed or replace the existing nine normal classifications. Destructive QA remains isolated; review measurements and findings are documented separately.
+
+- [Individual registration UI](REGISTRATION_UI.md): current phase-one controls, payload preservation, tier order, verification and Windows commands.
+- [Frontend delivery diagnosis](FRONTEND_DELIVERY_DIAGNOSIS.md): listener ownership, source/build/HTTP hashes, cache behavior, feature status and precise manual checks.
+- [Description limits and classification positions](DESCRIPTION_AND_TIERS.md): shared configuration, Unicode grapheme counting, API validation, historical preservation and current-order pagination.

@@ -113,3 +113,10 @@ Collection GET, administrator bulk PUT/DELETE and previews share predicates. Com
 ## Atomic array creation
 
 POST on the eleven catalogue resources and /test accepts one object or an ordered atomic array (default maximum 300). Single responses retain their full record shape; arrays return created_count/items with full final records, independently of GET pagination and administrator bulk PUT/DELETE. See [request, validation, configuration, audit and restart contracts](BATCH_CREATION.md).
+
+## Platform access information
+
+Migration011 adds platform_access_types (unique application/website/link array, default []) and optional HTTP/HTTPS platform_url (maximum 2083 characters). Both support creation, single/batch results, reads, partial/full-record PUT, ordering and confirmed administrator bulk replacement. Access-type filtering tests membership in one allowed value; URL filtering uses ILIKE. Historical unknowns stay []/null. See [the full field operation matrix](BACKEND_REVIEW.md).
+## Description input length policy
+
+`description_tags`, `description_tag_categories` and `description_work_classifications` accept up to the configured **4000 Unicode 16 extended grapheme clusters**, not UTF-16 units or code points. Fields remain optional/nullable, and omitted PUT values are preserved. Supplied overflow on POST/object/array, individual PUT or administrator bulk PUT returns the standard **422 VALIDATION_ERROR**, without truncation or partial batch writes. Generated input schemas publish `x-max-graphemes`/`x-unicode-version` and explanatory descriptions. Output schemas intentionally allow preserved historical oversized text. PostgreSQL TEXT, observations, synopsis and all other text contracts are unchanged. See [configuration, counting and historical inspection](DESCRIPTION_AND_TIERS.md).

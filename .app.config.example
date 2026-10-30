@@ -1,6 +1,12 @@
 {
   "host": "localhost",
   "port": 6969,
+  "browser": {
+    "origin": "http://localhost:6969",
+    "allow_loopback_http": true,
+    "idle_timeout_seconds": 7200,
+    "absolute_lifetime_seconds": 43200
+  },
   "application_timezone": "Europe/Lisbon",
   "default_display_timezone": "Europe/Lisbon",
   "api": {

@@ -5,7 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 class ReferenceSummary(BaseModel):
     """Public identifying values only; no recursive records or writable fields."""
-    model_config = ConfigDict(extra='forbid', frozen=True, json_schema_extra={'readOnly': True})
+    # Keep readOnly on the referencing fields. Pydantic removes identical $ref
+    # siblings when it is also declared on the referenced model itself.
+    model_config = ConfigDict(extra='forbid', frozen=True)
 
 
 SUMMARY_FIELDS = {

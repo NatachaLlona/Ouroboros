@@ -13,7 +13,7 @@ def where_clause(columns, filters):
     """Compose the same AND predicate for GET, bulk preview and bulk execution."""
     conditions, values = [], []
     for name, operator, value in filters:
-        if name not in columns or operator not in ('=', 'ILIKE', '>=', '<'):
+        if name not in columns or operator not in ('=', 'ILIKE', '>=', '<', '@>'):
             raise ValueError('Invalid filter selection')
         if value is not None:
             conditions.append(sql.SQL('{} {} %s').format(sql.Identifier(name), sql.SQL(operator)))

@@ -221,6 +221,20 @@ Migrations009–010 add independent classification tier positions and complete i
 
 POST on the eleven catalogue resources and /test accepts one object or an ordered atomic array (default maximum 300). Single responses retain their full record shape; arrays return created_count/items with full final records, independently of GET pagination and administrator bulk PUT/DELETE. See [request, validation, configuration, audit and restart contracts](BATCH_CREATION.md).
 
+## Backend review QA
+
+Use fresh disposable credentials of 15?1024 Unicode characters for every newly created or changed API password; keep Postman credential variables private and empty in exports. Existing normal credentials must not be changed for QA. Follow scenarios 18.1?18.4 for platform access, public user filters, password boundaries and account/client throttling. Repeated login checks can yield 429; wait for Retry-After before retrying. GUI imports and JavaScript execution require separate evidence. See [the backend contract](BACKEND_REVIEW.md).
+
+## First frontend QA
+
+Follow [the explicit browser configuration and setup](FRONTEND.md) and scenarios 19.1?19.5. Use owned disposable QA for all example writes; never create demo records in normal data. Add only non-secret browser origin/development fields to an existing QA configuration; do not overwrite private settings. Build/test Angular first using npm ci, npm run build and npm test under frontend/. Open the public home, test the modal and create one platform, Unicode tag and work classification with omitted/explicit tier using disposable API accounts. Verify persisted backend ordering. See [Angular commands and isolated browser preview](ANGULAR.md). Record actual keyboard/mobile/UI screenshots separately from automation. Never screenshot a visible password, cookie, CSRF value or private temporary preview fixture.
+
+## Operator-selected refinement QA ports
+
+The main application remains 6969, normal PostgreSQL host 6669 and container PostgreSQL 5432. The owner selected 2469 for Angular preview/HTTP QA and 2424 for disposable PostgreSQL. Set OUROBOROS_QA_DB_PORT=2424 and OUROBOROS_QA_API_PORT=2469 before scripts/run_checks.py. Checks and preview must run sequentially; occupied ports fail without selecting another. The workflow_dispatch inputs require the operator to choose both distinct QA ports. No normal configuration, secrets or catalogue records are used by disposable tests. See [ANGULAR.md](ANGULAR.md) for exact Windows build/test/start commands and current UI walkthrough.
+
+The owner additionally selected **4242** for the second disposable PostgreSQL cluster used concurrently by the derived-project isolation test. Set **OUROBOROS_QA_DERIVED_DB_PORT=4242**. This is QA-only; never substitute it for normal 6669 or HTTP/Angular 2469. The hosted workflow requires all three QA port inputs from its operator.
+
 ## 🗂️ **Scenario index**
 
 | ID | Scenario | Verification type |
@@ -299,6 +313,15 @@ POST on the eleven catalogue resources and /test accepts one object or an ordere
 | 17.4 | [Sequential classification batch tiers and concurrency](#scenario-17-4) | both |
 | 17.5 | [Batch creation roles transactional authority and connection reuse](#scenario-17-5) | both |
 | 17.6 | [Batch audit atomicity bounded capture and large bodies](#scenario-17-6) | both |
+| 18.1 | [Platform access information and migration preservation](#scenario-18-1) | both |
+| 18.2 | [Public administrator user filters](#scenario-18-2) | both |
+| 18.3 | [Consistent new password policy](#scenario-18-3) | both |
+| 18.4 | [Bounded account and client login throttling](#scenario-18-4) | both |
+| 19.1 | [Public frontend home and accessible login modal](#scenario-19-1) | both |
+| 19.2 | [Opaque browser sessions login expiry and logout](#scenario-19-2) | both |
+| 19.3 | [Browser catalogue authorization CSRF and atomic audit](#scenario-19-3) | both |
+| 19.4 | [Portuguese catalogue registration form feedback](#scenario-19-4) | both |
+| 19.5 | [Frontend contrast responsive layout and secure deployment](#scenario-19-5) | both |
 
 <a id="scenario-1-1"></a>
 ## 1.1 - Configuration and independent credential prompts
@@ -1571,7 +1594,7 @@ Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the fi
 2. Use Authorize > Logout, close and authorize as standard with test scopes only. Confirm administration gives 403 and tests work.
 3. Try POST /token with password grant and empty optional fields; inspect form explanations. Confirm Try it out does not itself switch global authorization. Do not include tokens/passwords in screenshots.
 4. Authorize once through Authorize, then Close; reuse authorization for POST /test, GET /test and permitted GET /users without logging in again.
-5. Expand GET /test and verify id/value/page/page_size controls, raw wildcard/escape examples and defaults 1/50; GET /users has only pagination controls.
+5. Expand GET /test and verify id/value/page/page_size controls, raw wildcard/escape examples and defaults 1/50; GET /users has public account/date filters, pagination and whitelisted ordering controls.
 6. Set page=2 and page_size=10; execute and verify the envelope and ascending IDs. Record actual UI evidence separately.
 
 **Approval criterion:** Real UI controls, form and account switching work as documented; record browser/version and sanitized evidence. HTTP checks alone cannot pass this case.
@@ -2123,7 +2146,7 @@ Use logs/application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log (for example the fi
 1. Inspect OpenAPI query parameters for GET /test and GET /users.
 2. Separately execute visual scenario 6.1; OpenAPI inspection does not prove rendering.
 
-**Approval criterion:** GET /test exposes id/value/page/page_size with descriptions/examples/defaults/constraints; GET /users exposes only page/page_size. No users filters exist in implementation or documentation.
+**Approval criterion:** GET /test exposes id/value/page/page_size with descriptions/examples/defaults/constraints; GET /users exposes public ID, exact username, username_pattern, role, is_active, creation-day/range/timezone filters, pagination and whitelisted ordering. Secrets are rejected.
 
 
 **Exact log evidence:**
@@ -2543,6 +2566,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 2. Copy each response to PUT; test invalid snake_case, negative prices, nonpositive duration/episodes and timezone-free timestamps (422).
 3. For work_tags switch from tag to relationship by sending id_tags=null plus id_tag_relationships. Sending both or neither (after merge) must be 422; both origins must be 422.
 4. Create another work and attempt cross-work availability/origin assignments (409). Missing foreign IDs and duplicate tag/category pairs return 409. Repeated availabilities/watchlist/history/work_tags remain allowed.
+5. Compare every relationship collection item with GET by ID: original foreign-key IDs stay intact, one-level identifying summaries match names, nullable references are null, and standard access is denied. No mutation audit evidence is created.
 
 **Approval criterion:** Partial updates preserve omissions, nullable clearing is explicit, and complete-record validation plus PostgreSQL constraints enforce all relationship rules.
 
@@ -2561,6 +2585,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 **Automated correspondence:**
 
 - `test_catalogue_api.CatalogueAPITests.test_02_partial_null_validation_relationships_and_repetitions`
+- `test_relationship_lists.RelationshipListIntegrationTests.test_all_relationship_projections_permissions_and_read_only_evidence`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |
@@ -2583,6 +2608,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 2. Test exact IDs/FKs/technical names and independent true/false booleans. For text use dragon, dragon%, dr_gon, literal\_under, 100\% pure and empty text; injection text is data.
 3. Select every public field in order_by in both asc and desc. Compare NULLS LAST and permanent-ID ascending tie-breaks. Create at least 13 equal-sort rows; page_size=10 across pages must not repeat IDs.
 4. Try order_by=password_hash, invalid direction, page=0, page=1.0 and page_size 9/51 (422). Request an empty high page and verify original count.
+5. Rename a referenced identifying name and confirm the next collection read sees it. Compare IDs/count/order with the single-record projections; measure one page query plus one batched SELECT per needed target table, independent of page size.
 
 **Approval criterion:** Every filter is explicit, text wildcards are unmodified, all public scalar fields order correctly, and count/page items use one snapshot.
 
@@ -2601,6 +2627,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 **Automated correspondence:**
 
 - `test_catalogue_api.CatalogueAPITests.test_03_filters_patterns_order_fields_and_pagination`
+- `test_relationship_lists.RelationshipListIntegrationTests.test_page_ids_count_order_names_renames_and_constant_query_counts`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |
@@ -2704,6 +2731,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 1. Run two simultaneous PUT requests to one work, one changing title and the other synopsis. Verify both independent changes persist.
 2. Use the mapped disposable automated test to force demotion after request authentication but before deletion. Supervisor ID deletion and administrator DELETE all must be rejected after privilege loss.
 3. Review lock ordering: membership advisory lock, actor row/version, catalogue row. Verify user administration rechecks the actor/version and last-administrator protection remains enforced.
+4. Use only disposable integration data to overlap a reference rename with a collection read. Verify the page and all reference batches use a consistent snapshot and do not mix versions.
 
 **Approval criterion:** Concurrent independent fields survive, privileged writes cannot pass a stale role check, and consistent locking prevents demotion/write races.
 
@@ -2722,6 +2750,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 **Automated correspondence:**
 
 - `test_catalogue_api.CatalogueAPITests.test_06_concurrent_updates_and_transactional_privilege_rechecks`
+- `test_relationship_lists.RelationshipListIntegrationTests.test_consistent_snapshot_across_page_and_reference_batches`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |
@@ -2744,6 +2773,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 2. In Swagger visually confirm dropdowns, defaults, examples and nullable schemas; authorize once, reuse authorization, logout/re-authorize when switching accounts. Record this visual part separately.
 3. Compare POST, PUT, GET-by-ID and collection-item response schema references. Inspect all inherited /test and /users ordering fields; private hash/version/scopes must not be sortable.
 4. In the canonical Postman JSON verify all filters in editable Params, optional fields unchecked, valid defaults, empty credentials, synchronized README JSON and skipped-by-default DELETE all with confirm=false. Actual JS sandbox execution requires separate evidence.
+5. Inspect GET collection OpenAPI references.readOnly=true, identifying field readOnly annotations, and absence of references from single/write schemas. POST and PUT references must be rejected with 422.
 
 **Approval criterion:** OpenAPI and Postman contracts are explicit and synchronized; automated schema checks do not claim visual Swagger or Postman execution.
 
@@ -2762,6 +2792,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 **Automated correspondence:**
 
 - `test_catalogue_api.CatalogueAPITests.test_07_inherited_ordering_and_openapi_response_equivalence`
+- `test_relationship_lists.RelationshipListUnitTests.test_collection_only_schemas_and_unchanged_write_inputs`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |
@@ -3551,6 +3582,404 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 **Automated correspondence:**
 
 - `test_batch_creation.BatchCreationIntegrationTests.test_audit_failure_atomicity_and_300_item_capture_limits`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-18-1"></a>
+## 18.1 - Platform access information and migration preservation
+
+**Objective:** Platform access information and migration preservation. See docs/BACKEND_REVIEW.md for the operation contract.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA database and fresh private role credentials only; Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Apply migrations 001 through 010 to an owned disposable database, retain a platform row and account metadata, then apply 011 twice. Verify all prior values and migration checksums survive; platform_access_types is [] and platform_url is null for historical unknowns.
+2. POST one platform and an array with application, website and link combinations; test empty access types and nullable HTTP/HTTPS URLs. Reject duplicates, invalid types, null collections and non-HTTP URLs.
+3. GET single and batch results, echo a full record through PUT, partially replace the access collection, and clear URL with null. Inspect Swagger enum choices.
+4. Enable access membership and URL ILIKE filters, order by each new field, compare GET count with bulk preview and then explicitly confirm replacement/delete only in disposable data. Inspect same-transaction mutation audit evidence.
+
+**Approval criterion:** All described validations and authorization checks hold; normal data and credentials are unchanged.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_backend_review.BackendReviewUnitTests.test_platform_validation_and_shared_predicates`
+- `test_backend_review.BackendReviewIntegrationTests.test_platform_roundtrips_batch_bulk_audits_and_constraints`
+- `test_backend_review.BackendReviewIntegrationTests.test_migration_preserves_historical_records_and_replay`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-18-2"></a>
+## 18.2 - Public administrator user filters
+
+**Objective:** Public administrator user filters. See docs/BACKEND_REVIEW.md for the operation contract.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA database and fresh private role credentials only; Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. With an administrator token, use REVIEW users optional public filters. Leave unused controls disabled; enable ID, exact username, username_pattern with %, role and is_active=false independently, then combine them with AND.
+2. Use the enabled combined-filter example; zero matches is a valid paginated result. Preserve page/page_size and whitelisted public ordering.
+3. Compare created_at_date with inclusive calendar from/to on the same DST day in Europe/Lisbon. Omitted filter_timezone uses application_timezone; timestamp upper bounds are exclusive.
+4. Check invalid dates, conflicting day/range filters, unknown parameters and secret ordering return 422. Supervisor and standard listing remain forbidden.
+
+**Approval criterion:** All described validations and authorization checks hold; normal data and credentials are unchanged.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_backend_review.BackendReviewHTTPTests.test_user_filters_strict_public_schema_and_configured_day`
+- `test_backend_review.BackendReviewIntegrationTests.test_users_combined_filters_calendar_days_and_secret_rejection`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-18-3"></a>
+## 18.3 - Consistent new password policy
+
+**Objective:** Consistent new password policy. See docs/BACKEND_REVIEW.md for the operation contract.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA database and fresh private role credentials only; Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. In disposable first enrollment, user creation, own-password change and administrator reset, reject 14 characters and accept 15 characters; reject 1025 and accept 1024 Unicode characters.
+2. Paste a passphrase with spaces and Unicode, including over 64 characters. Confirm no normalization, composition requirement or silent truncation.
+3. Authenticate using an existing shorter password, then change it using the new policy; verify only the changed account token version is revoked. Do not rewrite other stored hashes.
+4. Run the short-new-password Postman rejection example and verify the whole password body is absent from logs and audits.
+
+**Approval criterion:** All described validations and authorization checks hold; normal data and credentials are unchanged.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_backend_review.BackendReviewUnitTests.test_password_boundaries_and_unicode_without_normalization`
+- `test_backend_review.BackendReviewIntegrationTests.test_users_combined_filters_calendar_days_and_secret_rejection`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-18-4"></a>
+## 18.4 - Bounded account and client login throttling
+
+**Objective:** Bounded account and client login throttling. See docs/BACKEND_REVIEW.md for the operation contract.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA database and fresh private role credentials only; Read docs/BACKEND_REVIEW.md; never execute destructive QA on the normal database
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Against an owned disposable instance only, send ten /token attempts for one account in five minutes, then verify 429 LOGIN_THROTTLED and positive Retry-After on the next attempt.
+2. Use varying usernames from one client: fifty admitted attempts share the client limit. Changing X-Forwarded-For must not bypass limits. Credential failures remain generic 401 before the limit.
+3. Wait for the indicated interval, then retry. Verify automatic expiry and absence of permanent lockouts. Automated fake-clock/concurrency checks validate exact expiry, capacity and simultaneous admission without waiting five minutes.
+4. Confirm the single-worker limiter is capped at 10000 hashed entries and rejects new identities at capacity until expiry; no passwords, tokens or raw account/address keys are logged.
+
+**Approval criterion:** All described validations and authorization checks hold; normal data and credentials are unchanged.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_backend_review.BackendReviewUnitTests.test_throttle_account_client_expiry_capacity_and_concurrency`
+- `test_backend_review.BackendReviewHTTPTests.test_token_throttle_safe_429_and_untrusted_proxy_headers`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-19-1"></a>
+## 19.1 - Public frontend home and accessible login modal
+
+**Objective:** Public frontend home and accessible login modal. See docs/FRONTEND.md.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA instance and fresh private API credentials; never create demo records in normal data; Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development; Build Angular 22 with npm ci and npm run build under frontend/; npm test verifies client behavior separately from Python checks
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Open the public home. Verify Cadastrar and Consultar, the circular mark and single Ouroboros wordmark. Open both shared selection pages; Watched and Watchlist remain disabled as Em breve, while isolated items work. Check back/home navigation.
+2. Open a protected isolated-item action while logged out. Inspect the accessible Portuguese login modal, eye/crossed-eye button, required asterisks, Tab/Shift+Tab, Enter, Escape and focus restoration.
+3. Use disposable supervisor/admin credentials, verify the requested destination after login and reload both protected routes. Standard receives a permission explanation. API/static misses stay 404; docs/OpenAPI remain available.
+4. Inspect Cadastrar selection: Cadastrar item retains /cadastros; no decorative Comece por aqui or duplicate Em breve badges. Only Voltar ao início is enlarged; other controls retain their size and the required-field legend stays in place.
+
+**Approval criterion:** The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_frontend.BrowserSessionTests.test_public_home_assets_and_protected_form`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-19-2"></a>
+## 19.2 - Opaque browser sessions login expiry and logout
+
+**Objective:** Opaque browser sessions login expiry and logout. See docs/FRONTEND.md.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA instance and fresh private API credentials; never create demo records in normal data; Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Authenticate on owned disposable QA, reload /cadastros and verify the session persists. Verify the cookie is HttpOnly, SameSite=Strict, host-only and Secure under HTTPS. Browser storage and URLs contain no credentials, bearer/refresh tokens or CSRF secrets.
+2. Keep a draft, expire its session or log out in another tab, then submit. Login is requested again and the draft is retained. Reauthenticate without automatic resubmission. Review and deliberately submit once.
+3. Click Sair: verify the server session is invalidated and cookie cleared. Replaying the old cookie fails. Inactivation or credential-version changes revoke access; demotion updates catalogue permissions.
+4. Exercise shared /token and /browser/login account/client limits in disposable QA. Verify 429/Retry-After and the countdown, then automatic retry availability. Whole browser login/session/logout bodies, cookies and CSRF values are absent from logs/audits.
+5. Remove browser configuration only in disposable QA and reproduce HTTP session/login rejection before password verification. Expect BROWSER_ORIGIN_REJECTED, not an account-permission explanation. Distinguish it from invalid credentials, CSRF, expired sessions, malformed service responses and network/server failures.
+6. Verify the Angular HttpClient sends the existing in-memory synchronizer X-CSRF-Token header on mutations/logout. Passwords are cleared after login attempts, never retained for retries. Reauthentication retains non-secret drafts without automatically submitting them.
+7. Use controlled clocks to verify two-hour idle renewal only after accepted authenticated activity, passive polling without renewal, fixed twelve-hour absolute expiry, and unchanged bearer lifetime.
+
+**Approval criterion:** The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_frontend.BrowserSessionTests.test_cookie_reload_rotation_expiry_logout_and_revocation`
+- `test_frontend.BrowserSessionTests.test_login_generic_errors_origin_checks_shared_throttle_and_body_omission`
+- `test_frontend.BrowserSessionTests.test_missing_browser_configuration_is_not_an_account_permission_error`
+- `test_frontend.BrowserSessionTests.test_idle_renewal_absolute_expiry_and_passive_reads`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-19-3"></a>
+## 19.3 - Browser catalogue authorization CSRF and atomic audit
+
+**Objective:** Browser catalogue authorization CSRF and atomic audit. See docs/FRONTEND.md.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA instance and fresh private API credentials; never create demo records in normal data; Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Login as administrator and supervisor: create one platform and one Unicode/emoji tag through the browser and verify persisted identifying data and single mutation audit evidence.
+2. A standard account can authenticate but sees a clear catalogue-permission message; direct /cadastros and creation requests are denied.
+3. Reject cookie mutations missing or mismatching CSRF, foreign Origin and demoted actors. Confirm no denied record was inserted. Existing bearer clients still work without cookie CSRF; explicit invalid Authorization never falls back to a cookie.
+4. Compare browser can_create/current role and active metadata with bearer GET /platforms for administrator, supervisor and standard. Both catalogue roles succeed; standard remains forbidden. Never promote a normal account to work around an origin/configuration error.
+
+**Approval criterion:** The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_frontend.BrowserSessionTests.test_current_roles_inactivity_csrf_and_bearer_precedence`
+- `test_frontend.BrowserCreationIntegrationTests.test_cookie_platform_tag_creation_audit_and_transaction_authority`
+- `test_frontend.BrowserSessionTests.test_cookie_and_bearer_catalogue_permission_parity`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-19-4"></a>
+## 19.4 - Portuguese catalogue registration form feedback
+
+**Objective:** Verify shared phase-one create/edit/cancel forms, unsaved-change guards, cancel-first confirmations, exact optional prices, twenty-result autocomplete, compact consultation filters, bounded session-only recent searches and edit-return context.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA instance and fresh private API credentials; never create demo records in normal data; Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. On the owned disposable instance inspect Cadastrar item, Nome fantasia first, Classificação da Obra capitalization, required-field legend placement and scoped Voltar ao início enlargement. Future workflows remain disabled and no decorative card badges remain.
+2. For all three required platform booleans, verify initial indeterminate/unanswered state, explicit true/false via mouse/Space, readable state labels and reset to unanswered. Unanswered blocks submission with field-level guidance; explicit false persists and loads correctly in edit mode.
+3. Verify empty price and placeholder 00,00, explicit zero, comma parsing, blur display 23→23,00 / 23,5→23,50 / 23,50 unchanged, and exact focus restoration without caret rewriting. Reject grouping/symbol ambiguity. Inspect two-place presentation versus exact extra-precision API decimal. An empty creation price must be omitted, not null/zero/placeholder; PUT omission preserves and explicit clearing sends null. Currency starts empty and offers only EUR/USD/BRL code-first choices; no locale inference.
+4. Access starts empty and offers only Aplicativo/application and Site/website. Site reveals URL; toggling away/back retains its unsaved draft. Non-Site creation omits hidden URL; Site→Aplicativo PUT clears old URL with null. Existing multi/link types and unknown currency codes are preserved on unrelated edits until explicit replacement.
+5. Keep tag description/technical-name behavior unchanged. Typing does not reveal technical input; blur/Tab/Enter completes fantasy name without accidental POST. Test ghost suggestion/custom name preservation and empty/invalid suggestion guidance.
+6. Search beginning/middle/end names and literal wildcard text. Inspect anchored dropdown with no form displacement, no more than twenty display names, muted Continue digitando para refinar a busca at the cap, no pagination/load more, no no-match block, recoverable failure, stale-response protection, scrolling/arrows/Enter/Escape and existing edit confirmation.
+7. Use more than fifty owned disposable classifications. Verify all bounded pages load, actual numeric tier plus human-friendly name, implicit Adicionar ao final with no tier in POST, insertion at occupied positions, current edit tier preselection and valid 1..N moves. Failed/inconsistent page reads must not present partial order as complete and block saving until deliberate retry. Only backend transactions shift rows.
+8. Create once, prevent duplicate clicks and inspect separate returned ID/name confirmation with immediately cleared fields, retained URL draft, touched/dirty state and autocomplete. Failure preserves non-secret data. Navigating away/back never restores submitted values. Confirm current role, CSRF and session-deadline behavior remains.
+9. Retain consultation filters, ten-item paging, ordering, edit and confirmed individual delete regression checks from the prior refinement. No bulk frontend actions, Watchlist/Watched workflows or advanced work search.
+10. Run npm test and production build under frontend/. The registration-controls, registration-navigation, autocomplete, tier-position and registration specs exercise the new DOM/payload cases. Record actual desktop/mobile/browser execution separately from Angular unit/DOM and Python HTTP results.
+11. Verify exact shared primary labels Cadastrar and Salvar edição plus Cancelar. Test dirty cancel, route departure, resource switch, browser unload and logout. Keep editing retains values/session; discard permits departure. Clean/restored-original and successful-save cases never prompt. Ordinary saves receive no redundant confirmation.
+12. For delete, existing-suggestion edit and discard dialogs, verify Cancelar is most prominent and initially focused, affirmative action is secondary/type=button, and Enter cannot implicitly choose a destructive affirmative action. Confirm explicit mouse/keyboard activation and safe Escape/in-flight behavior.
+13. On all three consultation resources verify initial page 1/page_size 10, direct list, no Cadastrar action, a stationary Search below Filtros avançados, always-visible Clear, compact adjacent desktop values and mobile stacking. Checkbox picker reveals only chosen public fields; remove one and prove its predicate leaves the next query.
+14. Apply six distinct successful searches, a failed search and paging. Keep at most the five successful applied criteria per resource, not results or credentials. Reapply at page 1; clear history; logout/expire/new login must clear session-only history and contexts.
+15. Open an edit from a filtered, ordered non-first page. Save or cancel and verify restored resource, page, successful applied filters, ordering and scroll after rows render. Deleting the last item on the last page refreshes count and corrects the page.
+16. Description policy: all three description fields accept at most the configured Unicode 16 extended grapheme count, default 4000, with live counters and no tooltip. Verify plain text/spaces, combining accents, family/profession/flag emojis, paste and IME composition without splitting; direct POST/PUT/arrays/bulk reject overflow with standard 422; historical oversized reads and unrelated edits preserve original text. Synopsis and observations remain unchanged. Tier shares the searchable dropdown: implicit append first, numeric-only positions across all pages, edit preselection; current-order list pages ten tier-sorted rows with total. See docs/DESCRIPTION_AND_TIERS.md.
+
+**Approval criterion:** The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_frontend.BrowserCreationIntegrationTests.test_cookie_platform_tag_creation_audit_and_transaction_authority`
+- `test_description_contract.DescriptionContractTests.test_shared_unicode_conformance_and_generated_limit`
+- `test_description_contract.DescriptionContractTests.test_all_description_inputs_limit_graphemes_without_limiting_other_text_or_outputs`
+- `test_description_contract.DescriptionHTTPTests.test_direct_api_overflow_returns_standard_error_without_mutations`
+- `test_description_contract.DescriptionIntegrationTests.test_real_description_crud_legacy_preservation_and_validation_rollback`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-19-5"></a>
+## 19.5 - Frontend contrast responsive layout and secure deployment
+
+**Objective:** Frontend contrast responsive layout and secure deployment. See docs/FRONTEND.md.
+
+**User:** Supervisor or administrator as specified; standard for negative checks
+
+**Prerequisites and data:** Owned disposable QA instance and fresh private API credentials; never create demo records in normal data; Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development
+
+**Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Check desktop and 390px/360px mobile layouts: cards and form/mascot stack, labels/controls remain readable, no horizontal clipping, 44px touch targets and visible keyboard focus. Respect reduced motion.
+2. Compare exact palette variables and measured text/control contrast. The friendly original illustration is a snake; imagery cannot cover inputs. Check all assets load locally and the CSP blocks unapproved scripts/frames.
+3. Without explicit development configuration, browser sessions require HTTPS. HTTP is allowed only for the configured loopback origin and loopback peers with browser.allow_loopback_http=true. Never enable this for production.
+4. Confirm bounded process-local session expiry and capacity, no token persistence, safe DOM text rendering and no secrets in screenshots/reports. Record visual/browser evidence separately from HTTP unit/integration assertions.
+5. Record optimized initial and lazy bundle sizes, measurement conditions and browser console/asset failures. Check no-store HTML, immutable hashed JS/CSS and revalidated SVGs. Older hashed lazy chunks remain available across rebuilds; Node is not a production service.
+6. Verify 390px and 360px layouts, dialog keyboard/Escape/focus restoration, no horizontal clipping and reduced-motion CSS. Save screenshots containing no secrets. Never claim an unexecuted browser or hosted CI check passed.
+7. Verify exact #E6BD68 decorative markers, unchanged legend placement and palette. Record 1.731:1 paper / 1.602:1 cream accent contrast and dark accompanying label/legend contrast; semantic required status cannot depend on the gold alone. Browser geometry/focus checks remain separate from CSS/DOM tests.
+8. Before visual acceptance, inspect listener ownership and current directory; compare the loaded footer/meta build ID, public build-info.json source/index/asset hashes and real HTTP graph on 6969. Inspect cache headers and existing worker registrations without deleting cookies or drafts. Follow docs/FRONTEND_DELIVERY_DIAGNOSIS.md; record unavailable browser checks separately.
+9. Focused Platform acceptance supersedes earlier tri-state instructions: verify three unchecked native booleans submit false untouched; only name/access red #DC3545 markers plus legend; exact name/price help and no currency help; both empty prompts Selecione uma opção; one outlined back-to-registration link and logo home. Inspect omitted blank price and conditional URL on disposable writes. See docs/REGISTRATION_UI.md.
+10. Change 01 supersedes permanent field-help wording: in all three resource create/edit forms and search, verify centralized Nome Fantasia label and exact approved emoji tooltip; shared red #DC3545 required markers with spacing; no redundant optional wording. Hover, keyboard-focus and tap help, close with Escape/outside click, retain field associations and visible errors. Escape must not close a parent dialog or submit. Repeat desktop/mobile and screen reader manually; see docs/REGISTRATION_UI.md.
+11. Tooltip/currency visual correction supersedes earlier Description help: check small raised borderless help glyph beside label text with hover/focus/touch and Escape/outside closure; no Description tooltip; exact approved money help. Verify CSP-compatible external shared-fields.css in the built stylesheet, no injected component styles or unsafe-inline relaxation. Check normal currency trigger, anchored search-first panel, plain scrollable rows without markers/button options/duplicate placeholder, code/name filtering, click/arrows/Enter/Escape/outside selection behavior. Preserve conditional price/currency rules. Record physical browser/mobile/screen-reader checks separately; see docs/REGISTRATION_UI.md.
+12. Focused Soft Amber revision: verify shared --soft-amber #D99A45 only changes information glyph color, preserving exact glyph size/position and required red #DC3545. Tooltip box sits above/right with rightward offset, not centered; interactions and box appearance remain unchanged. Price error now ends with centavos, with unchanged parsing/negative validation and formatting. Record physical visual review separately from automated tests; see docs/REGISTRATION_UI.md.
+
+**Approval criterion:** The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_frontend.FrontendAssetTests.test_palette_contrast_and_no_persistent_browser_secrets`
+- `test_frontend.BrowserSessionTests.test_secure_defaults_capacity_and_settings_validation`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |

@@ -84,7 +84,7 @@ class SafeResult(unittest.TestResult):
 def prerequisites():
     """Check tools without opening normal configuration or secret files."""
     checks = {"python": sys.version_info >= (3, 10)}
-    modules = ("fastapi", "httpx", "uvicorn", "psycopg", "argon2", "jwt", "jsonschema", "yaml", "tzdata")
+    modules = ("fastapi", "httpx", "uvicorn", "psycopg", "argon2", "jwt", "jsonschema", "yaml", "tzdata", "uniseg")
     checks["dependencies"] = all(importlib.util.find_spec(name) is not None for name in modules)
     checks["docker"] = False
     if shutil.which("docker"):

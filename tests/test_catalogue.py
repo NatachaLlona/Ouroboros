@@ -43,9 +43,8 @@ class CatalogueTests(unittest.TestCase):
         cls.project = 'ouroboros-catalogue-' + uuid.uuid4().hex
         shutil.copy(PROJECT_ROOT / 'compose.yaml', cls.root)
         shutil.copytree(PROJECT_ROOT / 'sql', cls.root / 'sql')
-        with socket.socket() as available:
-            available.bind(('127.0.0.1', 0))
-            port = available.getsockname()[1]
+        from support_ports import approved_port
+        port = approved_port('database')
         cls.database = dict(name='catalogue_test', user='catalogue_master', port=port,
                             startup_timeout=240, connect_timeout=10, statement_timeout=30)
         cls.password = secrets.token_urlsafe(32)
@@ -112,7 +111,7 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(names, set(TABLES) | {'test', 'api_users', 'foundation_migrations', 'api_audit_logs'})
         domain_fields = {
             'works': 'title title_language synopsis?',
-            'platforms': 'platform_name platform_is_paid platform_is_episodes platform_is_duration_time price_amount? price_currency?',
+            'platforms': 'platform_name platform_is_paid platform_is_episodes platform_is_duration_time platform_access_types platform_url? price_amount? price_currency?',
             'work_availabilities': 'id_works id_platforms duration_minutes? episode_quantity? publisher_profile? url?',
             'tags': 'tag_name display_name_tags description_tags?',
             'tag_categories': 'tag_category_name display_name_tag_categories description_tag_categories?',
@@ -139,7 +138,7 @@ class CatalogueTests(unittest.TestCase):
         before = self.query('SELECT version, checksum, applied_at FROM public.foundation_migrations ORDER BY version')
         migrate(self.connection, self.root)
         self.assertEqual(self.query('SELECT version, checksum, applied_at FROM public.foundation_migrations ORDER BY version'), before)
-        self.assertEqual(len(before), 10)
+        self.assertEqual(len(before), 11)
 
     def test_02_automatic_metadata_independent_sequences_and_immutability(self):
         first, other, platform, availability, tag, target, relationship, category, classification = self.graph()

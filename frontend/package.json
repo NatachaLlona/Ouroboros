@@ -1,0 +1,32 @@
+{
+  "name": "ouroboros-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/generate-text-limits.mjs && ng build && node scripts/stamp-build.mjs",
+    "watch": "node scripts/generate-text-limits.mjs && ng build --watch --configuration development",
+    "test": "node scripts/generate-text-limits.mjs && ng test --watch=false"
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || ^26.0.0"
+  },
+  "dependencies": {
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/core": "22.2.3",
+    "@angular/forms": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
+    "@angular/router": "22.2.3",
+    "rxjs": "7.8.2",
+    "tslib": "2.8.1",
+    "unicode-segmenter": "0.14.5"
+  },
+  "devDependencies": {
+    "@angular/build": "22.2.3",
+    "@angular/cli": "22.2.3",
+    "@angular/compiler-cli": "22.2.3",
+    "jsdom": "^29.0.0",
+    "typescript": "~6.0.0",
+    "vitest": "^4.0.0"
+  }
+}
