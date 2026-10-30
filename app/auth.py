@@ -1,6 +1,6 @@
 """Argon2id verification, signed JWTs, and OAuth2 scope enforcement."""
 import secrets
-from datetime import datetime, timezone
+from app.datetimes import utcnow
 from app.logger import log_event
 from typing import Annotated
 
@@ -11,8 +11,9 @@ from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 
 from app.api_credentials import PASSWORD_HASHER
 
-SCOPES = {"test:read": "Read test entries", "test:write": "Create test entries",
-          "users:manage": "Administer API users (administrator only)"}
+SCOPES = {"test:read": "Read test entries", "test:write": "Create, update and delete individual test entries",
+          "users:manage": "Administer API users (administrator only)",
+          "catalogue:access": "Catalogue access (supervisor/administrator; bulk mutations require administrator)"}
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token", scopes=SCOPES, auto_error=False)
 
 
@@ -48,6 +49,9 @@ class AuthService:
         except (VerificationError, InvalidHashError):
             valid = False
         log_event("DEBUG", "Password hash verification completed", component="auth")
+        if valid and user is not None and user.is_active:
+            from app.audit_context import authenticated_actor
+            authenticated_actor(user)
         return user if valid and user is not None and user.is_active else None
 
     def issue(self, user, requested_scopes):
@@ -64,10 +68,12 @@ class AuthService:
             HTTPException: 403 if requested scopes exceed allowed permissions.
         """
         allowed = set(SCOPES) if user.role == "administrator" else set(user.scopes).intersection(("test:read", "test:write"))
+        if user.role == "supervisor":
+            allowed.add("catalogue:access")
         scopes = sorted(set(requested_scopes) if requested_scopes else allowed)
         if not set(scopes).issubset(allowed):
             raise HTTPException(403, "Requested permissions are not available", headers={"WWW-Authenticate": 'Bearer error="insufficient_scope"'})
-        issued = int(datetime.now(timezone.utc).timestamp())
+        issued = int(utcnow().timestamp())
         token = jwt.encode({"sub": str(user.id), "ver": 2, "db": self.realm, "iat": issued,
                             "credential_version": user.credential_version,
                             "exp": issued + self.config["token_ttl_seconds"],
@@ -109,7 +115,12 @@ class AuthService:
                 raise ValueError
             # Authorization uses the current database role, never a role frozen in a JWT.
             payload["role"] = user.role
+            from app.audit_context import authenticated_actor
+            authenticated_actor(user)
             payload["scopes"] = sorted(set(scopes).intersection(user.scopes).intersection(("test:read", "test:write")))
+            if user.role == "supervisor":
+                # Current role grants catalogue access even to older test-only tokens.
+                payload["scopes"].append("catalogue:access")
             log_event("DEBUG", "Access token validation completed", component="auth")
             return payload
         except (jwt.InvalidTokenError, ValueError, TypeError, KeyError):
@@ -140,8 +151,14 @@ def require_scopes(security_scopes: SecurityScopes, request: Request,
     allowing future shared-authorization APIs without a static all-scopes grant.
     """
     if token is None:
-        raise HTTPException(401, "Bearer authentication required", headers={"WWW-Authenticate": "Bearer"})
-    payload = request.app.state.auth.decode(token)
+        sessions = request.app.state.browser_sessions
+        if request.cookies.get(sessions.cookie_name):
+            payload, _, _ = sessions.authenticate(request)
+        else:
+            raise HTTPException(401, "Bearer authentication required", headers={"WWW-Authenticate": "Bearer"})
+    else:
+        # Explicit API authorization always takes precedence over browser cookies.
+        payload = request.app.state.auth.decode(token)
     if payload["role"] != "administrator" and not set(security_scopes.scopes).issubset(payload["scopes"]):
         required = " ".join(security_scopes.scopes)
         raise HTTPException(403, "Insufficient permissions", headers={

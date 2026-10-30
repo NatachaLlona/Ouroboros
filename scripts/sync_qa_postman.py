@@ -7,7 +7,7 @@ from qa_catalog import ROOT, load_catalog
 def main():
     """Update only public request descriptions/assertion labels, never secrets."""
     catalog = load_catalog()
-    path = ROOT/"postman/Foundation.postman_collection.json"
+    path = ROOT/"postman/Ouroboros.postman_collection.json"
     collection = json.loads(path.read_text(encoding="utf-8"))
     def visit(items):
         for item in items:

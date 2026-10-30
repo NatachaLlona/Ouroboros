@@ -2,7 +2,6 @@
 from app.logger import log_event
 from app.log_safety import error_details
 from fastapi import APIRouter, Request
-from starlette.responses import JSONResponse
 
 router = APIRouter()
 
@@ -18,4 +17,5 @@ def health(request: Request):
         return {"status": "ok"}
     except Exception as error:
         log_event("ERROR", "Database health check failed", error_details(error), component="health")
-        return JSONResponse({"status": "unavailable"}, status_code=503)
+        from app.database import DatabaseError
+        raise DatabaseError('Database health check unavailable') from None

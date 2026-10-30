@@ -1,6 +1,7 @@
 """Assert catalogue-defined request evidence against actual sanitized log events."""
 import json
 import re
+import time
 from app.config import PROJECT_ROOT
 
 
@@ -10,7 +11,7 @@ def assert_response_logs(test, response, output, logger):
     Args:
         test: TestCase whose selector is mapped by the catalogue.
         response: Completed HTTP response with a server-generated interaction ID.
-        output: In-memory captured execution log, never a normal/private log.
+        output: Callable returning the current in-memory test execution log.
         logger: Execution logger, used to account for INFO/DEBUG filtering.
     """
     catalog = json.loads((PROJECT_ROOT/"qa/scenarios.json").read_text(encoding="utf-8"))
@@ -18,8 +19,21 @@ def assert_response_logs(test, response, output, logger):
     test.assertTrue(files,"Missing execution log file")
     interaction = response.headers.get("X-Interaction-ID")
     test.assertIsNotNone(interaction)
+    # HTTPX invokes response hooks after headers, before consuming the body.
+    # Drain it so a streaming TestClient transport can finish ASGI send first.
+    response.read()
+    # A response hook can run after body delivery but before the ASGI middleware's
+    # finally block finishes its offloaded log write. Wait for that exact request,
+    # retaining the assertion below if completion never arrives.
+    deadline = time.monotonic() + 2
+    while True:
+        captured = output()
+        if any(interaction in line and " | HTTP request finished | " in line
+               for line in captured.splitlines()) or time.monotonic() >= deadline:
+            break
+        time.sleep(0.01)
     events = []
-    for line in output.splitlines():
+    for line in captured.splitlines():
         columns = line.split(" | ",9)
         if len(columns) != 10 or columns[1].strip() != interaction: continue
         events.append({"level":columns[0].strip(),"category":columns[3].strip(),

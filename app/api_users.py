@@ -146,12 +146,13 @@ class APIUserStore:
             cursor.execute("SELECT EXISTS (SELECT 1 FROM public.api_users WHERE role='administrator' AND is_active)")
             return cursor.fetchone()[0]
 
-    def _lock_membership(self, cursor, actor_id=None):
+    def _lock_membership(self, cursor, actor_id=None, credential_version=None):
         """Serialize membership changes and recheck the acting administrator.
 
         Args:
             cursor: Cursor in the caller's transaction.
             actor_id: API actor ID, or None for master-validated terminal recovery.
+            credential_version: Optional token version rechecked for API writes.
 
         Raises:
             UserManagementError: If the actor lost active administrator access.
@@ -161,6 +162,10 @@ class APIUserStore:
             cursor.execute("SELECT role, is_active FROM public.api_users WHERE id=%s FOR UPDATE", (actor_id,))
             if cursor.fetchone() != ("administrator", True):
                 raise UserManagementError(403, "Active administrator access required")
+            if credential_version is not None:
+                cursor.execute("SELECT credential_version FROM public.api_users WHERE id=%s", (actor_id,))
+                if cursor.fetchone()[0] != credential_version:
+                    raise UserManagementError(401, "Invalid or expired access token")
 
     def bootstrap_administrator(self, username, password_hash=None):
         """Explicitly promote an active account or create the first administrator.
@@ -194,30 +199,36 @@ class APIUserStore:
                 raise UserManagementError(409, "Choose an existing active user to promote, or a unique username for a new administrator")
         return user
 
-    def page(self, page=1, page_size=50):
+    def page(self, page=1, page_size=50, order_by='id', order_direction='asc', **selection):
         """Return public accounts and count from one SQL statement snapshot.
 
         Args:
             page: Validated one-based page number.
             page_size: Validated page size between 10 and 50.
+            order_by: Whitelisted public scalar field; default id.
+            order_direction: asc or desc, with NULLS LAST.
 
         Returns:
             A collection envelope excluding all password/hash columns.
         """
-        with self.database.connection() as connection, connection.cursor() as cursor:
-            cursor.execute(query("page_users.sql"), (page_size, min((page-1)*page_size, 9223372036854775807)))
-            rows = cursor.fetchall()
-        return {"count": rows[0][0], "page": page, "page_size": page_size,
-                "items": [public_user(row[1:]) for row in rows if row[1] is not None]}
+        from app.collection_queries import select_page
+        from app.datetimes import date_predicates
+        filters = [(name, '=', selection.get(name)) for name in ('id', 'username', 'role', 'is_active')]
+        filters.append(('username', 'ILIKE', selection.get('username_pattern')))
+        filters.extend(date_predicates(selection, ['created_at']))
+        with self.database.connection() as connection:
+            return select_page(connection, 'api_users', ('id', 'username', 'role', 'is_active', 'created_at'),
+                'id', filters, page, page_size, order_by, order_direction)
 
-    def create_managed(self, actor_id, username, password_hash, role):
+    def create_managed(self, actor_id, username, password_hash, role, credential_version=None):
         """Create an account atomically after rechecking the API actor.
 
         Args:
             actor_id: Responsible administrator ID.
             username: Validated unique account name.
             password_hash: Argon2id hash; plaintext must never reach this layer.
-            role: Validated standard or administrator role.
+            role: Validated standard, supervisor or administrator role.
+            credential_version: API token version, rechecked under the actor lock.
 
         Returns:
             Public persisted account fields.
@@ -227,20 +238,21 @@ class APIUserStore:
         """
         validate_hash(password_hash)
         with self.database.connection() as connection, connection.cursor() as cursor:
-            self._lock_membership(cursor, actor_id)
+            self._lock_membership(cursor, actor_id, credential_version)
             cursor.execute(query("create_managed_user.sql"), (username, password_hash, list(TEST_SCOPES), role))
             row = cursor.fetchone()
             if row is None:
                 raise UserManagementError(409, "Username already exists")
         return public_user(row)
 
-    def change_role(self, actor_id, user_id, role):
+    def change_role(self, actor_id, user_id, role, credential_version=None):
         """Replace a role while protecting the last active administrator.
 
         Args:
             actor_id: Responsible administrator ID, rechecked inside the lock.
             user_id: Target immutable account ID.
             role: New validated role.
+            credential_version: API token version, rechecked under the actor lock.
 
         Returns:
             Tuple of public account fields and previous role, after commit.
@@ -252,12 +264,12 @@ class APIUserStore:
         The shared transaction lock serializes concurrent cross/self demotions.
         """
         with self.database.connection() as connection, connection.cursor() as cursor:
-            self._lock_membership(cursor, actor_id)
+            self._lock_membership(cursor, actor_id, credential_version)
             cursor.execute("SELECT role, is_active FROM public.api_users WHERE id=%s FOR UPDATE", (user_id,))
             old = cursor.fetchone()
             if old is None:
                 raise UserManagementError(404, "User not found")
-            if old == ("administrator", True) and role == "standard":
+            if old == ("administrator", True) and role != "administrator":
                 cursor.execute("SELECT count(*) FROM public.api_users WHERE role='administrator' AND is_active")
                 if cursor.fetchone()[0] <= 1:
                     raise UserManagementError(409, "Cannot demote the last active administrator")

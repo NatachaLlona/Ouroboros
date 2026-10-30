@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 root=Path(__file__).resolve().parent.parent
-collection=(root/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8").strip()
+collection=(root/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8").strip()
 json.loads(collection)
 path=root/"README.md"
 text=path.read_text(encoding="utf-8")

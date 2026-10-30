@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
+from app.errors import ErrorResponse
 
 router = APIRouter()
 
@@ -32,6 +33,8 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/token", response_model=TokenResponse, tags=["auth"],
+             responses={429: {'model': ErrorResponse, 'description': 'Login attempt limit reached: 10/account or 50/direct client in 300 seconds. Retry after the Retry-After seconds.',
+                 'headers': {'Retry-After': {'schema': {'type': 'integer'}, 'description': 'Seconds until retry'}}}},
              description="Local OAuth2 password grant. Prefer Swagger Authorize to store the token globally; Try it out returns a token without automatically authorizing other operations.")
 def token(request: Request, response: Response,
           form: Annotated[LocalPasswordForm, Depends()]):
@@ -49,6 +52,9 @@ def token(request: Request, response: Response,
         HTTPException: 401 for invalid credentials, 403 for unavailable scopes.
     """
     auth = request.app.state.auth
+    retry = request.app.state.login_throttle.admit(form.username, request.client.host if request.client else 'unknown')
+    if retry is not None:
+        raise HTTPException(429, 'Login attempt limit reached', headers={'Retry-After': str(retry), 'Cache-Control': 'no-store'})
     user = auth.verify_password(form.username, form.password)
     if user is None:
         raise HTTPException(401, "Invalid credentials", headers={"WWW-Authenticate": "Bearer"})

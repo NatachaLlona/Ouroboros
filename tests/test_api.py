@@ -43,7 +43,7 @@ class APITests(unittest.TestCase):
         self.app = create_app(self.config, self.database, self.auth, self.logger)
         self.client = TestClient(self.app, raise_server_exceptions=False)
         from support_log_evidence import assert_response_logs
-        self.client.event_hooks["response"].append(lambda response: assert_response_logs(self,response,self.output.getvalue(),self.logger))
+        self.client.event_hooks["response"].append(lambda response: assert_response_logs(self,response,self.output.getvalue,self.logger))
         self.addCleanup(self.client.close)
 
     def bearer(self, scope=None):
@@ -57,7 +57,7 @@ class APITests(unittest.TestCase):
         self.database.connection.side_effect = DatabaseError("private backend data")
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 503)
-        self.assertEqual(response.json(), {"status": "unavailable"})
+        self.assertEqual(response.json()['error']['code'], 'DATABASE_UNAVAILABLE')
         self.assertTrue(response.headers["X-Interaction-ID"])
         self.assertNotIn("private backend data", self.output.getvalue())
 
@@ -72,7 +72,7 @@ class APITests(unittest.TestCase):
         for username, password in (("unit_api_user", "wrong"), ("unknown", self.password)):
             denied = self.client.post("/token", data={"username": username, "password": password})
             self.assertEqual(denied.status_code, 401)
-            self.assertEqual(denied.json(), {"detail": "Invalid credentials"})
+            self.assertEqual(denied.json()['error']['code'], 'INVALID_CREDENTIALS')
         denied = self.client.post("/token", data={"username": "unit_api_user", "password": self.password, "scope": "admin"})
         self.assertEqual(denied.status_code, 403)
 
@@ -108,17 +108,17 @@ class APITests(unittest.TestCase):
         headers = self.bearer()
         malformed = self.client.post("/test", content=b"{", headers={**headers, "Content-Type": "application/json"})
         self.assertEqual(malformed.status_code, 422)
-        self.assertNotIn("input", malformed.json()["detail"][0])
+        self.assertNotIn("input", malformed.json()["error"]["details"][0])
         for data in ({}, {"value": None}, {"value": 1}, {"value": {}}, {"value": []}, {"value": "x", "typo": True}):
             response = self.client.post("/test", json=data, headers=headers)
             self.assertEqual(response.status_code, 422)
             self.assertTrue(response.headers["X-Interaction-ID"])
         for value in ("", "  unchanged  ", "x" * 50001):
-            with patch("app.endpoints.test.insert_entry", return_value=42) as insert:
+            with patch("app.endpoints.test.TestRepository.create", return_value={'id':42,'value':value,'created_at':None,'created_at_timezone':None}) as insert:
                 response = self.client.post("/test", json={"value": value}, headers=headers)
                 self.assertEqual(response.status_code, 201)
-                self.assertEqual(response.json(), {"id": 42, "value": value})
-                self.assertEqual(insert.call_args.args[1], value)
+                self.assertEqual({key:response.json()[key] for key in ('id','value')}, {"id": 42, "value": value})
+                self.assertEqual(insert.call_args.args[0].value, value)
         for entry_id in ("0", "-1", "1.0", "1.5", "bad", "9223372036854775808"):
             self.assertEqual(self.client.get("/test", params={"id": entry_id}, headers=headers).status_code, 422)
 
@@ -132,8 +132,8 @@ class APITests(unittest.TestCase):
         self.assertNotEqual(interaction, "untrusted")
         relevant = [line for line in self.output.getvalue().splitlines() if interaction in line]
         self.assertGreaterEqual(len(relevant), 3)
-        self.assertIn('"status": 500', relevant[-1])
-        self.assertIn('"duration_ms"', relevant[-1])
+        self.assertTrue(any('HTTP request finished' in line and '"status": 500' in line for line in relevant))
+        self.assertTrue(any('HTTP request finished' in line and '"duration_ms"' in line for line in relevant))
         invalid = self.client.post("/token", data={"password": self.password})
         self.assertEqual(invalid.status_code, 422)
         logs = self.output.getvalue()
@@ -146,8 +146,8 @@ class APITests(unittest.TestCase):
     def test_openapi_and_shutdown(self):
         schema = self.client.get("/openapi.json").json()
         security = schema["components"]["securitySchemes"]["OAuth2PasswordBearer"]["flows"]["password"]
-        self.assertEqual(set(security["scopes"]), {"test:read", "test:write", "users:manage"})
-        self.assertEqual(schema["paths"]["/test"]["get"]["security"], [{"OAuth2PasswordBearer": ["test:read"]}])
+        self.assertEqual(set(security["scopes"]), {"test:read", "test:write", "users:manage", "catalogue:access"})
+        self.assertEqual(schema["paths"]["/test"]["get"]["security"], [{"OAuth2PasswordBearer": ["test:read"]}, {"BrowserSession": []}])
         self.assertEqual(self.client.get("/docs").status_code, 200)
         with TestClient(self.app):
             pass
@@ -199,7 +199,7 @@ class APITests(unittest.TestCase):
         self.assertEqual(form["properties"]["password"]["format"],"password")
         flow=schema["components"]["securitySchemes"]["OAuth2PasswordBearer"]["flows"]["password"]
         self.assertEqual(flow["tokenUrl"],"/token")
-        self.assertEqual(set(flow["scopes"]),{"test:read","test:write","users:manage"})
+        self.assertEqual(set(flow["scopes"]),{"test:read","test:write","users:manage","catalogue:access"})
         for fields in ({},{"grant_type":"password","scope":"test:read test:write","client_id":"","client_secret":""},
                        {"grant_type":"","scope":"","client_id":"","client_secret":""}):
             response=self.client.post("/token",data={"username":"unit_api_user","password":self.password,**fields})
@@ -242,16 +242,17 @@ class APITests(unittest.TestCase):
 
     def test_shared_pagination_validation_and_envelope(self):
         headers = self.bearer()
-        expected = {"count": 17, "page": 2, "page_size": 10, "items": [{"id": 42, "value": "entry"}]}
+        from app.datetimes import present
+        expected = {"count": 17, "page": 2, "page_size": 10, "items": [present({"id": 42, "value": "entry",'created_at':None,'created_at_timezone':None})]}
         with patch("app.endpoints.test.page_entries", return_value=expected) as listing:
             response = self.client.get("/test?page=2&page_size=10&id=42&value=%25entry%25", headers=headers)
             self.assertEqual(response.json(), expected)
-            self.assertEqual(listing.call_args.kwargs, {"page": 2, "page_size": 10})
-            self.assertEqual(listing.call_args.args[1:], (42, "%entry%"))
+            self.assertEqual({key:listing.call_args.kwargs[key] for key in ('page','page_size','order_by','order_direction')}, {"page": 2, "page_size": 10, "order_by": "id", "order_direction": "asc"})
+            self.assertEqual((listing.call_args.kwargs['entry_id'],listing.call_args.kwargs['value']), (42, "%entry%"))
         for query in ("page=0", "page=-1", "page=1.0", "page=oops", "page_size=9", "page_size=51", "page_size=10.0", "page_size=true"):
             response = self.client.get("/test?"+query, headers=headers)
             self.assertEqual(response.status_code, 422, query)
-            detail = response.json()["detail"][0]
+            detail = response.json()["error"]["details"][0]
             self.assertIn("loc", detail)
             self.assertIn("type", detail)
             self.assertNotEqual(detail["msg"], "Invalid request field")
@@ -313,7 +314,7 @@ class APITests(unittest.TestCase):
     def test_openapi_administration_and_page_contract(self):
         schema = self.app.openapi()
         for path, method in (("/users", "get"), ("/users", "post"), ("/users/{id}/role", "put")):
-            self.assertEqual(schema["paths"][path][method]["security"], [{"OAuth2PasswordBearer": ["users:manage"]}])
+            self.assertEqual(schema["paths"][path][method]["security"], [{"OAuth2PasswordBearer": ["users:manage"]}, {"BrowserSession": []}])
         params = {item["name"]: item["schema"] for item in schema["paths"]["/users"]["get"]["parameters"]}
         self.assertEqual(params["page"]["default"], 1)
         self.assertEqual(params["page_size"]["default"], 50)
@@ -321,7 +322,7 @@ class APITests(unittest.TestCase):
         self.assertEqual(params["page_size"]["maximum"], 50)
         self.assertNotIn("password_hash", schema["components"]["schemas"]["PublicUser"]["properties"])
         self.assertEqual(schema["components"]["schemas"]["UserCreate"]["properties"]["password"]["format"], "password")
-        self.assertEqual(schema["paths"]["/users/me/password"]["put"]["security"],[{"OAuth2PasswordBearer":[]}])
+        self.assertEqual(schema["paths"]["/users/me/password"]["put"]["security"],[{"OAuth2PasswordBearer":[]}, {"BrowserSession": []}])
         self.assertNotIn("content",schema["paths"]["/users/me/password"]["put"]["responses"]["204"])
 
     def test_reset_password_validation_authorization_and_log_exclusion(self):
@@ -360,8 +361,36 @@ class APITests(unittest.TestCase):
 
     def test_swagger_explicit_query_parameters(self):
         schema = self.app.openapi()
-        for path, names in (("/test", {"id", "value", "page", "page_size"}),
-                            ("/users", {"page", "page_size"})):
+        from app.creation import CREATION_EXAMPLES
+        from app.schemas.catalogue import RESOURCES
+        for name, resource in RESOURCES.items():
+            operation = schema['paths']['/' + name]['post']
+            examples = operation['requestBody']['content']['application/json']['examples']
+            resource.create.model_validate(examples['single']['value'])
+            for item in examples['batch']['value']:
+                resource.create.model_validate(item)
+            # FastAPI omits nested null example keys; omitted optional fields
+            # must still validate to the same actual create representation.
+            self.assertEqual(resource.create.model_validate(examples['single']['value']).model_dump(),
+                             resource.create.model_validate(CREATION_EXAMPLES[name]).model_dump())
+            record = resource.record.model_json_schema()
+            for field in ('id_' + name, 'sequence_' + name, 'prefix_' + name, 'fantasy_name_' + name, 'created_at', 'created_at_timezone', 'presentation'):
+                self.assertTrue(record['properties'][field]['readOnly'])
+            # Optional nonnullable PUT fields are omitted, never suggested as null.
+            for field, property_schema in resource.update.model_json_schema()['properties'].items():
+                if field != 'presentation':
+                    self.assertNotIn('default', property_schema)
+        classification = RESOURCES['work_classifications'].create.model_json_schema()
+        self.assertIn('description_work_classifications', classification['properties'])
+        self.assertNotIn('tier', classification['required'])
+        self.assertNotIn('default', classification['properties']['tier'])
+        self.assertEqual(classification['properties']['tier']['type'], 'integer')
+        self.assertIn('insert_at_tier', schema['paths']['/work_classifications']['post']['requestBody']['content']['application/json']['examples'])
+        for path in ('/token', '/browser/login'):
+            self.assertIn('Retry-After', schema['paths'][path]['post']['responses']['429']['headers'])
+            self.assertEqual(schema['paths'][path]['post']['responses']['429']['content']['application/json']['schema']['$ref'], '#/components/schemas/ErrorResponse')
+        for path, names in (("/test", {"id", "value", "created_at", "created_at_timezone", "created_at_date", "filter_timezone", "created_at_from", "created_at_to", "display_timezone", "page", "page_size", "order_by", "order_direction"}),
+                            ("/users", {"page", "page_size", "order_by", "order_direction", "id", "username", "username_pattern", "role", "is_active", "created_at_date", "created_at_from", "created_at_to", "filter_timezone"})):
             params = schema["paths"][path]["get"]["parameters"]
             self.assertEqual({p["name"] for p in params}, names)
             for param in params:
@@ -370,7 +399,7 @@ class APITests(unittest.TestCase):
                 self.assertTrue(param["description"])
                 self.assertTrue(param["schema"]["examples"])
         reset = schema["paths"]["/users/{id}/password"]["put"]
-        self.assertEqual(reset["security"], [{"OAuth2PasswordBearer": ["users:manage"]}])
+        self.assertEqual(reset["security"], [{"OAuth2PasswordBearer": ["users:manage"]}, {"BrowserSession": []}])
         self.assertNotIn("content", reset["responses"]["204"])
 
     def test_password_body_exclusion_and_version_revocation(self):

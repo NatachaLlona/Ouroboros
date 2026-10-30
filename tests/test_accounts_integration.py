@@ -31,6 +31,9 @@ from app.migrate import migrate
 
 
 def available_port(preferred=0):
+    if preferred == 0:
+        from support_ports import approved_port
+        return approved_port()
     with socket.socket() as channel:
         channel.bind(("127.0.0.1",preferred))
         return channel.getsockname()[1]
@@ -47,8 +50,7 @@ class AccountIntegrationTests(unittest.TestCase):
         shutil.copy(PROJECT_ROOT/"compose.yaml",cls.root)
         shutil.copytree(PROJECT_ROOT/"sql",cls.root/"sql")
         cls.config=json.loads((PROJECT_ROOT/".app.config.example").read_text())
-        try: port=available_port(6669)
-        except OSError: port=available_port()
+        port=available_port()
         cls.database={**cls.config["database"],"name":"original_database","user":"isolated_master","port":port,"startup_timeout":240}
         cls.config["database"]=cls.database
         cls.password=secrets.token_urlsafe(32)
@@ -189,7 +191,8 @@ class AccountIntegrationTests(unittest.TestCase):
         config=json.loads((PROJECT_ROOT/".app.config.example").read_text())
         config["infrastructure"]["project_name"]=project
         self.assertEqual(require_infrastructure(config,root),project)
-        database={**self.database,"port":available_port()}
+        from support_ports import approved_port
+        database={**self.database,"port":approved_port('derived')}
         password=secrets.token_urlsafe(32)
         secret=write_secret(password,root)
         environment=compose_environment(database,secret)
@@ -325,9 +328,9 @@ class AccountIntegrationTests(unittest.TestCase):
             standard, standard_headers = created[0]
             second, second_headers = created[1]
             self.assertEqual(client.get("/users", headers=standard_headers).status_code, 403)
-            self.assertEqual(client.post("/users", json={"username": "blocked", "password": "not-persisted"}, headers=standard_headers).status_code, 403)
+            self.assertEqual(client.post("/users", json={"username": "blocked", "password": "not-persisted-password"}, headers=standard_headers).status_code, 403)
             self.assertEqual(client.put(f'/users/{standard["id"]}/role', json={"role": "administrator"}, headers=standard_headers).status_code, 403)
-            self.assertEqual(client.post("/users", json={"username": "ordinary", "password": "not-persisted"}, headers=administrator).status_code, 409)
+            self.assertEqual(client.post("/users", json={"username": "ordinary", "password": "not-persisted-password"}, headers=administrator).status_code, 409)
             self.assertEqual(client.put("/users/9223372036854775807/role", json={"role": "standard"}, headers=administrator).status_code, 404)
             # The same token must immediately lose administration after demotion.
             self.assertEqual(client.put(f'/users/{second["id"]}/role', json={"role": "standard"}, headers=administrator).status_code, 200)
@@ -386,7 +389,7 @@ class AccountIntegrationTests(unittest.TestCase):
             # Replay every administrative request definition without pretending to
             # execute Postman's JavaScript sandbox.
             import re
-            collection = json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+            collection = json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
             variables = {"base_url": "http://testserver", "admin_username": admin.username, "admin_password": self.first_password,
                          "standard_username": "collection_standard", "standard_password": secrets.token_urlsafe(24),
                          "additional_admin_username": "collection_admin", "additional_admin_password": secrets.token_urlsafe(24)}
@@ -394,7 +397,7 @@ class AccountIntegrationTests(unittest.TestCase):
                 return re.sub(r"\{\{([^}]+)\}\}", lambda match: variables[match[1]], value)
             for item in collection["item"][8]["item"]:
                 spec = item["request"]
-                url = expand(spec["url"])
+                url = expand(spec["url"]["raw"] if isinstance(spec["url"], dict) else spec["url"])
                 options = {}
                 if spec["auth"]["type"] == "bearer":
                     options["headers"] = {"Authorization": "Bearer "+expand(spec["auth"]["bearer"][0]["value"])}

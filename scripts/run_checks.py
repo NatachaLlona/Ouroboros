@@ -84,7 +84,7 @@ class SafeResult(unittest.TestResult):
 def prerequisites():
     """Check tools without opening normal configuration or secret files."""
     checks = {"python": sys.version_info >= (3, 10)}
-    modules = ("fastapi", "httpx", "uvicorn", "psycopg", "argon2", "jwt", "jsonschema", "yaml")
+    modules = ("fastapi", "httpx", "uvicorn", "psycopg", "argon2", "jwt", "jsonschema", "yaml", "tzdata", "uniseg")
     checks["dependencies"] = all(importlib.util.find_spec(name) is not None for name in modules)
     checks["docker"] = False
     if shutil.which("docker"):
@@ -151,7 +151,7 @@ def write_reports(report, directory):
     """Write only allowlisted result metadata, never captured output/tracebacks."""
     directory.mkdir(parents=True, exist_ok=True)
     (directory/"results.json").write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
-    lines = ["# 🧪 **Foundation QA checks**", "", "**Automated mandatory checks:** "+("passed" if report["automated_checks_passed"] else "not passed"),
+    lines = ["# 🧪 **Ouroboros QA checks**", "", "**Automated mandatory checks:** "+("passed" if report["automated_checks_passed"] else "not passed"),
              "", "**Full QA approval: pending manual/interface evidence.**", "",
              "Scenario totals: `"+json.dumps(report["scenario_totals"])+"`", "",
              "Test totals: `"+json.dumps(report["test_totals"])+"`", "",
@@ -161,7 +161,7 @@ def write_reports(report, directory):
     lines += ["", "Raw test output, exception messages, request bodies, configuration and credentials are deliberately excluded.",
               "Reproduce failures with the catalogue's mapped selectors in an isolated environment."]
     (directory/"summary.md").write_text("\n".join(lines)+"\n", encoding="utf-8")
-    suite = ET.Element("testsuite", name="Foundation QA scenarios", tests=str(len(report["scenarios"])))
+    suite = ET.Element("testsuite", name="Ouroboros QA scenarios", tests=str(len(report["scenarios"])))
     for item in report["scenarios"]:
         case = ET.SubElement(suite, "testcase", classname="scenario."+item["id"], name=item["id"]+" - "+item["name"])
         if item["status"] == "FAIL": ET.SubElement(case, "failure", message=item["reason"])

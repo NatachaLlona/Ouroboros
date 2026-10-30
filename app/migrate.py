@@ -28,6 +28,13 @@ def migrate(connection, root=PROJECT_ROOT):
                         if previous[0] != checksum:
                             raise DatabaseError("An applied migration was modified; restore its original contents and add a new migration")
                         continue
+                    if path.name == '009_add_classification_tiers.sql':
+                        cursor.execute('SELECT count(*),min(sequence_work_classifications),max(sequence_work_classifications) FROM public.work_classifications')
+                        count, minimum, maximum = cursor.fetchone()
+                        from app.logger import log_event
+                        log_event('INFO', 'Classification tier backfill inspected', {
+                            'record_count': count, 'sequence_min': minimum, 'sequence_max': maximum,
+                            'backfill_strategy': 'preserved_sequence' if count == 0 or (minimum == 1 and maximum == count) else 'contiguous_sequence_rank'}, component='migrate')
                     cursor.execute(content.decode("utf-8"))
                     cursor.execute("INSERT INTO public.foundation_migrations (version, checksum) VALUES (%s, %s)", (path.name, checksum))
                 cursor.execute("""SELECT column_name, data_type, is_nullable, is_identity, identity_generation

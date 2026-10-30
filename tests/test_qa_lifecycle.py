@@ -38,9 +38,8 @@ class QARoleLifecycleTests(unittest.TestCase):
         cls.config = json.loads((PROJECT_ROOT/".app.config.example").read_text())
         shutil.copy(PROJECT_ROOT/"compose.yaml", cls.root)
         shutil.copytree(PROJECT_ROOT/"sql", cls.root/"sql")
-        with socket.socket() as channel:
-            channel.bind(("127.0.0.1", 0))
-            port = channel.getsockname()[1]
+        from support_ports import approved_port
+        port = approved_port('database')
         cls.database_config = {**cls.config["database"], "name": "qa_lifecycle", "user": "qa_master", "port": port, "startup_timeout": 240}
         cls.master_password = secrets.token_urlsafe(32)
         cls.secret = write_secret(cls.master_password, cls.root)
@@ -72,7 +71,7 @@ class QARoleLifecycleTests(unittest.TestCase):
 
     def setUp(self):
         from support_log_evidence import assert_response_logs
-        callback = lambda response: assert_response_logs(self,response,self.output.getvalue(),self.logger)
+        callback = lambda response: assert_response_logs(self,response,self.output.getvalue,self.logger)
         self.client.event_hooks["response"].append(callback)
         self.addCleanup(lambda:self.client.event_hooks["response"].remove(callback))
 
@@ -202,7 +201,7 @@ class QARoleLifecycleTests(unittest.TestCase):
                      "standard_user_id": str(response.json()["id"]),
                      "standard_token": standard_headers["Authorization"].split(" ",1)[1],
                      "lifecycle_probe_password": secrets.token_urlsafe(24)}
-        collection = json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+        collection = json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         def expand(value):
             return re.sub(r"\{\{([^}]+)\}\}", lambda match: variables[match[1]], value)
         for item in collection["item"][9]["item"]:
@@ -216,7 +215,7 @@ class QARoleLifecycleTests(unittest.TestCase):
             body = spec.get("body", {})
             if body.get("mode") == "raw": options["json"] = json.loads(expand(body["raw"]))
             if body.get("mode") == "urlencoded": options["data"] = {field["key"]: expand(field["value"]) for field in body["urlencoded"]}
-            response = self.client.request(spec["method"], expand(spec["url"]), **options)
+            response = self.client.request(spec["method"], expand(spec["url"]["raw"] if isinstance(spec["url"], dict) else spec["url"]), **options)
             script = next(event["script"]["exec"] for event in item["event"] if event["listen"] == "test")
             expected = int(re.search(r"status\((\d+)\)", script[0])[1])
             self.assertEqual(response.status_code, expected, item["name"])
@@ -355,7 +354,7 @@ class QARoleLifecycleTests(unittest.TestCase):
                      "reset_old_password":secrets.token_urlsafe(24), "reset_new_password":secrets.token_urlsafe(24)}
         self.users.create(variables["admin_username"], PASSWORD_HASHER.hash(variables["reset_admin_password"]),role="administrator")
         self.users.create(variables["reset_peer_username"], PASSWORD_HASHER.hash(variables["reset_peer_password"]))
-        items = json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))["item"][11]["item"]
+        items = json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))["item"][11]["item"]
         def expand(value):
             return re.sub(r"\{\{([^}]+)\}\}",lambda match:variables[match[1]],value)
         for item in items[1:]:
@@ -366,7 +365,7 @@ class QARoleLifecycleTests(unittest.TestCase):
             body=spec.get("body",{})
             if body.get("mode") == "raw": options["json"]=json.loads(expand(body["raw"]))
             if body.get("mode") == "urlencoded": options["data"]={p["key"]:expand(p["value"]) for p in body["urlencoded"]}
-            response=self.client.request(spec["method"],expand(spec["url"]),**options)
+            response=self.client.request(spec["method"],expand(spec["url"]["raw"] if isinstance(spec["url"], dict) else spec["url"]),**options)
             script=next(e["script"]["exec"] for e in item["event"] if e["listen"] == "test")
             expected=int(re.search(r"status\((\d+)\)",script[0])[1])
             self.assertEqual(response.status_code,expected,item["name"])
@@ -407,7 +406,7 @@ class QARoleLifecycleTests(unittest.TestCase):
             variables[who+"_new_password"] = secrets.token_urlsafe(24)
             self.users.create(variables[who+"_username"],PASSWORD_HASHER.hash(variables[who+"_password"]),role=role)
         variables.update(standard_next_password_a=secrets.token_urlsafe(24),standard_next_password_b=secrets.token_urlsafe(24))
-        collection = json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+        collection = json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
         items = collection["item"][10]["item"]
         def expand(value):
             return re.sub(r"\{\{([^}]+)\}\}",lambda match:variables[match[1]],value)
@@ -421,7 +420,7 @@ class QARoleLifecycleTests(unittest.TestCase):
             if body.get("mode") == "raw":
                 options["headers"]["Content-Type"] = "application/json"
                 options["content"] = expand(body["raw"]).encode("utf-8")
-            return self.client.request(spec["method"],expand(spec["url"]),**options)
+            return self.client.request(spec["method"],expand(spec["url"]["raw"] if isinstance(spec["url"], dict) else spec["url"]),**options)
         captures = {40:"password_admin_old_token",41:"password_standard_old_token",49:"password_standard_new_token",54:"password_admin_new_token"}
         for item in items[:18]:
             response = send(item)

@@ -1,6 +1,24 @@
 {
   "host": "localhost",
   "port": 6969,
+  "browser": {
+    "origin": "http://localhost:6969",
+    "allow_loopback_http": true,
+    "idle_timeout_seconds": 7200,
+    "absolute_lifetime_seconds": 43200
+  },
+  "application_timezone": "Europe/Lisbon",
+  "default_display_timezone": "Europe/Lisbon",
+  "api": {
+    "max_batch_size": 300,
+    "max_creation_body_bytes": 4194304
+  },
+  "audit": {
+    "request_body_max_bytes": 8192,
+    "response_body_max_bytes": 8192,
+    "mutation_max_bytes": 8192,
+    "query_max_bytes": 8192
+  },
   "database": {
     "name": "",
     "user": "",
@@ -19,14 +37,14 @@
   },
   "auth": {
     "token_ttl_seconds": 1800,
-    "issuer": "foundation",
-    "audience": "foundation-api"
+    "issuer": "ouroboros",
+    "audience": "ouroboros-api"
   },
   "api_users": {
     "last_api_username": ""
   },
   "infrastructure": {
-    "project_name": "",
+    "project_name": "ouroboros",
     "workspace": ""
   }
 }

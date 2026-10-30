@@ -43,9 +43,9 @@ def compose_environment(database, secret_path):
     # Do not forward inherited database passwords to subprocesses.
     for key in ("PGPASSWORD", "POSTGRES_PASSWORD"):
         env.pop(key, None)
-    env.update(FOUNDATION_DB_NAME=database["name"], FOUNDATION_DB_USER=database["user"],
-               FOUNDATION_DB_PORT=str(database["port"]),
-               FOUNDATION_DB_SECRET_FILE=str(Path(secret_path).resolve()))
+    env.update(OUROBOROS_DB_NAME=database["name"], OUROBOROS_DB_USER=database["user"],
+               OUROBOROS_DB_PORT=str(database["port"]),
+               OUROBOROS_DB_SECRET_FILE=str(Path(secret_path).resolve()))
     return env
 
 
@@ -102,7 +102,20 @@ def connect(database, password):
         connection = psycopg.connect(host="127.0.0.1", port=database["port"],
                                     dbname=database["name"], user=database["user"],
                                     password=password, connect_timeout=database["connect_timeout"],
-                                    options=f"-c statement_timeout={database['statement_timeout'] * 1000}")
+                                    options=f"-c statement_timeout={database['statement_timeout'] * 1000} -c timezone=UTC")
+        from app.audit_context import audit_context
+        from app.audit_privacy import json_default
+        state = audit_context.get()
+        if state is not None:
+            settings = {'audit_required': 'true', 'audit_id': state.audit_id or '',
+                'application_timezone': state.application_timezone, 'audit_bulk': str(state.bulk).lower(),
+                'audit_sensitive': str(state.sensitive).lower(), 'audit_limit': str(state.mutation_limit),
+                'actor_id': str(state.actor_id) if state.actor_id is not None else '',
+                'actor_username': state.actor_username or '', 'actor_role': state.actor_role or '',
+                'mutation_details': json.dumps(state.mutation_details, ensure_ascii=False, default=json_default)}
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT ' + ', '.join('set_config(%s,%s,false)' for _ in settings),
+                    tuple(value for key, value in settings.items() for value in ('ouroboros.' + key, value)))
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
@@ -132,7 +145,13 @@ class Database:
         try:
             log_event("DEBUG", "Opening database connection", component="database")
             with connect(self.config, self.password) as connection:
-                yield connection
+                try:
+                    yield connection
+                except Exception as error:
+                    if getattr(error, 'sqlstate', None) == 'P9001':
+                        from app.errors import AuditUnavailable
+                        raise AuditUnavailable('Mandatory audit could not be persisted') from None
+                    raise
             log_event("DEBUG", "Database transaction completed and connection closed", component="database")
         finally:
             self._slots.release()

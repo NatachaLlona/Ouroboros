@@ -25,9 +25,8 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
         root = Path(tempfile.mkdtemp(prefix="foundation-postgres-"))
         shutil.copy(PROJECT_ROOT / "compose.yaml", root)
         shutil.copytree(PROJECT_ROOT / "sql", root / "sql")
-        with socket.socket() as available:
-            available.bind(("127.0.0.1", 0))
-            port = available.getsockname()[1]
+        from support_ports import approved_port
+        port = approved_port('database')
         database = {"name": "foundation_test", "user": "foundation_test_master", "port": port,
                     "startup_timeout": 240, "connect_timeout": 10, "statement_timeout": 30}
         password = secrets.token_urlsafe(32)
@@ -50,7 +49,7 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                 self.assertEqual(read_entry(connection, entry_id), (entry_id, value))
                 with connection.cursor() as cursor:
                     cursor.execute("SELECT count(*) FROM public.foundation_migrations")
-                    self.assertEqual(cursor.fetchone()[0], 4)
+                    self.assertEqual(cursor.fetchone()[0], 11)
                     cursor.execute("SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND tablename='test'")
                     self.assertEqual(cursor.fetchone()[0], 1)
                     cursor.execute("SELECT data_type, is_identity, identity_generation FROM information_schema.columns WHERE table_schema='public' AND table_name='test' AND column_name='id'")
@@ -121,7 +120,7 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                         self.assertNotIn(secret, output.getvalue())
                     # Replay the sanitized collection against the real isolated API.
                     import re
-                    collection=json.loads((PROJECT_ROOT/"postman/Foundation.postman_collection.json").read_text(encoding="utf-8"))
+                    collection=json.loads((PROJECT_ROOT/"postman/Ouroboros.postman_collection.json").read_text(encoding="utf-8"))
                     variables={"base_url":"http://testserver","api_username":"isolated_api_user","api_password":api_password,"access_token":"","test_id":""}
                     def expand(value):
                         return re.sub(r"\{\{([^}]+)\}\}",lambda match:variables[match[1]],value)
@@ -195,9 +194,8 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                             cursor.execute("SELECT pg_sleep(%s)",(0.04,))
                         log_event("INFO","Concurrent operation completed",component="probe")
                     return {"index":index}
-                with socket.socket() as available:
-                    available.bind(("127.0.0.1", 0))
-                    api_port = available.getsockname()[1]
+                from support_ports import approved_port
+                api_port = approved_port('api')
                 server = uvicorn.Server(uvicorn.Config(application, host="127.0.0.1", port=api_port,
                                                        access_log=False, log_config=None))
                 thread = threading.Thread(target=server.run, daemon=True)
@@ -217,7 +215,7 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                     restored = httpx.get(f"http://127.0.0.1:{api_port}/test", params={"id":entry_id},
                                         headers={"Authorization":"Bearer "+restarted_token.json()["access_token"]}, timeout=10)
                     self.assertEqual(restored.status_code, 200)
-                    self.assertEqual(restored.json()["items"], [{"id":entry_id,"value":value}])
+                    self.assertEqual([{key: row[key] for key in ('id','value')} for row in restored.json()["items"]], [{"id":entry_id,"value":value}])
                     import asyncio
                     async def overlapping():
                         async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{api_port}",timeout=20) as http:

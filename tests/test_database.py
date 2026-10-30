@@ -89,8 +89,8 @@ class DatabaseTests(unittest.TestCase):
         existing = json.dumps([{"Config": {"Labels": {"com.docker.compose.project.working_dir": str(self.root)}, "Env": ["POSTGRES_DB=old_name", "POSTGRES_USER=old_master"]}}]).encode()
         with patch("app.database.run_command", side_effect=[MagicMock(stdout=b"container"), MagicMock(stdout=existing), MagicMock()]) as run:
             start_postgres(database, self.root / "secret", self.root, "unit-database")
-            self.assertEqual(run.call_args.args[2]["FOUNDATION_DB_NAME"], "old_name")
-            self.assertEqual(run.call_args.args[2]["FOUNDATION_DB_USER"], "old_master")
+            self.assertEqual(run.call_args.args[2]["OUROBOROS_DB_NAME"], "old_name")
+            self.assertEqual(run.call_args.args[2]["OUROBOROS_DB_USER"], "old_master")
 
     def test_invalid_credentials_do_not_leak(self):
         import psycopg

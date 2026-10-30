@@ -1,0 +1,7386 @@
+{
+  "unicode_version": "16.0.0",
+  "source": "https://www.unicode.org/Public/16.0.0/ucd/auxiliary/GraphemeBreakTest.txt",
+  "license": "https://www.unicode.org/license.txt",
+  "cases": [
+    {
+      "text": "  ",
+      "segments": [
+        " ",
+        " "
+      ]
+    },
+    {
+      "text": " \u0308 ",
+      "segments": [
+        " \u0308",
+        " "
+      ]
+    },
+    {
+      "text": " \r",
+      "segments": [
+        " ",
+        "\r"
+      ]
+    },
+    {
+      "text": " \u0308\r",
+      "segments": [
+        " \u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": " \n",
+      "segments": [
+        " ",
+        "\n"
+      ]
+    },
+    {
+      "text": " \u0308\n",
+      "segments": [
+        " \u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": " \u0001",
+      "segments": [
+        " ",
+        "\u0001"
+      ]
+    },
+    {
+      "text": " \u0308\u0001",
+      "segments": [
+        " \u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": " \u200c",
+      "segments": [
+        " \u200c"
+      ]
+    },
+    {
+      "text": " \u0308\u200c",
+      "segments": [
+        " \u0308\u200c"
+      ]
+    },
+    {
+      "text": " \ud83c\udde6",
+      "segments": [
+        " ",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": " \u0308\ud83c\udde6",
+      "segments": [
+        " \u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": " \u0600",
+      "segments": [
+        " ",
+        "\u0600"
+      ]
+    },
+    {
+      "text": " \u0308\u0600",
+      "segments": [
+        " \u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": " \u0a03",
+      "segments": [
+        " \u0a03"
+      ]
+    },
+    {
+      "text": " \u0308\u0a03",
+      "segments": [
+        " \u0308\u0a03"
+      ]
+    },
+    {
+      "text": " \u1100",
+      "segments": [
+        " ",
+        "\u1100"
+      ]
+    },
+    {
+      "text": " \u0308\u1100",
+      "segments": [
+        " \u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": " \u1160",
+      "segments": [
+        " ",
+        "\u1160"
+      ]
+    },
+    {
+      "text": " \u0308\u1160",
+      "segments": [
+        " \u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": " \u11a8",
+      "segments": [
+        " ",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": " \u0308\u11a8",
+      "segments": [
+        " \u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": " \uac00",
+      "segments": [
+        " ",
+        "\uac00"
+      ]
+    },
+    {
+      "text": " \u0308\uac00",
+      "segments": [
+        " \u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": " \uac01",
+      "segments": [
+        " ",
+        "\uac01"
+      ]
+    },
+    {
+      "text": " \u0308\uac01",
+      "segments": [
+        " \u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": " \u0903",
+      "segments": [
+        " \u0903"
+      ]
+    },
+    {
+      "text": " \u0308\u0903",
+      "segments": [
+        " \u0308\u0903"
+      ]
+    },
+    {
+      "text": " \u0904",
+      "segments": [
+        " ",
+        "\u0904"
+      ]
+    },
+    {
+      "text": " \u0308\u0904",
+      "segments": [
+        " \u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": " \u0d4e",
+      "segments": [
+        " ",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": " \u0308\u0d4e",
+      "segments": [
+        " \u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": " \u0915",
+      "segments": [
+        " ",
+        "\u0915"
+      ]
+    },
+    {
+      "text": " \u0308\u0915",
+      "segments": [
+        " \u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": " \u231a",
+      "segments": [
+        " ",
+        "\u231a"
+      ]
+    },
+    {
+      "text": " \u0308\u231a",
+      "segments": [
+        " \u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": " \u0300",
+      "segments": [
+        " \u0300"
+      ]
+    },
+    {
+      "text": " \u0308\u0300",
+      "segments": [
+        " \u0308\u0300"
+      ]
+    },
+    {
+      "text": " \u0900",
+      "segments": [
+        " \u0900"
+      ]
+    },
+    {
+      "text": " \u0308\u0900",
+      "segments": [
+        " \u0308\u0900"
+      ]
+    },
+    {
+      "text": " \u094d",
+      "segments": [
+        " \u094d"
+      ]
+    },
+    {
+      "text": " \u0308\u094d",
+      "segments": [
+        " \u0308\u094d"
+      ]
+    },
+    {
+      "text": " \u200d",
+      "segments": [
+        " \u200d"
+      ]
+    },
+    {
+      "text": " \u0308\u200d",
+      "segments": [
+        " \u0308\u200d"
+      ]
+    },
+    {
+      "text": " \u0378",
+      "segments": [
+        " ",
+        "\u0378"
+      ]
+    },
+    {
+      "text": " \u0308\u0378",
+      "segments": [
+        " \u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\r ",
+      "segments": [
+        "\r",
+        " "
+      ]
+    },
+    {
+      "text": "\r\u0308 ",
+      "segments": [
+        "\r",
+        "\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\r\r",
+      "segments": [
+        "\r",
+        "\r"
+      ]
+    },
+    {
+      "text": "\r\u0308\r",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\r\n",
+      "segments": [
+        "\r\n"
+      ]
+    },
+    {
+      "text": "\r\u0308\n",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\r\u0001",
+      "segments": [
+        "\r",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0001",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\r\u200c",
+      "segments": [
+        "\r",
+        "\u200c"
+      ]
+    },
+    {
+      "text": "\r\u0308\u200c",
+      "segments": [
+        "\r",
+        "\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\r\ud83c\udde6",
+      "segments": [
+        "\r",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\r\u0308\ud83c\udde6",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\r\u0600",
+      "segments": [
+        "\r",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0600",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\r\u0a03",
+      "segments": [
+        "\r",
+        "\u0a03"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0a03",
+      "segments": [
+        "\r",
+        "\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\r\u1100",
+      "segments": [
+        "\r",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\r\u0308\u1100",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\r\u1160",
+      "segments": [
+        "\r",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\r\u0308\u1160",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\r\u11a8",
+      "segments": [
+        "\r",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\r\u0308\u11a8",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\r\uac00",
+      "segments": [
+        "\r",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\r\u0308\uac00",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\r\uac01",
+      "segments": [
+        "\r",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\r\u0308\uac01",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\r\u0903",
+      "segments": [
+        "\r",
+        "\u0903"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0903",
+      "segments": [
+        "\r",
+        "\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\r\u0904",
+      "segments": [
+        "\r",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0904",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\r\u0d4e",
+      "segments": [
+        "\r",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0d4e",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\r\u0915",
+      "segments": [
+        "\r",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0915",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\r\u231a",
+      "segments": [
+        "\r",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\r\u0308\u231a",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\r\u0300",
+      "segments": [
+        "\r",
+        "\u0300"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0300",
+      "segments": [
+        "\r",
+        "\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\r\u0900",
+      "segments": [
+        "\r",
+        "\u0900"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0900",
+      "segments": [
+        "\r",
+        "\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\r\u094d",
+      "segments": [
+        "\r",
+        "\u094d"
+      ]
+    },
+    {
+      "text": "\r\u0308\u094d",
+      "segments": [
+        "\r",
+        "\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\r\u200d",
+      "segments": [
+        "\r",
+        "\u200d"
+      ]
+    },
+    {
+      "text": "\r\u0308\u200d",
+      "segments": [
+        "\r",
+        "\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\r\u0378",
+      "segments": [
+        "\r",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\r\u0308\u0378",
+      "segments": [
+        "\r",
+        "\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\n ",
+      "segments": [
+        "\n",
+        " "
+      ]
+    },
+    {
+      "text": "\n\u0308 ",
+      "segments": [
+        "\n",
+        "\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\n\r",
+      "segments": [
+        "\n",
+        "\r"
+      ]
+    },
+    {
+      "text": "\n\u0308\r",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\n\n",
+      "segments": [
+        "\n",
+        "\n"
+      ]
+    },
+    {
+      "text": "\n\u0308\n",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\n\u0001",
+      "segments": [
+        "\n",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0001",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\n\u200c",
+      "segments": [
+        "\n",
+        "\u200c"
+      ]
+    },
+    {
+      "text": "\n\u0308\u200c",
+      "segments": [
+        "\n",
+        "\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\n\ud83c\udde6",
+      "segments": [
+        "\n",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\n\u0308\ud83c\udde6",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\n\u0600",
+      "segments": [
+        "\n",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0600",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\n\u0a03",
+      "segments": [
+        "\n",
+        "\u0a03"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0a03",
+      "segments": [
+        "\n",
+        "\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\n\u1100",
+      "segments": [
+        "\n",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\n\u0308\u1100",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\n\u1160",
+      "segments": [
+        "\n",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\n\u0308\u1160",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\n\u11a8",
+      "segments": [
+        "\n",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\n\u0308\u11a8",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\n\uac00",
+      "segments": [
+        "\n",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\n\u0308\uac00",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\n\uac01",
+      "segments": [
+        "\n",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\n\u0308\uac01",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\n\u0903",
+      "segments": [
+        "\n",
+        "\u0903"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0903",
+      "segments": [
+        "\n",
+        "\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\n\u0904",
+      "segments": [
+        "\n",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0904",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\n\u0d4e",
+      "segments": [
+        "\n",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0d4e",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\n\u0915",
+      "segments": [
+        "\n",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0915",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\n\u231a",
+      "segments": [
+        "\n",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\n\u0308\u231a",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\n\u0300",
+      "segments": [
+        "\n",
+        "\u0300"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0300",
+      "segments": [
+        "\n",
+        "\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\n\u0900",
+      "segments": [
+        "\n",
+        "\u0900"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0900",
+      "segments": [
+        "\n",
+        "\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\n\u094d",
+      "segments": [
+        "\n",
+        "\u094d"
+      ]
+    },
+    {
+      "text": "\n\u0308\u094d",
+      "segments": [
+        "\n",
+        "\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\n\u200d",
+      "segments": [
+        "\n",
+        "\u200d"
+      ]
+    },
+    {
+      "text": "\n\u0308\u200d",
+      "segments": [
+        "\n",
+        "\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\n\u0378",
+      "segments": [
+        "\n",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\n\u0308\u0378",
+      "segments": [
+        "\n",
+        "\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0001 ",
+      "segments": [
+        "\u0001",
+        " "
+      ]
+    },
+    {
+      "text": "\u0001\u0308 ",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0001\r",
+      "segments": [
+        "\u0001",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\r",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0001\n",
+      "segments": [
+        "\u0001",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\n",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0001\u0001",
+      "segments": [
+        "\u0001",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0001",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0001\u200c",
+      "segments": [
+        "\u0001",
+        "\u200c"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u200c",
+      "segments": [
+        "\u0001",
+        "\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0001\ud83c\udde6",
+      "segments": [
+        "\u0001",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\ud83c\udde6",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0001\u0600",
+      "segments": [
+        "\u0001",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0600",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0001\u0a03",
+      "segments": [
+        "\u0001",
+        "\u0a03"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0a03",
+      "segments": [
+        "\u0001",
+        "\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0001\u1100",
+      "segments": [
+        "\u0001",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u1100",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0001\u1160",
+      "segments": [
+        "\u0001",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u1160",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0001\u11a8",
+      "segments": [
+        "\u0001",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u11a8",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0001\uac00",
+      "segments": [
+        "\u0001",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\uac00",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0001\uac01",
+      "segments": [
+        "\u0001",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\uac01",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0001\u0903",
+      "segments": [
+        "\u0001",
+        "\u0903"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0903",
+      "segments": [
+        "\u0001",
+        "\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0001\u0904",
+      "segments": [
+        "\u0001",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0904",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0001\u0d4e",
+      "segments": [
+        "\u0001",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0d4e",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0001\u0915",
+      "segments": [
+        "\u0001",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0915",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0001\u231a",
+      "segments": [
+        "\u0001",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u231a",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0001\u0300",
+      "segments": [
+        "\u0001",
+        "\u0300"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0300",
+      "segments": [
+        "\u0001",
+        "\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0001\u0900",
+      "segments": [
+        "\u0001",
+        "\u0900"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0900",
+      "segments": [
+        "\u0001",
+        "\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0001\u094d",
+      "segments": [
+        "\u0001",
+        "\u094d"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u094d",
+      "segments": [
+        "\u0001",
+        "\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0001\u200d",
+      "segments": [
+        "\u0001",
+        "\u200d"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u200d",
+      "segments": [
+        "\u0001",
+        "\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0001\u0378",
+      "segments": [
+        "\u0001",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0001\u0308\u0378",
+      "segments": [
+        "\u0001",
+        "\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u200c ",
+      "segments": [
+        "\u200c",
+        " "
+      ]
+    },
+    {
+      "text": "\u200c\u0308 ",
+      "segments": [
+        "\u200c\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u200c\r",
+      "segments": [
+        "\u200c",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\r",
+      "segments": [
+        "\u200c\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u200c\n",
+      "segments": [
+        "\u200c",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\n",
+      "segments": [
+        "\u200c\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u200c\u0001",
+      "segments": [
+        "\u200c",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0001",
+      "segments": [
+        "\u200c\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u200c\u200c",
+      "segments": [
+        "\u200c\u200c"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u200c",
+      "segments": [
+        "\u200c\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u200c\ud83c\udde6",
+      "segments": [
+        "\u200c",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\ud83c\udde6",
+      "segments": [
+        "\u200c\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u200c\u0600",
+      "segments": [
+        "\u200c",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0600",
+      "segments": [
+        "\u200c\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u200c\u0a03",
+      "segments": [
+        "\u200c\u0a03"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0a03",
+      "segments": [
+        "\u200c\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u200c\u1100",
+      "segments": [
+        "\u200c",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u1100",
+      "segments": [
+        "\u200c\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u200c\u1160",
+      "segments": [
+        "\u200c",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u1160",
+      "segments": [
+        "\u200c\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u200c\u11a8",
+      "segments": [
+        "\u200c",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u11a8",
+      "segments": [
+        "\u200c\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u200c\uac00",
+      "segments": [
+        "\u200c",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\uac00",
+      "segments": [
+        "\u200c\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u200c\uac01",
+      "segments": [
+        "\u200c",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\uac01",
+      "segments": [
+        "\u200c\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u200c\u0903",
+      "segments": [
+        "\u200c\u0903"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0903",
+      "segments": [
+        "\u200c\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u200c\u0904",
+      "segments": [
+        "\u200c",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0904",
+      "segments": [
+        "\u200c\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u200c\u0d4e",
+      "segments": [
+        "\u200c",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0d4e",
+      "segments": [
+        "\u200c\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u200c\u0915",
+      "segments": [
+        "\u200c",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0915",
+      "segments": [
+        "\u200c\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u200c\u231a",
+      "segments": [
+        "\u200c",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u231a",
+      "segments": [
+        "\u200c\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u200c\u0300",
+      "segments": [
+        "\u200c\u0300"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0300",
+      "segments": [
+        "\u200c\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u200c\u0900",
+      "segments": [
+        "\u200c\u0900"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0900",
+      "segments": [
+        "\u200c\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u200c\u094d",
+      "segments": [
+        "\u200c\u094d"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u094d",
+      "segments": [
+        "\u200c\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u200c\u200d",
+      "segments": [
+        "\u200c\u200d"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u200d",
+      "segments": [
+        "\u200c\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u200c\u0378",
+      "segments": [
+        "\u200c",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u200c\u0308\u0378",
+      "segments": [
+        "\u200c\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6 ",
+      "segments": [
+        "\ud83c\udde6",
+        " "
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308 ",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\r",
+      "segments": [
+        "\ud83c\udde6",
+        "\r"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\r",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\n",
+      "segments": [
+        "\ud83c\udde6",
+        "\n"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\n",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0001",
+      "segments": [
+        "\ud83c\udde6",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0001",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u200c",
+      "segments": [
+        "\ud83c\udde6\u200c"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u200c",
+      "segments": [
+        "\ud83c\udde6\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\ud83c\udde6",
+      "segments": [
+        "\ud83c\udde6\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\ud83c\udde6",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0600",
+      "segments": [
+        "\ud83c\udde6",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0600",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0a03",
+      "segments": [
+        "\ud83c\udde6\u0a03"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0a03",
+      "segments": [
+        "\ud83c\udde6\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u1100",
+      "segments": [
+        "\ud83c\udde6",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u1100",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u1160",
+      "segments": [
+        "\ud83c\udde6",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u1160",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u11a8",
+      "segments": [
+        "\ud83c\udde6",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u11a8",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\uac00",
+      "segments": [
+        "\ud83c\udde6",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\uac00",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\uac01",
+      "segments": [
+        "\ud83c\udde6",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\uac01",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0903",
+      "segments": [
+        "\ud83c\udde6\u0903"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0903",
+      "segments": [
+        "\ud83c\udde6\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0904",
+      "segments": [
+        "\ud83c\udde6",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0904",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0d4e",
+      "segments": [
+        "\ud83c\udde6",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0d4e",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0915",
+      "segments": [
+        "\ud83c\udde6",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0915",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u231a",
+      "segments": [
+        "\ud83c\udde6",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u231a",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0300",
+      "segments": [
+        "\ud83c\udde6\u0300"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0300",
+      "segments": [
+        "\ud83c\udde6\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0900",
+      "segments": [
+        "\ud83c\udde6\u0900"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0900",
+      "segments": [
+        "\ud83c\udde6\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u094d",
+      "segments": [
+        "\ud83c\udde6\u094d"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u094d",
+      "segments": [
+        "\ud83c\udde6\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u200d",
+      "segments": [
+        "\ud83c\udde6\u200d"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u200d",
+      "segments": [
+        "\ud83c\udde6\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0378",
+      "segments": [
+        "\ud83c\udde6",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\u0308\u0378",
+      "segments": [
+        "\ud83c\udde6\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0600 ",
+      "segments": [
+        "\u0600 "
+      ]
+    },
+    {
+      "text": "\u0600\u0308 ",
+      "segments": [
+        "\u0600\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0600\r",
+      "segments": [
+        "\u0600",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\r",
+      "segments": [
+        "\u0600\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0600\n",
+      "segments": [
+        "\u0600",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\n",
+      "segments": [
+        "\u0600\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0600\u0001",
+      "segments": [
+        "\u0600",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0001",
+      "segments": [
+        "\u0600\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0600\u200c",
+      "segments": [
+        "\u0600\u200c"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u200c",
+      "segments": [
+        "\u0600\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0600\ud83c\udde6",
+      "segments": [
+        "\u0600\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\ud83c\udde6",
+      "segments": [
+        "\u0600\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0600\u0600",
+      "segments": [
+        "\u0600\u0600"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0600",
+      "segments": [
+        "\u0600\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0600\u0a03",
+      "segments": [
+        "\u0600\u0a03"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0a03",
+      "segments": [
+        "\u0600\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0600\u1100",
+      "segments": [
+        "\u0600\u1100"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u1100",
+      "segments": [
+        "\u0600\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0600\u1160",
+      "segments": [
+        "\u0600\u1160"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u1160",
+      "segments": [
+        "\u0600\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0600\u11a8",
+      "segments": [
+        "\u0600\u11a8"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u11a8",
+      "segments": [
+        "\u0600\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0600\uac00",
+      "segments": [
+        "\u0600\uac00"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\uac00",
+      "segments": [
+        "\u0600\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0600\uac01",
+      "segments": [
+        "\u0600\uac01"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\uac01",
+      "segments": [
+        "\u0600\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0600\u0903",
+      "segments": [
+        "\u0600\u0903"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0903",
+      "segments": [
+        "\u0600\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0600\u0904",
+      "segments": [
+        "\u0600\u0904"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0904",
+      "segments": [
+        "\u0600\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0600\u0d4e",
+      "segments": [
+        "\u0600\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0d4e",
+      "segments": [
+        "\u0600\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0600\u0915",
+      "segments": [
+        "\u0600\u0915"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0915",
+      "segments": [
+        "\u0600\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0600\u231a",
+      "segments": [
+        "\u0600\u231a"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u231a",
+      "segments": [
+        "\u0600\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0600\u0300",
+      "segments": [
+        "\u0600\u0300"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0300",
+      "segments": [
+        "\u0600\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0600\u0900",
+      "segments": [
+        "\u0600\u0900"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0900",
+      "segments": [
+        "\u0600\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0600\u094d",
+      "segments": [
+        "\u0600\u094d"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u094d",
+      "segments": [
+        "\u0600\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0600\u200d",
+      "segments": [
+        "\u0600\u200d"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u200d",
+      "segments": [
+        "\u0600\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0600\u0378",
+      "segments": [
+        "\u0600\u0378"
+      ]
+    },
+    {
+      "text": "\u0600\u0308\u0378",
+      "segments": [
+        "\u0600\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0a03 ",
+      "segments": [
+        "\u0a03",
+        " "
+      ]
+    },
+    {
+      "text": "\u0a03\u0308 ",
+      "segments": [
+        "\u0a03\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0a03\r",
+      "segments": [
+        "\u0a03",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\r",
+      "segments": [
+        "\u0a03\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0a03\n",
+      "segments": [
+        "\u0a03",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\n",
+      "segments": [
+        "\u0a03\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0a03\u0001",
+      "segments": [
+        "\u0a03",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0001",
+      "segments": [
+        "\u0a03\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0a03\u200c",
+      "segments": [
+        "\u0a03\u200c"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u200c",
+      "segments": [
+        "\u0a03\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0a03\ud83c\udde6",
+      "segments": [
+        "\u0a03",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\ud83c\udde6",
+      "segments": [
+        "\u0a03\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0a03\u0600",
+      "segments": [
+        "\u0a03",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0600",
+      "segments": [
+        "\u0a03\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0a03\u0a03",
+      "segments": [
+        "\u0a03\u0a03"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0a03",
+      "segments": [
+        "\u0a03\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0a03\u1100",
+      "segments": [
+        "\u0a03",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u1100",
+      "segments": [
+        "\u0a03\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0a03\u1160",
+      "segments": [
+        "\u0a03",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u1160",
+      "segments": [
+        "\u0a03\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0a03\u11a8",
+      "segments": [
+        "\u0a03",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u11a8",
+      "segments": [
+        "\u0a03\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0a03\uac00",
+      "segments": [
+        "\u0a03",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\uac00",
+      "segments": [
+        "\u0a03\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0a03\uac01",
+      "segments": [
+        "\u0a03",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\uac01",
+      "segments": [
+        "\u0a03\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0a03\u0903",
+      "segments": [
+        "\u0a03\u0903"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0903",
+      "segments": [
+        "\u0a03\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0a03\u0904",
+      "segments": [
+        "\u0a03",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0904",
+      "segments": [
+        "\u0a03\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0a03\u0d4e",
+      "segments": [
+        "\u0a03",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0d4e",
+      "segments": [
+        "\u0a03\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0a03\u0915",
+      "segments": [
+        "\u0a03",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0915",
+      "segments": [
+        "\u0a03\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0a03\u231a",
+      "segments": [
+        "\u0a03",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u231a",
+      "segments": [
+        "\u0a03\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0a03\u0300",
+      "segments": [
+        "\u0a03\u0300"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0300",
+      "segments": [
+        "\u0a03\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0a03\u0900",
+      "segments": [
+        "\u0a03\u0900"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0900",
+      "segments": [
+        "\u0a03\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0a03\u094d",
+      "segments": [
+        "\u0a03\u094d"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u094d",
+      "segments": [
+        "\u0a03\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0a03\u200d",
+      "segments": [
+        "\u0a03\u200d"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u200d",
+      "segments": [
+        "\u0a03\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0a03\u0378",
+      "segments": [
+        "\u0a03",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0a03\u0308\u0378",
+      "segments": [
+        "\u0a03\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u1100 ",
+      "segments": [
+        "\u1100",
+        " "
+      ]
+    },
+    {
+      "text": "\u1100\u0308 ",
+      "segments": [
+        "\u1100\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u1100\r",
+      "segments": [
+        "\u1100",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\r",
+      "segments": [
+        "\u1100\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u1100\n",
+      "segments": [
+        "\u1100",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\n",
+      "segments": [
+        "\u1100\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u1100\u0001",
+      "segments": [
+        "\u1100",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0001",
+      "segments": [
+        "\u1100\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u1100\u200c",
+      "segments": [
+        "\u1100\u200c"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u200c",
+      "segments": [
+        "\u1100\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u1100\ud83c\udde6",
+      "segments": [
+        "\u1100",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\ud83c\udde6",
+      "segments": [
+        "\u1100\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u1100\u0600",
+      "segments": [
+        "\u1100",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0600",
+      "segments": [
+        "\u1100\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u1100\u0a03",
+      "segments": [
+        "\u1100\u0a03"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0a03",
+      "segments": [
+        "\u1100\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u1100\u1100",
+      "segments": [
+        "\u1100\u1100"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u1100",
+      "segments": [
+        "\u1100\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u1100\u1160",
+      "segments": [
+        "\u1100\u1160"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u1160",
+      "segments": [
+        "\u1100\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u1100\u11a8",
+      "segments": [
+        "\u1100",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u11a8",
+      "segments": [
+        "\u1100\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u1100\uac00",
+      "segments": [
+        "\u1100\uac00"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\uac00",
+      "segments": [
+        "\u1100\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u1100\uac01",
+      "segments": [
+        "\u1100\uac01"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\uac01",
+      "segments": [
+        "\u1100\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u1100\u0903",
+      "segments": [
+        "\u1100\u0903"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0903",
+      "segments": [
+        "\u1100\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u1100\u0904",
+      "segments": [
+        "\u1100",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0904",
+      "segments": [
+        "\u1100\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u1100\u0d4e",
+      "segments": [
+        "\u1100",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0d4e",
+      "segments": [
+        "\u1100\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u1100\u0915",
+      "segments": [
+        "\u1100",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0915",
+      "segments": [
+        "\u1100\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u1100\u231a",
+      "segments": [
+        "\u1100",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u231a",
+      "segments": [
+        "\u1100\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u1100\u0300",
+      "segments": [
+        "\u1100\u0300"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0300",
+      "segments": [
+        "\u1100\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u1100\u0900",
+      "segments": [
+        "\u1100\u0900"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0900",
+      "segments": [
+        "\u1100\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u1100\u094d",
+      "segments": [
+        "\u1100\u094d"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u094d",
+      "segments": [
+        "\u1100\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u1100\u200d",
+      "segments": [
+        "\u1100\u200d"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u200d",
+      "segments": [
+        "\u1100\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u1100\u0378",
+      "segments": [
+        "\u1100",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u1100\u0308\u0378",
+      "segments": [
+        "\u1100\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u1160 ",
+      "segments": [
+        "\u1160",
+        " "
+      ]
+    },
+    {
+      "text": "\u1160\u0308 ",
+      "segments": [
+        "\u1160\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u1160\r",
+      "segments": [
+        "\u1160",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\r",
+      "segments": [
+        "\u1160\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u1160\n",
+      "segments": [
+        "\u1160",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\n",
+      "segments": [
+        "\u1160\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u1160\u0001",
+      "segments": [
+        "\u1160",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0001",
+      "segments": [
+        "\u1160\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u1160\u200c",
+      "segments": [
+        "\u1160\u200c"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u200c",
+      "segments": [
+        "\u1160\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u1160\ud83c\udde6",
+      "segments": [
+        "\u1160",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\ud83c\udde6",
+      "segments": [
+        "\u1160\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u1160\u0600",
+      "segments": [
+        "\u1160",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0600",
+      "segments": [
+        "\u1160\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u1160\u0a03",
+      "segments": [
+        "\u1160\u0a03"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0a03",
+      "segments": [
+        "\u1160\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u1160\u1100",
+      "segments": [
+        "\u1160",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u1100",
+      "segments": [
+        "\u1160\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u1160\u1160",
+      "segments": [
+        "\u1160\u1160"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u1160",
+      "segments": [
+        "\u1160\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u1160\u11a8",
+      "segments": [
+        "\u1160\u11a8"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u11a8",
+      "segments": [
+        "\u1160\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u1160\uac00",
+      "segments": [
+        "\u1160",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\uac00",
+      "segments": [
+        "\u1160\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u1160\uac01",
+      "segments": [
+        "\u1160",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\uac01",
+      "segments": [
+        "\u1160\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u1160\u0903",
+      "segments": [
+        "\u1160\u0903"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0903",
+      "segments": [
+        "\u1160\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u1160\u0904",
+      "segments": [
+        "\u1160",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0904",
+      "segments": [
+        "\u1160\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u1160\u0d4e",
+      "segments": [
+        "\u1160",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0d4e",
+      "segments": [
+        "\u1160\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u1160\u0915",
+      "segments": [
+        "\u1160",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0915",
+      "segments": [
+        "\u1160\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u1160\u231a",
+      "segments": [
+        "\u1160",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u231a",
+      "segments": [
+        "\u1160\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u1160\u0300",
+      "segments": [
+        "\u1160\u0300"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0300",
+      "segments": [
+        "\u1160\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u1160\u0900",
+      "segments": [
+        "\u1160\u0900"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0900",
+      "segments": [
+        "\u1160\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u1160\u094d",
+      "segments": [
+        "\u1160\u094d"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u094d",
+      "segments": [
+        "\u1160\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u1160\u200d",
+      "segments": [
+        "\u1160\u200d"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u200d",
+      "segments": [
+        "\u1160\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u1160\u0378",
+      "segments": [
+        "\u1160",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u1160\u0308\u0378",
+      "segments": [
+        "\u1160\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u11a8 ",
+      "segments": [
+        "\u11a8",
+        " "
+      ]
+    },
+    {
+      "text": "\u11a8\u0308 ",
+      "segments": [
+        "\u11a8\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u11a8\r",
+      "segments": [
+        "\u11a8",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\r",
+      "segments": [
+        "\u11a8\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u11a8\n",
+      "segments": [
+        "\u11a8",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\n",
+      "segments": [
+        "\u11a8\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u11a8\u0001",
+      "segments": [
+        "\u11a8",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0001",
+      "segments": [
+        "\u11a8\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u11a8\u200c",
+      "segments": [
+        "\u11a8\u200c"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u200c",
+      "segments": [
+        "\u11a8\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u11a8\ud83c\udde6",
+      "segments": [
+        "\u11a8",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\ud83c\udde6",
+      "segments": [
+        "\u11a8\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u11a8\u0600",
+      "segments": [
+        "\u11a8",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0600",
+      "segments": [
+        "\u11a8\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u11a8\u0a03",
+      "segments": [
+        "\u11a8\u0a03"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0a03",
+      "segments": [
+        "\u11a8\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u11a8\u1100",
+      "segments": [
+        "\u11a8",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u1100",
+      "segments": [
+        "\u11a8\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u11a8\u1160",
+      "segments": [
+        "\u11a8",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u1160",
+      "segments": [
+        "\u11a8\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u11a8\u11a8",
+      "segments": [
+        "\u11a8\u11a8"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u11a8",
+      "segments": [
+        "\u11a8\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u11a8\uac00",
+      "segments": [
+        "\u11a8",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\uac00",
+      "segments": [
+        "\u11a8\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u11a8\uac01",
+      "segments": [
+        "\u11a8",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\uac01",
+      "segments": [
+        "\u11a8\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u11a8\u0903",
+      "segments": [
+        "\u11a8\u0903"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0903",
+      "segments": [
+        "\u11a8\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u11a8\u0904",
+      "segments": [
+        "\u11a8",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0904",
+      "segments": [
+        "\u11a8\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u11a8\u0d4e",
+      "segments": [
+        "\u11a8",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0d4e",
+      "segments": [
+        "\u11a8\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u11a8\u0915",
+      "segments": [
+        "\u11a8",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0915",
+      "segments": [
+        "\u11a8\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u11a8\u231a",
+      "segments": [
+        "\u11a8",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u231a",
+      "segments": [
+        "\u11a8\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u11a8\u0300",
+      "segments": [
+        "\u11a8\u0300"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0300",
+      "segments": [
+        "\u11a8\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u11a8\u0900",
+      "segments": [
+        "\u11a8\u0900"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0900",
+      "segments": [
+        "\u11a8\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u11a8\u094d",
+      "segments": [
+        "\u11a8\u094d"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u094d",
+      "segments": [
+        "\u11a8\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u11a8\u200d",
+      "segments": [
+        "\u11a8\u200d"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u200d",
+      "segments": [
+        "\u11a8\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u11a8\u0378",
+      "segments": [
+        "\u11a8",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u11a8\u0308\u0378",
+      "segments": [
+        "\u11a8\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\uac00 ",
+      "segments": [
+        "\uac00",
+        " "
+      ]
+    },
+    {
+      "text": "\uac00\u0308 ",
+      "segments": [
+        "\uac00\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\uac00\r",
+      "segments": [
+        "\uac00",
+        "\r"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\r",
+      "segments": [
+        "\uac00\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\uac00\n",
+      "segments": [
+        "\uac00",
+        "\n"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\n",
+      "segments": [
+        "\uac00\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\uac00\u0001",
+      "segments": [
+        "\uac00",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0001",
+      "segments": [
+        "\uac00\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\uac00\u200c",
+      "segments": [
+        "\uac00\u200c"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u200c",
+      "segments": [
+        "\uac00\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\uac00\ud83c\udde6",
+      "segments": [
+        "\uac00",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\ud83c\udde6",
+      "segments": [
+        "\uac00\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\uac00\u0600",
+      "segments": [
+        "\uac00",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0600",
+      "segments": [
+        "\uac00\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\uac00\u0a03",
+      "segments": [
+        "\uac00\u0a03"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0a03",
+      "segments": [
+        "\uac00\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\uac00\u1100",
+      "segments": [
+        "\uac00",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u1100",
+      "segments": [
+        "\uac00\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\uac00\u1160",
+      "segments": [
+        "\uac00\u1160"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u1160",
+      "segments": [
+        "\uac00\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\uac00\u11a8",
+      "segments": [
+        "\uac00\u11a8"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u11a8",
+      "segments": [
+        "\uac00\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\uac00\uac00",
+      "segments": [
+        "\uac00",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\uac00",
+      "segments": [
+        "\uac00\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\uac00\uac01",
+      "segments": [
+        "\uac00",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\uac01",
+      "segments": [
+        "\uac00\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\uac00\u0903",
+      "segments": [
+        "\uac00\u0903"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0903",
+      "segments": [
+        "\uac00\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\uac00\u0904",
+      "segments": [
+        "\uac00",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0904",
+      "segments": [
+        "\uac00\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\uac00\u0d4e",
+      "segments": [
+        "\uac00",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0d4e",
+      "segments": [
+        "\uac00\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\uac00\u0915",
+      "segments": [
+        "\uac00",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0915",
+      "segments": [
+        "\uac00\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\uac00\u231a",
+      "segments": [
+        "\uac00",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u231a",
+      "segments": [
+        "\uac00\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\uac00\u0300",
+      "segments": [
+        "\uac00\u0300"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0300",
+      "segments": [
+        "\uac00\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\uac00\u0900",
+      "segments": [
+        "\uac00\u0900"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0900",
+      "segments": [
+        "\uac00\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\uac00\u094d",
+      "segments": [
+        "\uac00\u094d"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u094d",
+      "segments": [
+        "\uac00\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\uac00\u200d",
+      "segments": [
+        "\uac00\u200d"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u200d",
+      "segments": [
+        "\uac00\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\uac00\u0378",
+      "segments": [
+        "\uac00",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\uac00\u0308\u0378",
+      "segments": [
+        "\uac00\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\uac01 ",
+      "segments": [
+        "\uac01",
+        " "
+      ]
+    },
+    {
+      "text": "\uac01\u0308 ",
+      "segments": [
+        "\uac01\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\uac01\r",
+      "segments": [
+        "\uac01",
+        "\r"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\r",
+      "segments": [
+        "\uac01\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\uac01\n",
+      "segments": [
+        "\uac01",
+        "\n"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\n",
+      "segments": [
+        "\uac01\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\uac01\u0001",
+      "segments": [
+        "\uac01",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0001",
+      "segments": [
+        "\uac01\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\uac01\u200c",
+      "segments": [
+        "\uac01\u200c"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u200c",
+      "segments": [
+        "\uac01\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\uac01\ud83c\udde6",
+      "segments": [
+        "\uac01",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\ud83c\udde6",
+      "segments": [
+        "\uac01\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\uac01\u0600",
+      "segments": [
+        "\uac01",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0600",
+      "segments": [
+        "\uac01\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\uac01\u0a03",
+      "segments": [
+        "\uac01\u0a03"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0a03",
+      "segments": [
+        "\uac01\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\uac01\u1100",
+      "segments": [
+        "\uac01",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u1100",
+      "segments": [
+        "\uac01\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\uac01\u1160",
+      "segments": [
+        "\uac01",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u1160",
+      "segments": [
+        "\uac01\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\uac01\u11a8",
+      "segments": [
+        "\uac01\u11a8"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u11a8",
+      "segments": [
+        "\uac01\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\uac01\uac00",
+      "segments": [
+        "\uac01",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\uac00",
+      "segments": [
+        "\uac01\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\uac01\uac01",
+      "segments": [
+        "\uac01",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\uac01",
+      "segments": [
+        "\uac01\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\uac01\u0903",
+      "segments": [
+        "\uac01\u0903"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0903",
+      "segments": [
+        "\uac01\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\uac01\u0904",
+      "segments": [
+        "\uac01",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0904",
+      "segments": [
+        "\uac01\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\uac01\u0d4e",
+      "segments": [
+        "\uac01",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0d4e",
+      "segments": [
+        "\uac01\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\uac01\u0915",
+      "segments": [
+        "\uac01",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0915",
+      "segments": [
+        "\uac01\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\uac01\u231a",
+      "segments": [
+        "\uac01",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u231a",
+      "segments": [
+        "\uac01\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\uac01\u0300",
+      "segments": [
+        "\uac01\u0300"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0300",
+      "segments": [
+        "\uac01\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\uac01\u0900",
+      "segments": [
+        "\uac01\u0900"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0900",
+      "segments": [
+        "\uac01\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\uac01\u094d",
+      "segments": [
+        "\uac01\u094d"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u094d",
+      "segments": [
+        "\uac01\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\uac01\u200d",
+      "segments": [
+        "\uac01\u200d"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u200d",
+      "segments": [
+        "\uac01\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\uac01\u0378",
+      "segments": [
+        "\uac01",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\uac01\u0308\u0378",
+      "segments": [
+        "\uac01\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0903 ",
+      "segments": [
+        "\u0903",
+        " "
+      ]
+    },
+    {
+      "text": "\u0903\u0308 ",
+      "segments": [
+        "\u0903\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0903\r",
+      "segments": [
+        "\u0903",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\r",
+      "segments": [
+        "\u0903\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0903\n",
+      "segments": [
+        "\u0903",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\n",
+      "segments": [
+        "\u0903\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0903\u0001",
+      "segments": [
+        "\u0903",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0001",
+      "segments": [
+        "\u0903\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0903\u200c",
+      "segments": [
+        "\u0903\u200c"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u200c",
+      "segments": [
+        "\u0903\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0903\ud83c\udde6",
+      "segments": [
+        "\u0903",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\ud83c\udde6",
+      "segments": [
+        "\u0903\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0903\u0600",
+      "segments": [
+        "\u0903",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0600",
+      "segments": [
+        "\u0903\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0903\u0a03",
+      "segments": [
+        "\u0903\u0a03"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0a03",
+      "segments": [
+        "\u0903\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0903\u1100",
+      "segments": [
+        "\u0903",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u1100",
+      "segments": [
+        "\u0903\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0903\u1160",
+      "segments": [
+        "\u0903",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u1160",
+      "segments": [
+        "\u0903\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0903\u11a8",
+      "segments": [
+        "\u0903",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u11a8",
+      "segments": [
+        "\u0903\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0903\uac00",
+      "segments": [
+        "\u0903",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\uac00",
+      "segments": [
+        "\u0903\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0903\uac01",
+      "segments": [
+        "\u0903",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\uac01",
+      "segments": [
+        "\u0903\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0903\u0903",
+      "segments": [
+        "\u0903\u0903"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0903",
+      "segments": [
+        "\u0903\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0903\u0904",
+      "segments": [
+        "\u0903",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0904",
+      "segments": [
+        "\u0903\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0903\u0d4e",
+      "segments": [
+        "\u0903",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0d4e",
+      "segments": [
+        "\u0903\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0903\u0915",
+      "segments": [
+        "\u0903",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0915",
+      "segments": [
+        "\u0903\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0903\u231a",
+      "segments": [
+        "\u0903",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u231a",
+      "segments": [
+        "\u0903\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0903\u0300",
+      "segments": [
+        "\u0903\u0300"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0300",
+      "segments": [
+        "\u0903\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0903\u0900",
+      "segments": [
+        "\u0903\u0900"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0900",
+      "segments": [
+        "\u0903\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0903\u094d",
+      "segments": [
+        "\u0903\u094d"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u094d",
+      "segments": [
+        "\u0903\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0903\u200d",
+      "segments": [
+        "\u0903\u200d"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u200d",
+      "segments": [
+        "\u0903\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0903\u0378",
+      "segments": [
+        "\u0903",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0903\u0308\u0378",
+      "segments": [
+        "\u0903\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0904 ",
+      "segments": [
+        "\u0904",
+        " "
+      ]
+    },
+    {
+      "text": "\u0904\u0308 ",
+      "segments": [
+        "\u0904\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0904\r",
+      "segments": [
+        "\u0904",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\r",
+      "segments": [
+        "\u0904\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0904\n",
+      "segments": [
+        "\u0904",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\n",
+      "segments": [
+        "\u0904\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0904\u0001",
+      "segments": [
+        "\u0904",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0001",
+      "segments": [
+        "\u0904\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0904\u200c",
+      "segments": [
+        "\u0904\u200c"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u200c",
+      "segments": [
+        "\u0904\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0904\ud83c\udde6",
+      "segments": [
+        "\u0904",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\ud83c\udde6",
+      "segments": [
+        "\u0904\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0904\u0600",
+      "segments": [
+        "\u0904",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0600",
+      "segments": [
+        "\u0904\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0904\u0a03",
+      "segments": [
+        "\u0904\u0a03"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0a03",
+      "segments": [
+        "\u0904\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0904\u1100",
+      "segments": [
+        "\u0904",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u1100",
+      "segments": [
+        "\u0904\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0904\u1160",
+      "segments": [
+        "\u0904",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u1160",
+      "segments": [
+        "\u0904\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0904\u11a8",
+      "segments": [
+        "\u0904",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u11a8",
+      "segments": [
+        "\u0904\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0904\uac00",
+      "segments": [
+        "\u0904",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\uac00",
+      "segments": [
+        "\u0904\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0904\uac01",
+      "segments": [
+        "\u0904",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\uac01",
+      "segments": [
+        "\u0904\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0904\u0903",
+      "segments": [
+        "\u0904\u0903"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0903",
+      "segments": [
+        "\u0904\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0904\u0904",
+      "segments": [
+        "\u0904",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0904",
+      "segments": [
+        "\u0904\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0904\u0d4e",
+      "segments": [
+        "\u0904",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0d4e",
+      "segments": [
+        "\u0904\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0904\u0915",
+      "segments": [
+        "\u0904",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0915",
+      "segments": [
+        "\u0904\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0904\u231a",
+      "segments": [
+        "\u0904",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u231a",
+      "segments": [
+        "\u0904\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0904\u0300",
+      "segments": [
+        "\u0904\u0300"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0300",
+      "segments": [
+        "\u0904\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0904\u0900",
+      "segments": [
+        "\u0904\u0900"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0900",
+      "segments": [
+        "\u0904\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0904\u094d",
+      "segments": [
+        "\u0904\u094d"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u094d",
+      "segments": [
+        "\u0904\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0904\u200d",
+      "segments": [
+        "\u0904\u200d"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u200d",
+      "segments": [
+        "\u0904\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0904\u0378",
+      "segments": [
+        "\u0904",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0904\u0308\u0378",
+      "segments": [
+        "\u0904\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0d4e ",
+      "segments": [
+        "\u0d4e "
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308 ",
+      "segments": [
+        "\u0d4e\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0d4e\r",
+      "segments": [
+        "\u0d4e",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\r",
+      "segments": [
+        "\u0d4e\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0d4e\n",
+      "segments": [
+        "\u0d4e",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\n",
+      "segments": [
+        "\u0d4e\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0001",
+      "segments": [
+        "\u0d4e",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0001",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0d4e\u200c",
+      "segments": [
+        "\u0d4e\u200c"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u200c",
+      "segments": [
+        "\u0d4e\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0d4e\ud83c\udde6",
+      "segments": [
+        "\u0d4e\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\ud83c\udde6",
+      "segments": [
+        "\u0d4e\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0600",
+      "segments": [
+        "\u0d4e\u0600"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0600",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0a03",
+      "segments": [
+        "\u0d4e\u0a03"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0a03",
+      "segments": [
+        "\u0d4e\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0d4e\u1100",
+      "segments": [
+        "\u0d4e\u1100"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u1100",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0d4e\u1160",
+      "segments": [
+        "\u0d4e\u1160"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u1160",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0d4e\u11a8",
+      "segments": [
+        "\u0d4e\u11a8"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u11a8",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0d4e\uac00",
+      "segments": [
+        "\u0d4e\uac00"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\uac00",
+      "segments": [
+        "\u0d4e\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0d4e\uac01",
+      "segments": [
+        "\u0d4e\uac01"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\uac01",
+      "segments": [
+        "\u0d4e\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0903",
+      "segments": [
+        "\u0d4e\u0903"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0903",
+      "segments": [
+        "\u0d4e\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0904",
+      "segments": [
+        "\u0d4e\u0904"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0904",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0d4e",
+      "segments": [
+        "\u0d4e\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0d4e",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0915",
+      "segments": [
+        "\u0d4e\u0915"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0915",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0d4e\u231a",
+      "segments": [
+        "\u0d4e\u231a"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u231a",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0300",
+      "segments": [
+        "\u0d4e\u0300"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0300",
+      "segments": [
+        "\u0d4e\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0900",
+      "segments": [
+        "\u0d4e\u0900"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0900",
+      "segments": [
+        "\u0d4e\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0d4e\u094d",
+      "segments": [
+        "\u0d4e\u094d"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u094d",
+      "segments": [
+        "\u0d4e\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0d4e\u200d",
+      "segments": [
+        "\u0d4e\u200d"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u200d",
+      "segments": [
+        "\u0d4e\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0378",
+      "segments": [
+        "\u0d4e\u0378"
+      ]
+    },
+    {
+      "text": "\u0d4e\u0308\u0378",
+      "segments": [
+        "\u0d4e\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0915 ",
+      "segments": [
+        "\u0915",
+        " "
+      ]
+    },
+    {
+      "text": "\u0915\u0308 ",
+      "segments": [
+        "\u0915\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0915\r",
+      "segments": [
+        "\u0915",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\r",
+      "segments": [
+        "\u0915\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0915\n",
+      "segments": [
+        "\u0915",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\n",
+      "segments": [
+        "\u0915\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0915\u0001",
+      "segments": [
+        "\u0915",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0001",
+      "segments": [
+        "\u0915\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0915\u200c",
+      "segments": [
+        "\u0915\u200c"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u200c",
+      "segments": [
+        "\u0915\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0915\ud83c\udde6",
+      "segments": [
+        "\u0915",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\ud83c\udde6",
+      "segments": [
+        "\u0915\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0915\u0600",
+      "segments": [
+        "\u0915",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0600",
+      "segments": [
+        "\u0915\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0915\u0a03",
+      "segments": [
+        "\u0915\u0a03"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0a03",
+      "segments": [
+        "\u0915\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0915\u1100",
+      "segments": [
+        "\u0915",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u1100",
+      "segments": [
+        "\u0915\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0915\u1160",
+      "segments": [
+        "\u0915",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u1160",
+      "segments": [
+        "\u0915\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0915\u11a8",
+      "segments": [
+        "\u0915",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u11a8",
+      "segments": [
+        "\u0915\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0915\uac00",
+      "segments": [
+        "\u0915",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\uac00",
+      "segments": [
+        "\u0915\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0915\uac01",
+      "segments": [
+        "\u0915",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\uac01",
+      "segments": [
+        "\u0915\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0915\u0903",
+      "segments": [
+        "\u0915\u0903"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0903",
+      "segments": [
+        "\u0915\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0915\u0904",
+      "segments": [
+        "\u0915",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0904",
+      "segments": [
+        "\u0915\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0915\u0d4e",
+      "segments": [
+        "\u0915",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0d4e",
+      "segments": [
+        "\u0915\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0915\u0915",
+      "segments": [
+        "\u0915",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0915",
+      "segments": [
+        "\u0915\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0915\u231a",
+      "segments": [
+        "\u0915",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u231a",
+      "segments": [
+        "\u0915\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0915\u0300",
+      "segments": [
+        "\u0915\u0300"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0300",
+      "segments": [
+        "\u0915\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0915\u0900",
+      "segments": [
+        "\u0915\u0900"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0900",
+      "segments": [
+        "\u0915\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0915\u094d",
+      "segments": [
+        "\u0915\u094d"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u094d",
+      "segments": [
+        "\u0915\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0915\u200d",
+      "segments": [
+        "\u0915\u200d"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u200d",
+      "segments": [
+        "\u0915\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0915\u0378",
+      "segments": [
+        "\u0915",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0915\u0308\u0378",
+      "segments": [
+        "\u0915\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u231a ",
+      "segments": [
+        "\u231a",
+        " "
+      ]
+    },
+    {
+      "text": "\u231a\u0308 ",
+      "segments": [
+        "\u231a\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u231a\r",
+      "segments": [
+        "\u231a",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\r",
+      "segments": [
+        "\u231a\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u231a\n",
+      "segments": [
+        "\u231a",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\n",
+      "segments": [
+        "\u231a\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u231a\u0001",
+      "segments": [
+        "\u231a",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0001",
+      "segments": [
+        "\u231a\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u231a\u200c",
+      "segments": [
+        "\u231a\u200c"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u200c",
+      "segments": [
+        "\u231a\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u231a\ud83c\udde6",
+      "segments": [
+        "\u231a",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\ud83c\udde6",
+      "segments": [
+        "\u231a\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u231a\u0600",
+      "segments": [
+        "\u231a",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0600",
+      "segments": [
+        "\u231a\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u231a\u0a03",
+      "segments": [
+        "\u231a\u0a03"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0a03",
+      "segments": [
+        "\u231a\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u231a\u1100",
+      "segments": [
+        "\u231a",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u1100",
+      "segments": [
+        "\u231a\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u231a\u1160",
+      "segments": [
+        "\u231a",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u1160",
+      "segments": [
+        "\u231a\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u231a\u11a8",
+      "segments": [
+        "\u231a",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u11a8",
+      "segments": [
+        "\u231a\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u231a\uac00",
+      "segments": [
+        "\u231a",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\uac00",
+      "segments": [
+        "\u231a\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u231a\uac01",
+      "segments": [
+        "\u231a",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\uac01",
+      "segments": [
+        "\u231a\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u231a\u0903",
+      "segments": [
+        "\u231a\u0903"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0903",
+      "segments": [
+        "\u231a\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u231a\u0904",
+      "segments": [
+        "\u231a",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0904",
+      "segments": [
+        "\u231a\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u231a\u0d4e",
+      "segments": [
+        "\u231a",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0d4e",
+      "segments": [
+        "\u231a\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u231a\u0915",
+      "segments": [
+        "\u231a",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0915",
+      "segments": [
+        "\u231a\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u231a\u231a",
+      "segments": [
+        "\u231a",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u231a",
+      "segments": [
+        "\u231a\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u231a\u0300",
+      "segments": [
+        "\u231a\u0300"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0300",
+      "segments": [
+        "\u231a\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u231a\u0900",
+      "segments": [
+        "\u231a\u0900"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0900",
+      "segments": [
+        "\u231a\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u231a\u094d",
+      "segments": [
+        "\u231a\u094d"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u094d",
+      "segments": [
+        "\u231a\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u231a\u200d",
+      "segments": [
+        "\u231a\u200d"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u200d",
+      "segments": [
+        "\u231a\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u231a\u0378",
+      "segments": [
+        "\u231a",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u231a\u0308\u0378",
+      "segments": [
+        "\u231a\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0300 ",
+      "segments": [
+        "\u0300",
+        " "
+      ]
+    },
+    {
+      "text": "\u0300\u0308 ",
+      "segments": [
+        "\u0300\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0300\r",
+      "segments": [
+        "\u0300",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\r",
+      "segments": [
+        "\u0300\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0300\n",
+      "segments": [
+        "\u0300",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\n",
+      "segments": [
+        "\u0300\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0300\u0001",
+      "segments": [
+        "\u0300",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0001",
+      "segments": [
+        "\u0300\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0300\u200c",
+      "segments": [
+        "\u0300\u200c"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u200c",
+      "segments": [
+        "\u0300\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0300\ud83c\udde6",
+      "segments": [
+        "\u0300",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\ud83c\udde6",
+      "segments": [
+        "\u0300\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0300\u0600",
+      "segments": [
+        "\u0300",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0600",
+      "segments": [
+        "\u0300\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0300\u0a03",
+      "segments": [
+        "\u0300\u0a03"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0a03",
+      "segments": [
+        "\u0300\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0300\u1100",
+      "segments": [
+        "\u0300",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u1100",
+      "segments": [
+        "\u0300\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0300\u1160",
+      "segments": [
+        "\u0300",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u1160",
+      "segments": [
+        "\u0300\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0300\u11a8",
+      "segments": [
+        "\u0300",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u11a8",
+      "segments": [
+        "\u0300\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0300\uac00",
+      "segments": [
+        "\u0300",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\uac00",
+      "segments": [
+        "\u0300\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0300\uac01",
+      "segments": [
+        "\u0300",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\uac01",
+      "segments": [
+        "\u0300\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0300\u0903",
+      "segments": [
+        "\u0300\u0903"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0903",
+      "segments": [
+        "\u0300\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0300\u0904",
+      "segments": [
+        "\u0300",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0904",
+      "segments": [
+        "\u0300\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0300\u0d4e",
+      "segments": [
+        "\u0300",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0d4e",
+      "segments": [
+        "\u0300\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0300\u0915",
+      "segments": [
+        "\u0300",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0915",
+      "segments": [
+        "\u0300\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0300\u231a",
+      "segments": [
+        "\u0300",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u231a",
+      "segments": [
+        "\u0300\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0300\u0300",
+      "segments": [
+        "\u0300\u0300"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0300",
+      "segments": [
+        "\u0300\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0300\u0900",
+      "segments": [
+        "\u0300\u0900"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0900",
+      "segments": [
+        "\u0300\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0300\u094d",
+      "segments": [
+        "\u0300\u094d"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u094d",
+      "segments": [
+        "\u0300\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0300\u200d",
+      "segments": [
+        "\u0300\u200d"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u200d",
+      "segments": [
+        "\u0300\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0300\u0378",
+      "segments": [
+        "\u0300",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0300\u0308\u0378",
+      "segments": [
+        "\u0300\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0900 ",
+      "segments": [
+        "\u0900",
+        " "
+      ]
+    },
+    {
+      "text": "\u0900\u0308 ",
+      "segments": [
+        "\u0900\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0900\r",
+      "segments": [
+        "\u0900",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\r",
+      "segments": [
+        "\u0900\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0900\n",
+      "segments": [
+        "\u0900",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\n",
+      "segments": [
+        "\u0900\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0900\u0001",
+      "segments": [
+        "\u0900",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0001",
+      "segments": [
+        "\u0900\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0900\u200c",
+      "segments": [
+        "\u0900\u200c"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u200c",
+      "segments": [
+        "\u0900\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0900\ud83c\udde6",
+      "segments": [
+        "\u0900",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\ud83c\udde6",
+      "segments": [
+        "\u0900\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0900\u0600",
+      "segments": [
+        "\u0900",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0600",
+      "segments": [
+        "\u0900\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0900\u0a03",
+      "segments": [
+        "\u0900\u0a03"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0a03",
+      "segments": [
+        "\u0900\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0900\u1100",
+      "segments": [
+        "\u0900",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u1100",
+      "segments": [
+        "\u0900\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0900\u1160",
+      "segments": [
+        "\u0900",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u1160",
+      "segments": [
+        "\u0900\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0900\u11a8",
+      "segments": [
+        "\u0900",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u11a8",
+      "segments": [
+        "\u0900\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0900\uac00",
+      "segments": [
+        "\u0900",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\uac00",
+      "segments": [
+        "\u0900\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0900\uac01",
+      "segments": [
+        "\u0900",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\uac01",
+      "segments": [
+        "\u0900\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0900\u0903",
+      "segments": [
+        "\u0900\u0903"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0903",
+      "segments": [
+        "\u0900\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0900\u0904",
+      "segments": [
+        "\u0900",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0904",
+      "segments": [
+        "\u0900\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0900\u0d4e",
+      "segments": [
+        "\u0900",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0d4e",
+      "segments": [
+        "\u0900\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0900\u0915",
+      "segments": [
+        "\u0900",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0915",
+      "segments": [
+        "\u0900\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0900\u231a",
+      "segments": [
+        "\u0900",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u231a",
+      "segments": [
+        "\u0900\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0900\u0300",
+      "segments": [
+        "\u0900\u0300"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0300",
+      "segments": [
+        "\u0900\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0900\u0900",
+      "segments": [
+        "\u0900\u0900"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0900",
+      "segments": [
+        "\u0900\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0900\u094d",
+      "segments": [
+        "\u0900\u094d"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u094d",
+      "segments": [
+        "\u0900\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0900\u200d",
+      "segments": [
+        "\u0900\u200d"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u200d",
+      "segments": [
+        "\u0900\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0900\u0378",
+      "segments": [
+        "\u0900",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0900\u0308\u0378",
+      "segments": [
+        "\u0900\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u094d ",
+      "segments": [
+        "\u094d",
+        " "
+      ]
+    },
+    {
+      "text": "\u094d\u0308 ",
+      "segments": [
+        "\u094d\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u094d\r",
+      "segments": [
+        "\u094d",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\r",
+      "segments": [
+        "\u094d\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u094d\n",
+      "segments": [
+        "\u094d",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\n",
+      "segments": [
+        "\u094d\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u094d\u0001",
+      "segments": [
+        "\u094d",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0001",
+      "segments": [
+        "\u094d\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u094d\u200c",
+      "segments": [
+        "\u094d\u200c"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u200c",
+      "segments": [
+        "\u094d\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u094d\ud83c\udde6",
+      "segments": [
+        "\u094d",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\ud83c\udde6",
+      "segments": [
+        "\u094d\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u094d\u0600",
+      "segments": [
+        "\u094d",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0600",
+      "segments": [
+        "\u094d\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u094d\u0a03",
+      "segments": [
+        "\u094d\u0a03"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0a03",
+      "segments": [
+        "\u094d\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u094d\u1100",
+      "segments": [
+        "\u094d",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u1100",
+      "segments": [
+        "\u094d\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u094d\u1160",
+      "segments": [
+        "\u094d",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u1160",
+      "segments": [
+        "\u094d\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u094d\u11a8",
+      "segments": [
+        "\u094d",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u11a8",
+      "segments": [
+        "\u094d\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u094d\uac00",
+      "segments": [
+        "\u094d",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\uac00",
+      "segments": [
+        "\u094d\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u094d\uac01",
+      "segments": [
+        "\u094d",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\uac01",
+      "segments": [
+        "\u094d\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u094d\u0903",
+      "segments": [
+        "\u094d\u0903"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0903",
+      "segments": [
+        "\u094d\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u094d\u0904",
+      "segments": [
+        "\u094d",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0904",
+      "segments": [
+        "\u094d\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u094d\u0d4e",
+      "segments": [
+        "\u094d",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0d4e",
+      "segments": [
+        "\u094d\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u094d\u0915",
+      "segments": [
+        "\u094d",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0915",
+      "segments": [
+        "\u094d\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u094d\u231a",
+      "segments": [
+        "\u094d",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u231a",
+      "segments": [
+        "\u094d\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u094d\u0300",
+      "segments": [
+        "\u094d\u0300"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0300",
+      "segments": [
+        "\u094d\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u094d\u0900",
+      "segments": [
+        "\u094d\u0900"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0900",
+      "segments": [
+        "\u094d\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u094d\u094d",
+      "segments": [
+        "\u094d\u094d"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u094d",
+      "segments": [
+        "\u094d\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u094d\u200d",
+      "segments": [
+        "\u094d\u200d"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u200d",
+      "segments": [
+        "\u094d\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u094d\u0378",
+      "segments": [
+        "\u094d",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u094d\u0308\u0378",
+      "segments": [
+        "\u094d\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u200d ",
+      "segments": [
+        "\u200d",
+        " "
+      ]
+    },
+    {
+      "text": "\u200d\u0308 ",
+      "segments": [
+        "\u200d\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u200d\r",
+      "segments": [
+        "\u200d",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\r",
+      "segments": [
+        "\u200d\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u200d\n",
+      "segments": [
+        "\u200d",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\n",
+      "segments": [
+        "\u200d\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u200d\u0001",
+      "segments": [
+        "\u200d",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0001",
+      "segments": [
+        "\u200d\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u200d\u200c",
+      "segments": [
+        "\u200d\u200c"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u200c",
+      "segments": [
+        "\u200d\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u200d\ud83c\udde6",
+      "segments": [
+        "\u200d",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\ud83c\udde6",
+      "segments": [
+        "\u200d\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u200d\u0600",
+      "segments": [
+        "\u200d",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0600",
+      "segments": [
+        "\u200d\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u200d\u0a03",
+      "segments": [
+        "\u200d\u0a03"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0a03",
+      "segments": [
+        "\u200d\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u200d\u1100",
+      "segments": [
+        "\u200d",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u1100",
+      "segments": [
+        "\u200d\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u200d\u1160",
+      "segments": [
+        "\u200d",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u1160",
+      "segments": [
+        "\u200d\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u200d\u11a8",
+      "segments": [
+        "\u200d",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u11a8",
+      "segments": [
+        "\u200d\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u200d\uac00",
+      "segments": [
+        "\u200d",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\uac00",
+      "segments": [
+        "\u200d\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u200d\uac01",
+      "segments": [
+        "\u200d",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\uac01",
+      "segments": [
+        "\u200d\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u200d\u0903",
+      "segments": [
+        "\u200d\u0903"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0903",
+      "segments": [
+        "\u200d\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u200d\u0904",
+      "segments": [
+        "\u200d",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0904",
+      "segments": [
+        "\u200d\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u200d\u0d4e",
+      "segments": [
+        "\u200d",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0d4e",
+      "segments": [
+        "\u200d\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u200d\u0915",
+      "segments": [
+        "\u200d",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0915",
+      "segments": [
+        "\u200d\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u200d\u231a",
+      "segments": [
+        "\u200d",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u231a",
+      "segments": [
+        "\u200d\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u200d\u0300",
+      "segments": [
+        "\u200d\u0300"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0300",
+      "segments": [
+        "\u200d\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u200d\u0900",
+      "segments": [
+        "\u200d\u0900"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0900",
+      "segments": [
+        "\u200d\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u200d\u094d",
+      "segments": [
+        "\u200d\u094d"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u094d",
+      "segments": [
+        "\u200d\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u200d\u200d",
+      "segments": [
+        "\u200d\u200d"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u200d",
+      "segments": [
+        "\u200d\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u200d\u0378",
+      "segments": [
+        "\u200d",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u200d\u0308\u0378",
+      "segments": [
+        "\u200d\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0378 ",
+      "segments": [
+        "\u0378",
+        " "
+      ]
+    },
+    {
+      "text": "\u0378\u0308 ",
+      "segments": [
+        "\u0378\u0308",
+        " "
+      ]
+    },
+    {
+      "text": "\u0378\r",
+      "segments": [
+        "\u0378",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\r",
+      "segments": [
+        "\u0378\u0308",
+        "\r"
+      ]
+    },
+    {
+      "text": "\u0378\n",
+      "segments": [
+        "\u0378",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\n",
+      "segments": [
+        "\u0378\u0308",
+        "\n"
+      ]
+    },
+    {
+      "text": "\u0378\u0001",
+      "segments": [
+        "\u0378",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0001",
+      "segments": [
+        "\u0378\u0308",
+        "\u0001"
+      ]
+    },
+    {
+      "text": "\u0378\u200c",
+      "segments": [
+        "\u0378\u200c"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u200c",
+      "segments": [
+        "\u0378\u0308\u200c"
+      ]
+    },
+    {
+      "text": "\u0378\ud83c\udde6",
+      "segments": [
+        "\u0378",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\ud83c\udde6",
+      "segments": [
+        "\u0378\u0308",
+        "\ud83c\udde6"
+      ]
+    },
+    {
+      "text": "\u0378\u0600",
+      "segments": [
+        "\u0378",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0600",
+      "segments": [
+        "\u0378\u0308",
+        "\u0600"
+      ]
+    },
+    {
+      "text": "\u0378\u0a03",
+      "segments": [
+        "\u0378\u0a03"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0a03",
+      "segments": [
+        "\u0378\u0308\u0a03"
+      ]
+    },
+    {
+      "text": "\u0378\u1100",
+      "segments": [
+        "\u0378",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u1100",
+      "segments": [
+        "\u0378\u0308",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\u0378\u1160",
+      "segments": [
+        "\u0378",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u1160",
+      "segments": [
+        "\u0378\u0308",
+        "\u1160"
+      ]
+    },
+    {
+      "text": "\u0378\u11a8",
+      "segments": [
+        "\u0378",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u11a8",
+      "segments": [
+        "\u0378\u0308",
+        "\u11a8"
+      ]
+    },
+    {
+      "text": "\u0378\uac00",
+      "segments": [
+        "\u0378",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\uac00",
+      "segments": [
+        "\u0378\u0308",
+        "\uac00"
+      ]
+    },
+    {
+      "text": "\u0378\uac01",
+      "segments": [
+        "\u0378",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\uac01",
+      "segments": [
+        "\u0378\u0308",
+        "\uac01"
+      ]
+    },
+    {
+      "text": "\u0378\u0903",
+      "segments": [
+        "\u0378\u0903"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0903",
+      "segments": [
+        "\u0378\u0308\u0903"
+      ]
+    },
+    {
+      "text": "\u0378\u0904",
+      "segments": [
+        "\u0378",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0904",
+      "segments": [
+        "\u0378\u0308",
+        "\u0904"
+      ]
+    },
+    {
+      "text": "\u0378\u0d4e",
+      "segments": [
+        "\u0378",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0d4e",
+      "segments": [
+        "\u0378\u0308",
+        "\u0d4e"
+      ]
+    },
+    {
+      "text": "\u0378\u0915",
+      "segments": [
+        "\u0378",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0915",
+      "segments": [
+        "\u0378\u0308",
+        "\u0915"
+      ]
+    },
+    {
+      "text": "\u0378\u231a",
+      "segments": [
+        "\u0378",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u231a",
+      "segments": [
+        "\u0378\u0308",
+        "\u231a"
+      ]
+    },
+    {
+      "text": "\u0378\u0300",
+      "segments": [
+        "\u0378\u0300"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0300",
+      "segments": [
+        "\u0378\u0308\u0300"
+      ]
+    },
+    {
+      "text": "\u0378\u0900",
+      "segments": [
+        "\u0378\u0900"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0900",
+      "segments": [
+        "\u0378\u0308\u0900"
+      ]
+    },
+    {
+      "text": "\u0378\u094d",
+      "segments": [
+        "\u0378\u094d"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u094d",
+      "segments": [
+        "\u0378\u0308\u094d"
+      ]
+    },
+    {
+      "text": "\u0378\u200d",
+      "segments": [
+        "\u0378\u200d"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u200d",
+      "segments": [
+        "\u0378\u0308\u200d"
+      ]
+    },
+    {
+      "text": "\u0378\u0378",
+      "segments": [
+        "\u0378",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\u0378\u0308\u0378",
+      "segments": [
+        "\u0378\u0308",
+        "\u0378"
+      ]
+    },
+    {
+      "text": "\r\na\n\u0308",
+      "segments": [
+        "\r\n",
+        "a",
+        "\n",
+        "\u0308"
+      ]
+    },
+    {
+      "text": "a\u0308",
+      "segments": [
+        "a\u0308"
+      ]
+    },
+    {
+      "text": " \u200d\u0646",
+      "segments": [
+        " \u200d",
+        "\u0646"
+      ]
+    },
+    {
+      "text": "\u0646\u200d ",
+      "segments": [
+        "\u0646\u200d",
+        " "
+      ]
+    },
+    {
+      "text": "\u1100\u1100",
+      "segments": [
+        "\u1100\u1100"
+      ]
+    },
+    {
+      "text": "\uac00\u11a8\u1100",
+      "segments": [
+        "\uac00\u11a8",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\uac01\u11a8\u1100",
+      "segments": [
+        "\uac01\u11a8",
+        "\u1100"
+      ]
+    },
+    {
+      "text": "\ud83c\udde6\ud83c\udde7\ud83c\udde8b",
+      "segments": [
+        "\ud83c\udde6\ud83c\udde7",
+        "\ud83c\udde8",
+        "b"
+      ]
+    },
+    {
+      "text": "a\ud83c\udde6\ud83c\udde7\ud83c\udde8b",
+      "segments": [
+        "a",
+        "\ud83c\udde6\ud83c\udde7",
+        "\ud83c\udde8",
+        "b"
+      ]
+    },
+    {
+      "text": "a\ud83c\udde6\ud83c\udde7\u200d\ud83c\udde8b",
+      "segments": [
+        "a",
+        "\ud83c\udde6\ud83c\udde7\u200d",
+        "\ud83c\udde8",
+        "b"
+      ]
+    },
+    {
+      "text": "a\ud83c\udde6\u200d\ud83c\udde7\ud83c\udde8b",
+      "segments": [
+        "a",
+        "\ud83c\udde6\u200d",
+        "\ud83c\udde7\ud83c\udde8",
+        "b"
+      ]
+    },
+    {
+      "text": "a\ud83c\udde6\ud83c\udde7\ud83c\udde8\ud83c\udde9b",
+      "segments": [
+        "a",
+        "\ud83c\udde6\ud83c\udde7",
+        "\ud83c\udde8\ud83c\udde9",
+        "b"
+      ]
+    },
+    {
+      "text": "a\u200d",
+      "segments": [
+        "a\u200d"
+      ]
+    },
+    {
+      "text": "a\u0308b",
+      "segments": [
+        "a\u0308",
+        "b"
+      ]
+    },
+    {
+      "text": "a\u0903b",
+      "segments": [
+        "a\u0903",
+        "b"
+      ]
+    },
+    {
+      "text": "a\u0600b",
+      "segments": [
+        "a",
+        "\u0600b"
+      ]
+    },
+    {
+      "text": "\ud83d\udc76\ud83c\udfff\ud83d\udc76",
+      "segments": [
+        "\ud83d\udc76\ud83c\udfff",
+        "\ud83d\udc76"
+      ]
+    },
+    {
+      "text": "a\ud83c\udfff\ud83d\udc76",
+      "segments": [
+        "a\ud83c\udfff",
+        "\ud83d\udc76"
+      ]
+    },
+    {
+      "text": "a\ud83c\udfff\ud83d\udc76\u200d\ud83d\uded1",
+      "segments": [
+        "a\ud83c\udfff",
+        "\ud83d\udc76\u200d\ud83d\uded1"
+      ]
+    },
+    {
+      "text": "\ud83d\udc76\ud83c\udfff\u0308\u200d\ud83d\udc76\ud83c\udfff",
+      "segments": [
+        "\ud83d\udc76\ud83c\udfff\u0308\u200d\ud83d\udc76\ud83c\udfff"
+      ]
+    },
+    {
+      "text": "\ud83d\uded1\u200d\ud83d\uded1",
+      "segments": [
+        "\ud83d\uded1\u200d\ud83d\uded1"
+      ]
+    },
+    {
+      "text": "a\u200d\ud83d\uded1",
+      "segments": [
+        "a\u200d",
+        "\ud83d\uded1"
+      ]
+    },
+    {
+      "text": "\u2701\u200d\u2701",
+      "segments": [
+        "\u2701\u200d\u2701"
+      ]
+    },
+    {
+      "text": "a\u200d\u2701",
+      "segments": [
+        "a\u200d",
+        "\u2701"
+      ]
+    },
+    {
+      "text": "\u0915\u0924",
+      "segments": [
+        "\u0915",
+        "\u0924"
+      ]
+    },
+    {
+      "text": "\u0915\u094d\u0924",
+      "segments": [
+        "\u0915\u094d\u0924"
+      ]
+    },
+    {
+      "text": "\u0915\u094d\u094d\u0924",
+      "segments": [
+        "\u0915\u094d\u094d\u0924"
+      ]
+    },
+    {
+      "text": "\u0915\u094d\u200d\u0924",
+      "segments": [
+        "\u0915\u094d\u200d\u0924"
+      ]
+    },
+    {
+      "text": "\u0915\u093c\u200d\u094d\u0924",
+      "segments": [
+        "\u0915\u093c\u200d\u094d\u0924"
+      ]
+    },
+    {
+      "text": "\u0915\u093c\u094d\u200d\u0924",
+      "segments": [
+        "\u0915\u093c\u094d\u200d\u0924"
+      ]
+    },
+    {
+      "text": "\u0915\u094d\u0924\u094d\u092f",
+      "segments": [
+        "\u0915\u094d\u0924\u094d\u092f"
+      ]
+    },
+    {
+      "text": "\u0915\u094da",
+      "segments": [
+        "\u0915\u094d",
+        "a"
+      ]
+    },
+    {
+      "text": "a\u094d\u0924",
+      "segments": [
+        "a\u094d",
+        "\u0924"
+      ]
+    },
+    {
+      "text": "?\u094d\u0924",
+      "segments": [
+        "?\u094d",
+        "\u0924"
+      ]
+    },
+    {
+      "text": "\u0915\u094d\u094d\u0924",
+      "segments": [
+        "\u0915\u094d\u094d\u0924"
+      ]
+    }
+  ]
+}
