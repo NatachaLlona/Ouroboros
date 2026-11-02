@@ -16,14 +16,17 @@ describe('Same-origin API boundary', () => {
     await expect(TestBed.inject(Api).request('https://untrusted.example')).rejects.toBeInstanceOf(ApiError);
     TestBed.inject(HttpTestingController).expectNone('https://untrusted.example');
   });
-  it('permits category creation with existing CSRF handling without enabling category consultation or relationships',async()=>{
+  it('permits category options and tag-category association without enabling unrelated relationship or category editing routes',async()=>{
     const api=TestBed.inject(Api),http=TestBed.inject(HttpTestingController);
     const body={tag_category_name:'category',display_name_tag_categories:'Category',description_tag_categories:null};
     const created=api.request('/tag_categories','POST',body,'test-csrf');const pending=http.expectOne('/tag_categories');
     expect(pending.request.method).toBe('POST');expect(pending.request.body).toEqual(body);expect(pending.request.headers.get('X-CSRF-Token')).toBe('test-csrf');expect(pending.request.headers.has('Authorization')).toBe(false);
     pending.flush({id_tag_categories:'TC0000001'});await created;
-    for(const [path,method] of [['/tag_categories','GET'],['/tag_categories/TC0000001','PUT'],['/tag_relationships','POST'],['/tag_category_relationships','POST']])await expect(api.request(path,method)).rejects.toBeInstanceOf(ApiError);
-    http.expectNone('/tag_categories');
+    const options=api.request('/tag_categories');http.expectOne('/tag_categories').flush({count:0,page:1,page_size:50,items:[]});await options;
+    const links=api.request('/tag_category_relationships','GET',undefined,undefined,{id_tags:'TG0000001'});http.expectOne('/tag_category_relationships?id_tags=TG0000001').flush({count:0,page:1,page_size:50,items:[]});await links;
+    const association=api.request('/tag_category_relationships','POST',{id_tags:'TG0000001',id_tag_categories:'TC0000001'},'test-csrf');const write=http.expectOne('/tag_category_relationships');expect(write.request.headers.get('X-CSRF-Token')).toBe('test-csrf');write.flush({id_tag_category_relationships:'CR0000001'});await association;
+    const removed=api.request('/tag_category_relationships/CR0000001','DELETE',undefined,'test-csrf');http.expectOne('/tag_category_relationships/CR0000001').flush(null,{status:204,statusText:'No Content'});await removed;
+    for(const [path,method] of [['/tag_categories/TC0000001','PUT'],['/tag_relationships','POST'],['/tag_category_relationships','DELETE'],['/tag_category_relationships/CR0000001','PUT']])await expect(api.request(path,method)).rejects.toBeInstanceOf(ApiError);
   });
   it('separates configuration, permissions, invalid credentials, expiry and unknown commit status', () => {
     expect(safeMessage(new ApiError(403,'BROWSER_ORIGIN_REJECTED'))).toContain('browser.origin');

@@ -19,7 +19,7 @@ The typed `registrationTitles` configuration in `catalogue/resources.ts` is the 
 
 This presentation-only refinement was inspected in source. Tests, production build and browser navigation were intentionally not run, as requested; functional and visual validation will be performed manually by the owner. Prior verification below describes the earlier category/image delivery, not this refinement.
 
-The existing `Registration.choose()` and `UnsavedChanges` guard handle every form switch. Cancelling discard keeps the form, selected submenu and draft. No separate form implementation or unsaved-state mechanism was introduced. Tag fields, validations, autocomplete and creation behavior are unchanged.
+The existing `Registration.choose()` and `UnsavedChanges` guard handle every form switch. Cancelling discard keeps the form, selected submenu and draft. No separate form implementation or unsaved-state mechanism was introduced. Pre-existing Tag inputs and validations remain unchanged. The subsequent [multiple-category field](TAG_CATEGORIES_SELECTION.md) adds optional selection and staged associations during new Tag creation, preserving the original no-category flow.
 
 `RegistrationResource` and `registrationDefinitions` add `tag_categories` only to registration. Existing `Resource`, `resourceDefinitions`, main resource options and generated consultation metadata retain their three resources. Category editing and lookup-to-edit are not exposed; its display-name field retains shared labels and technical-name completion with category lookup disabled. No relationship interfaces, category popup, work-tag association, Watchlist/Watched workflow or category consultation is added.
 
@@ -33,7 +33,7 @@ The database model in migration 005, `app/schemas/catalogue.py`, `app/endpoints/
 | Nome Técnico | `tag_category_name` | Required; `^[a-z][a-z0-9]*(_[a-z0-9]+)*$` |
 | Descrição | `description_tag_categories` | Optional string/null; centralized grapheme limit |
 
-Automatic identity, sequence, prefix, fixed table name and UTC dates are not editable. The form sends one object using shared `editorPayload` and `Api`. The frontend request allowlist adds **only POST /tag_categories**, retaining existing same-origin/CSRF/error behavior and rejecting category GET/edit and relationship endpoints. Authentication and transactional authority remain enforced by the existing backend.
+Automatic identity, sequence, prefix, fixed table name and UTC dates are not editable. The category form sends one object using shared `editorPayload` and `Api`. Subsequent Tag multi-selection additionally uses GET /tag_categories and the existing tag-category relationship read/create/individual-delete routes internally. Category editing and Tag Relationship endpoints remain unavailable. Authentication and transactional authority remain enforced by the existing backend.
 
 Reuse `FieldLabel`, global fantasy-name wording, technical-name suggestion/manual preservation, `SharedFormField`, `DescriptionInput` and the generated limit from `app/text_limits.json` (currently 4000 Unicode 16 graphemes). Description has its shared counter and no tooltip. Existing validation, busy/duplicate prevention, API feedback and failed-draft retention apply. Confirmed success clears editable state immediately and uses the existing success notice and horizontally centered Cadastrar outro button.
 

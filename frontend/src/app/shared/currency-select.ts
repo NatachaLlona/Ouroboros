@@ -1,6 +1,7 @@
 import { Component, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, input, model, signal, viewChild } from '@angular/core';
 import { currencies } from './money';
-export interface SelectOption {value:string;label:string;}
+import { SelectOption, filterSelectOptions } from './select-options';
+export type { SelectOption } from './select-options';
 
 @Component({selector:'app-currency-select, app-searchable-dropdown',host:{class:'searchable-dropdown'},template:`
   <div (focusout)="leave($event)">
@@ -19,7 +20,7 @@ export class SearchableDropdown {
   readonly fieldId=input.required<string>();readonly required=input(false);readonly error=input('');readonly value=model('');
   readonly open=signal(false);readonly query=signal('');readonly active=signal(-1);
   readonly selected=computed(()=>this.choices().find(choice=>choice.value===this.value()));
-  readonly matches=computed(()=>{const text=this.query().trim().toLocaleLowerCase('pt');return this.choices().filter(choice=>choice.label.toLocaleLowerCase('pt').includes(text));});
+  readonly matches=computed(()=>filterSelectOptions(this.choices(),this.query()));
   private readonly injector=inject(Injector);private readonly host=inject(ElementRef<HTMLElement>);
   private readonly search=viewChild<ElementRef<HTMLInputElement>>('search');private readonly trigger=viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
   private readonly options=viewChild<ElementRef<HTMLElement>>('options');

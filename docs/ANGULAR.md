@@ -149,3 +149,7 @@ The owner additionally selected **4242** for the second disposable PostgreSQL cl
 ## Tag submenu and category registration
 
 The main registration choices remain unchanged. A secondary Tag/Category group selects the existing Tag form immediately and offers category creation using the shared form and existing POST /tag_categories contract. Consultations remain limited to the original three resources. Active card images reuse their buttons' destinations; future-workflow images remain inert. See [the implementation contract and verification](TAG_CATEGORY_UI.md), including scoped test results, disposable-write evidence and pending browser checks.
+
+## Multiple categories during Tag creation
+
+New Tag registration adds the optional Categorias de Tag field using shared MultiSelect, selection/filter helpers and external dropdown styles. Load the complete existing category choices in bounded pages; display friendly names and keep IDs internal. Search preserves selections; Select All and Clear All apply globally to the loaded options, with no X reset. Existing dirty/reset rules own the selected array. The component-scoped staged save uses the existing tag-category relationship API and retains confirmed identity for retries without duplicate Tags. The no-category path and edit forms remain unchanged. See [the contract, failure recovery and manual follow-up](TAG_CATEGORIES_SELECTION.md). No tests, build or browser validation were executed for this change, at the owner's request.

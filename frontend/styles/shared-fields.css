@@ -29,3 +29,10 @@ app-field-label .label-row:has(.field-tooltip:not([hidden]))::after{content:'';p
 .registration-submenu button:disabled{opacity:.55}
 .image-link{display:block;cursor:pointer}
 .success>button.button{margin-inline:auto}
+
+.multi-select-actions{display:flex;justify-content:space-between;gap:12px;margin:6px 0}
+.multi-select-menu .multi-select-option{display:flex;align-items:stretch;padding:0;cursor:default}
+.multi-select-menu .multi-select-option>label{display:flex;flex:1;align-items:center;gap:10px;width:100%;min-width:0;min-height:44px;margin:0;padding:10px 8px;cursor:pointer;overflow-wrap:anywhere}
+.multi-select-option input[type=checkbox]{flex:none;accent-color:var(--dark-mauve)}
+.multi-select-option:has(input:checked){background:var(--cream)}
+.multi-select-summary{margin-top:7px;overflow-wrap:anywhere}
