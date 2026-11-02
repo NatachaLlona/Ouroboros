@@ -1,5 +1,9 @@
 # Ouroboros
 
+Registration keeps its three main choices and adds a **Tag / Categoria de Tag** submenu inside Tag, with category creation through the existing API. Available navigation-card images share their buttons' destinations; Watchlist and Watched remain unavailable. See [Tag/category registration and image navigation](docs/TAG_CATEGORY_UI.md) for the contract, checks and pending browser verification.
+
+The Tag submenu uses two equal-width areas with centered labels (50% per option). Registration headings follow the centralized entity-title configuration: Cadastrar Plataforma, Cadastrar Tag, Cadastrar Categoria de Tag and Cadastrar Classificação da Obra. Shared styling and reactive selection keep the heading aligned with the displayed form.
+
 Current phase-one registration controls: see [Individual registration UI](docs/REGISTRATION_UI.md). It documents the unanswered checkboxes, exact comma-decimal input, currency/access selectors, conditional address, twenty-result anchored autocomplete, cancel-first unsaved-change protection, compact consultation filters and session-only recent searches. No API or database contract changes are required.
 
 Ouroboros is a relational entertainment-consumption catalogue across books, films, series, and other media. It records works, platform availability, watchlist entries, consumption experiences, classifications, and dynamic tags. 🐍

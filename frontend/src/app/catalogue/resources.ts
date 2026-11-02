@@ -1,13 +1,13 @@
-import { Resource } from './models';
+import { Resource, RegistrationResource } from './models';
 import { publicContracts } from './contracts.generated';
 import { priceError, priceRecordText, priceValue } from '../shared/money';
 import { FANTASY_NAME_LABEL, PRICE_HELP_TEXT } from '../shared/field-label';
 
 export interface FieldDefinition { key: string; label: string; kind: 'text' | 'textarea' | 'boolean' | 'access' | 'decimal' | 'currency' | 'integer' | 'url'; required?: boolean; help?: string; }
-export interface ResourceDefinition {
-  resource: Resource; label: string; noun: string; display: string; technical?: string; fields: readonly FieldDefinition[];
+export interface ResourceDefinition<R extends RegistrationResource=RegistrationResource> {
+  resource: R; label: string; noun: string; display: string; technical?: string; fields: readonly FieldDefinition[];
 }
-export const resourceDefinitions: Record<Resource, ResourceDefinition> = {
+export const resourceDefinitions: Record<Resource, ResourceDefinition<Resource>> = {
   platforms: {resource:'platforms',label:'Plataforma',noun:'plataforma',display:'platform_name',fields:[
     {key:'platform_access_types',label:'Onde acessar',kind:'access',required:true},
     {key:'platform_url',label:'URL',kind:'url',help:'Use HTTP/HTTPS, até 2083 caracteres.'},
@@ -26,6 +26,17 @@ export const resourceDefinitions: Record<Resource, ResourceDefinition> = {
   ]}
 };
 export const resources = Object.values(resourceDefinitions);
+export const registrationDefinitions:Record<RegistrationResource,ResourceDefinition>={...resourceDefinitions,
+  tag_categories:{resource:'tag_categories',label:'Categoria de Tag',noun:'categoria de tag',display:'display_name_tag_categories',technical:'tag_category_name',fields:[
+    {key:'description_tag_categories',label:'Descrição',kind:'textarea'}
+  ]}
+};
+export const registrationTitles:Record<RegistrationResource,string>={
+  platforms:'Cadastrar Plataforma',
+  tags:'Cadastrar Tag',
+  tag_categories:'Cadastrar Categoria de Tag',
+  work_classifications:'Cadastrar Classificação da Obra'
+};
 export type EditorValues = Record<string, string>;
 export function hasValidPrice(values:EditorValues):boolean {
   return values['platform_is_paid']==='true'&&!!values['price_amount']?.trim()&&!priceError(values['price_amount']);
@@ -39,7 +50,8 @@ export function technicalSuggestion(value: string): string {
 }
 export function substringPattern(value: string): string { return '%' + value.replace(/[\\%_]/g, match => '\\' + match) + '%'; }
 export function isResource(value: string | null): value is Resource { return value !== null && Object.hasOwn(resourceDefinitions,value); }
-export function recordId(resource: Resource, record: CatalogueRecord): string { const value=record['id_'+resource];return typeof value==='string'&&/^[A-Z]+[0-9]+$/.test(value)?value:''; }
+export function isRegistrationResource(value:string|null):value is RegistrationResource{return value!==null&&Object.hasOwn(registrationDefinitions,value);}
+export function recordId(resource: RegistrationResource, record: CatalogueRecord): string { const value=record['id_'+resource];return typeof value==='string'&&/^[A-Z]+[0-9]+$/.test(value)?value:''; }
 export function emptyValues(definition: ResourceDefinition): EditorValues {
   return Object.fromEntries([[definition.display,''],...(definition.technical ? [[definition.technical,'']] : []),...definition.fields.map(field=>[field.key,field.kind==='boolean'?'false':''])]);
 }

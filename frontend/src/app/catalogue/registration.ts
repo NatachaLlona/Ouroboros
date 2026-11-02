@@ -4,7 +4,7 @@ import { Session } from '../auth/session';
 import { Api, ApiError, safeMessage } from '../shared/api';
 import { Notice } from '../shared/notice';
 import { CatalogueLayout } from '../shared/catalogue-layout';
-import { ResourceTabs } from '../shared/resource-tabs';
+import { RegistrationNavigation } from '../shared/registration-navigation';
 import { SharedFormField } from '../shared/form-field';
 import { FieldLabel } from '../shared/field-label';
 import { descriptionError } from '../shared/description';
@@ -13,13 +13,13 @@ import { NameAutocomplete } from './autocomplete';
 import { TierPosition } from './tier-position';
 import { currencies, priceError } from '../shared/money';
 import { UnsavedChanges } from '../shared/unsaved-changes';
-import { Resource } from './models';
-import { CatalogueRecord, EditorValues, resourceDefinitions, emptyValues, recordValues, editorPayload, effectiveTechnical, technicalSuggestion, technicalPattern, recordId, isResource, hasValidPrice } from './resources';
+import { RegistrationResource as Resource } from './models';
+import { CatalogueRecord, EditorValues, registrationDefinitions as resourceDefinitions, registrationTitles, emptyValues, recordValues, editorPayload, effectiveTechnical, technicalSuggestion, technicalPattern, recordId, isRegistrationResource as isResource, hasValidPrice } from './resources';
 
-@Component({selector:'app-registration',imports:[RouterLink,Notice,CatalogueLayout,ResourceTabs,SharedFormField,Confirmation,NameAutocomplete,TierPosition,FieldLabel],template:`
-  <app-catalogue-layout [platformRegistration]="selected()==='platforms'" [class.platform-registration]="selected()==='platforms'" [title]="editing() ? 'Editar '+definition().label : 'Cadastrar item'" subtitle="Uma plataforma, uma tag ou uma Classificação da Obra para o seu catálogo." [back]="editing()?'/consultas':'/cadastrar'" [backLabel]="editing()?'Voltar à consulta':'Voltar a Cadastrar'">
+@Component({selector:'app-registration',imports:[RouterLink,Notice,CatalogueLayout,RegistrationNavigation,SharedFormField,Confirmation,NameAutocomplete,TierPosition,FieldLabel],template:`
+  <app-catalogue-layout [platformRegistration]="selected()==='platforms'" [class.platform-registration]="selected()==='platforms'" [title]="title()" subtitle="Uma plataforma, uma tag ou uma Classificação da Obra para o seu catálogo." [back]="editing()?'/consultas':'/cadastrar'" [backLabel]="editing()?'Voltar à consulta':'Voltar a Cadastrar'">
     <h2 id="form-choice">{{editing()?'O que deseja editar?':'O que deseja cadastrar?'}}</h2>
-    <app-resource-tabs [selected]="selected()" [disabled]="busy()||loading()" (selectedChange)="choose($event)" />
+    <app-registration-navigation [selected]="selected()" [disabled]="busy()||loading()" (selectedChange)="choose($event)" />
     @if(loading()){<p role="status">A carregar…</p>}
     @if(notice()){<app-notice [text]="notice()" />}
     @if(editLoadFailed()){<button class="button" type="button" (click)="retryEdit()">Tentar abrir edição novamente</button>}
@@ -29,7 +29,7 @@ import { CatalogueRecord, EditorValues, resourceDefinitions, emptyValues, record
       @else{<button class="button button-primary" type="button" (click)="another()">Cadastrar outro ↗</button>}
     </section>}
     @else{<form (submit)="submit($event)"><p class="required-note"><strong class="required-star" aria-hidden="true">*</strong> Campo obrigatório</p><fieldset [disabled]="busy()||loading()||editLoadFailed()||!session.canCreate()">
-      <app-name-autocomplete [definition]="definition()" [value]="values()[definition().display]||''" (valueChange)="setValue(definition().display,$event)" [error]="fieldError(definition().display)" [enabled]="!editing()" (selected)="pendingExisting.set($event)" (completed)="completeName($event)" />
+      <app-name-autocomplete [definition]="definition()" [value]="values()[definition().display]||''" (valueChange)="setValue(definition().display,$event)" [error]="fieldError(definition().display)" [enabled]="!editing()&&selected()!=='tag_categories'" (selected)="pendingExisting.set($event)" (completed)="completeName($event)" />
       @if(definition().technical && technicalVisible()){
         <div class="field"><app-field-label [fieldId]="definition().technical!" label="Nome técnico" [required]="editing()||!suggestion()" [help]="'Use minúsculas ASCII, números e underscores entre palavras.'+(editing()?'':' Vazio usa a sugestão válida; ao focar pode escrever um nome próprio.')" /><input #technicalInput [id]="definition().technical" [value]="values()[definition().technical!]||''" (input)="technicalChanged($event)" (focus)="technicalFocused.set(true)" (blur)="technicalFocused.set(false)" [placeholder]="technicalFocused()?'':suggestion()" [required]="editing()||!suggestion()" aria-required="true" [attr.aria-describedby]="definition().technical+'-help '+definition().technical+'-error'" [attr.aria-invalid]="fieldError(definition().technical!)?'true':null" pattern="[a-z][a-z0-9]*(_[a-z0-9]+)*">
         @if(!editing()&&!suggestion()&&!values()[definition().technical!]){<p class="field-error">Não foi possível gerar um nome técnico válido. Introduza um nome técnico.</p>}
@@ -49,6 +49,7 @@ export class Registration {
   readonly session=inject(Session);private readonly api=inject(Api);private readonly route=inject(ActivatedRoute);private readonly injector=inject(Injector);
   private readonly router=inject(Router);private readonly unsaved=inject(UnsavedChanges);
   readonly selected=signal<Resource>('platforms');readonly definition=computed(()=>resourceDefinitions[this.selected()]);
+  readonly title=computed(()=>this.editing()?'Editar '+this.definition().label:registrationTitles[this.selected()]);
   readonly values=signal<EditorValues>(emptyValues(resourceDefinitions.platforms));private readonly drafts=new Map<Resource,EditorValues>();
   readonly hasPrice=computed(()=>hasValidPrice(this.values()));
   readonly original=signal<CatalogueRecord|null>(null);readonly editing=computed(()=>this.original()!==null);
@@ -60,7 +61,7 @@ export class Registration {
   readonly tierReady=signal(false);
   constructor(){inject(DestroyRef).onDestroy(this.unsaved.register(()=>this.canDeactivate()));effect(()=>{const id=this.pendingEdit();if(id&&this.session.canCreate()&&!this.loading())untracked(()=>{this.pendingEdit.set(null);void this.openEdit(id);});});void this.initialize();}
   private async initialize():Promise<void>{
-    const resource=this.route.snapshot.queryParamMap.get('resource'),id=this.route.snapshot.queryParamMap.get('id');
+    const resource=this.route.snapshot.queryParamMap.get('resource'),id=resource==='tag_categories'?null:this.route.snapshot.queryParamMap.get('id');
     if(isResource(resource))this.choose(resource);
     try{const state=await this.session.ensure();if(!state.authenticated)this.session.openLogin('Entre para continuar.','/cadastros');else if(state.can_create&&id)await this.loadRecord(id);}
     catch(error){this.notice.set(safeMessage(error));if(id)this.editLoadFailed.set(true);}finally{this.loading.set(false);if(id&&!this.original()&&!this.editLoadFailed())this.pendingEdit.set(id);}

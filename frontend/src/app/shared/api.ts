@@ -14,7 +14,8 @@ export class Api {
   private readonly http = inject(HttpClient);
   readonly deadlines = new Subject<{idle:number;absolute:number}>();
   async request<T>(path: string, method = 'GET', body?: unknown, csrf?: string, params:Record<string,string|number>={}, userActivity=true): Promise<T> {
-    if (!/^\/(?:browser\/(?:session|login|logout)|(?:platforms|tags|work_classifications)(?:\/[A-Za-z0-9]+)?)$/.test(path) || !['GET','POST','PUT','DELETE'].includes(method)) throw new ApiError(400);
+    const categoryCreation=path==='/tag_categories'&&method==='POST';
+    if ((!categoryCreation&&!/^\/(?:browser\/(?:session|login|logout)|(?:platforms|tags|work_classifications)(?:\/[A-Za-z0-9]+)?)$/.test(path)) || !['GET','POST','PUT','DELETE'].includes(method)) throw new ApiError(400);
     let headers = new HttpHeaders({ Accept: 'application/json' });
     if (body !== undefined) headers = headers.set('Content-Type', 'application/json');
     if (csrf) headers = headers.set('X-CSRF-Token', csrf);

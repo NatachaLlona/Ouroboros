@@ -16,7 +16,7 @@ describe('Scoped registration navigation refinements',()=>{
     const fixture=TestBed.createComponent(SelectionCards);fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.pill')).toBeNull();expect(fixture.nativeElement.textContent).not.toContain('Comece por aqui');
     expect(fixture.nativeElement.querySelectorAll('button[disabled]')).toHaveLength(2);
-    expect(fixture.nativeElement.querySelector('a').getAttribute('href')).toBe('/cadastros');expect(fixture.nativeElement.querySelector('a').textContent).toContain('Cadastrar item');
+    expect(fixture.nativeElement.querySelector('.card-copy a').getAttribute('href')).toBe('/cadastros');expect(fixture.nativeElement.querySelector('.card-copy a').textContent).toContain('Cadastrar item');
     expect([...fixture.nativeElement.querySelectorAll('h2')].some((heading:any)=>heading.textContent.includes('Em breve'))).toBe(false);
   });
 });

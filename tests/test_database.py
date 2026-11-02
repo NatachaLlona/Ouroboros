@@ -105,8 +105,27 @@ class DatabaseTests(unittest.TestCase):
         connection = MagicMock()
         cursor = connection.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = ("changed-checksum",)
-        with self.assertRaisesRegex(DatabaseError, "modified"):
+        with self.assertRaisesRegex(DatabaseError, r"modified \(001_create_test\.sql\)"):
             migrate(connection, self.root)
+
+    def test_applied_migration_rejects_newline_and_bom_changes_before_sql_execution(self):
+        import hashlib
+        directory = self.root / 'sql/migrations'
+        directory.mkdir(parents=True)
+        original = b'SELECT 1;\r\n'
+        checksum = hashlib.sha256(original).hexdigest()
+        for changed in (b'SELECT 1;\n', b'\xef\xbb\xbf' + original):
+            with self.subTest(content=changed):
+                (directory / '001_create_test.sql').write_bytes(changed)
+                connection = MagicMock()
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.return_value = (checksum,)
+                with self.assertRaisesRegex(DatabaseError, '001_create_test.sql'):
+                    migrate(connection, self.root)
+                statements = [call.args[0] for call in cursor.execute.call_args_list]
+                self.assertFalse(any(statement.startswith('INSERT INTO') for statement in statements))
+                self.assertFalse(any(statement.startswith('SELECT 1;') for statement in statements))
+                connection.transaction.return_value.__exit__.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@
 | Platform access, public user filters, passwords, login limits and migration011 | [Backend review contracts](BACKEND_REVIEW.md) |
 | Startup/shutdown, logs, troubleshooting and derived projects | [Operations](OPERATIONS.md) |
 | Angular 22 build, feature architecture, three forms and browser QA | [Angular frontend](ANGULAR.md) |
+| Tag submenu, category creation and accessible card-image navigation | [Tag/category UI](TAG_CATEGORY_UI.md) |
 | Stable scenario catalogue | [qa/scenarios.json](../qa/scenarios.json) |
 | Developer conventions and Git workflow | [NEXTGENERATION.md](../NEXTGENERATION.md) |
 | Historical Foundation review (not current Ouroboros evidence) | [Final review](FINAL_REVIEW.md) |

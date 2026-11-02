@@ -20,3 +20,12 @@ app-field-label .label-row:has(.field-tooltip:not([hidden]))::after{content:'';p
 .description-control{position:relative}
 .description-control textarea{display:block;padding-bottom:32px}
 .description-counter{position:absolute;right:12px;bottom:8px;font-size:11px;line-height:1.4;color:var(--muted);pointer-events:none}
+
+.equal-width-options{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+.equal-width-options>button{min-width:0;text-align:center}
+.registration-submenu{gap:12px;margin:-8px 0 24px;padding:5px 8px;border-bottom:1px solid var(--line);background:var(--cream);border-radius:6px 6px 0 0}
+.registration-submenu button{min-height:44px;padding:7px 10px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-size:12px}
+.registration-submenu button.selected{border-bottom-color:var(--mauve);color:var(--dark-mauve);font-weight:600}
+.registration-submenu button:disabled{opacity:.55}
+.image-link{display:block;cursor:pointer}
+.success>button.button{margin-inline:auto}

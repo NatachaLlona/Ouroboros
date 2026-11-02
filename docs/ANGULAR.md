@@ -145,3 +145,7 @@ The owner additionally selected **4242** for the second disposable PostgreSQL cl
 - Current real desktop/mobile layout and Swagger UI execution remain **manual**. Computer Use ended because it could not determine the current Chrome URL with sufficient confidence; no further UI input was sent. Earlier screenshots in the dated Angular delivery section do not validate this refinement revision. Hosted GitHub execution, physical mobile and screen-reader review were not performed. Normal 6969 had no application listener when inspected; no normal application was restarted or normal credentials extracted. Start it using the existing interactive prompts after reviewing the build.
 
 `reports/refinements_validation.json` summarizes these outcomes without credentials. No staging, commit, push or merge was performed.
+
+## Tag submenu and category registration
+
+The main registration choices remain unchanged. A secondary Tag/Category group selects the existing Tag form immediately and offers category creation using the shared form and existing POST /tag_categories contract. Consultations remain limited to the original three resources. Active card images reuse their buttons' destinations; future-workflow images remain inert. See [the implementation contract and verification](TAG_CATEGORY_UI.md), including scoped test results, disposable-write evidence and pending browser checks.

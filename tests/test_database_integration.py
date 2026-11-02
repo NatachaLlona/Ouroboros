@@ -41,6 +41,25 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                 entry_id = insert_entry(connection, value)
                 self.assertGreater(entry_id, 0)
                 self.assertEqual(read_entry(connection, entry_id), (entry_id, value))
+            # Only change the test's private copy; prove exact-byte rejection and recovery.
+            with connect(database, password) as connection:
+                registry = connection.execute('SELECT version,checksum,applied_at FROM public.foundation_migrations ORDER BY version').fetchall()
+                path = root / 'sql/migrations/005_create_catalogue.sql'
+                original = path.read_bytes()
+                lf = original.replace(b'\r\n', b'\n')
+                changed = lf if original != lf else lf.replace(b'\n', b'\r\n')
+                self.assertNotEqual(original, changed)
+                try:
+                    path.write_bytes(changed)
+                    with self.assertRaisesRegex(DatabaseError, '005_create_catalogue.sql'):
+                        migrate(connection, root)
+                    self.assertEqual(connection.execute('SELECT version,checksum,applied_at FROM public.foundation_migrations ORDER BY version').fetchall(), registry)
+                    self.assertEqual(read_entry(connection, entry_id), (entry_id, value))
+                finally:
+                    path.write_bytes(original)
+                migrate(connection, root)
+                self.assertEqual(connection.execute('SELECT version,checksum,applied_at FROM public.foundation_migrations ORDER BY version').fetchall(), registry)
+                self.assertEqual(read_entry(connection, entry_id), (entry_id, value))
             # Stop/start reuses the exact same named volume, without deleting anything.
             run_command(command + ["stop", "postgres"], 30, env)
             start_postgres(database, secret_path, root, project)

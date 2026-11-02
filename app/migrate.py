@@ -26,7 +26,7 @@ def migrate(connection, root=PROJECT_ROOT):
                     previous = cursor.fetchone()
                     if previous:
                         if previous[0] != checksum:
-                            raise DatabaseError("An applied migration was modified; restore its original contents and add a new migration")
+                            raise DatabaseError(f"An applied migration was modified ({path.name}); restore its original contents and add a new migration")
                         continue
                     if path.name == '009_add_classification_tiers.sql':
                         cursor.execute('SELECT count(*),min(sequence_work_classifications),max(sequence_work_classifications) FROM public.work_classifications')

@@ -73,9 +73,8 @@ class BrowserSessionTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('<app-root>', response.text)
         self.assertIn('main-', response.text)
-        home_source = (PROJECT_ROOT / 'frontend/src/app/home/home.ts').read_text(encoding='utf-8')
-        self.assertIn('routerLink="/cadastrar"', home_source)
-        self.assertIn('routerLink="/consultar"', home_source)
+        # Angular routing tests verify image/button parity through shared destinations.
+        # Here, verify the actual HTTP shells and protected-route behavior below.
         cards = (PROJECT_ROOT / 'frontend/src/app/shared/selection-cards.ts').read_text(encoding='utf-8')
         self.assertIn("name:'Watched'", cards)
         self.assertIn("name:'Watchlist'", cards)
@@ -276,6 +275,32 @@ class BrowserCreationIntegrationTests(unittest.TestCase):
     setUpClass = classmethod(legacy.CatalogueAPITests.setUpClass.__func__)
     cleanup = classmethod(legacy.CatalogueAPITests.cleanup.__func__)
     setUp = legacy.CatalogueAPITests.setUp
+
+    def test_cookie_tag_category_creation_matches_openapi_and_audits(self):
+        """Verify the form payload using only the fixture's UUID-owned database."""
+        from app.text_limits import DESCRIPTION_MAX_LENGTH
+        schema = self.client.app.openapi()['components']['schemas']['TagCategoriesCreate']
+        fields = {'tag_category_name', 'display_name_tag_categories', 'description_tag_categories'}
+        self.assertEqual(set(schema['properties']), fields)
+        self.assertEqual(set(schema['required']), fields - {'description_tag_categories'})
+        self.assertFalse(schema['additionalProperties'])
+        with TestClient(self.client.app, base_url=ORIGIN, client=('127.0.0.1', 43212)) as browser:
+            login = browser.post('/browser/login', headers=HEADERS, json={'username': 'supervisor', 'password': self.api_password})
+            self.assertEqual(login.status_code, 200)
+            headers = {**HEADERS, 'X-CSRF-Token': login.json()['csrf_token']}
+            payload = {'tag_category_name': 'disposable_category', 'display_name_tag_categories': 'Categoria descartável 🐍', 'description_tag_categories': 'Texto 👩🏽‍💻'}
+            response = browser.post('/tag_categories', headers=headers, json=payload)
+            self.assertEqual(response.status_code, 201)
+            persisted = browser.get('/tag_categories/' + response.json()['id_tag_categories']).json()
+            for key, value in payload.items():
+                self.assertEqual(persisted[key], value)
+            evidence = self.client.get('/api_audit_logs', headers=self.headers['administrator'], params={'interaction_id': response.headers['X-Interaction-ID']}).json()['items'][0]
+            self.assertEqual(evidence['mutation_count'], 1)
+            self.assertEqual(evidence['business_outcome'], 'committed')
+            for invalid in ({**payload, 'tag_category_name': 'Invalid Name'}, {**payload, 'id_tag_categories': 'TC0000999'}, {**payload, 'description_tag_categories': 'x' * (DESCRIPTION_MAX_LENGTH + 1)}):
+                self.assertEqual(browser.post('/tag_categories', headers=headers, json=invalid).status_code, 422)
+            self.assertEqual(browser.get('/tag_categories').json()['count'], 1)
+            self.assertEqual(browser.post('/tag_categories', headers=HEADERS, json=payload).status_code, 403)
 
     def test_cookie_platform_tag_creation_audit_and_transaction_authority(self):
         from app.catalogue_repository import CatalogueRepository
