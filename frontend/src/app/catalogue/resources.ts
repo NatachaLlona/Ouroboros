@@ -31,6 +31,7 @@ export const registrationDefinitions:Record<RegistrationResource,ResourceDefinit
     {key:'description_tag_categories',label:'Descrição',kind:'textarea'}
   ]}
 };
+export const consultationDefinitions=registrationDefinitions;
 export const registrationTitles:Record<RegistrationResource,string>={
   platforms:'Cadastrar Plataforma',
   tags:'Cadastrar Tag',
@@ -51,6 +52,7 @@ export function technicalSuggestion(value: string): string {
 export function substringPattern(value: string): string { return '%' + value.replace(/[\\%_]/g, match => '\\' + match) + '%'; }
 export function isResource(value: string | null): value is Resource { return value !== null && Object.hasOwn(resourceDefinitions,value); }
 export function isRegistrationResource(value:string|null):value is RegistrationResource{return value!==null&&Object.hasOwn(registrationDefinitions,value);}
+export const isConsultationResource=isRegistrationResource;
 export function recordId(resource: RegistrationResource, record: CatalogueRecord): string { const value=record['id_'+resource];return typeof value==='string'&&/^[A-Z]+[0-9]+$/.test(value)?value:''; }
 export function emptyValues(definition: ResourceDefinition): EditorValues {
   return Object.fromEntries([[definition.display,''],...(definition.technical ? [[definition.technical,'']] : []),...definition.fields.map(field=>[field.key,field.kind==='boolean'?'false':''])]);
@@ -90,7 +92,7 @@ export function editorPayload(definition: ResourceDefinition, values: EditorValu
   }
   return result;
 }
-export function contract(resource: Resource) { return publicContracts[resource]; }
+export function contract(resource: RegistrationResource) { return publicContracts[resource]; }
 export function filterLabel(key: string, definition: ResourceDefinition): string {
   if (key===definition.display) return FANTASY_NAME_LABEL;
   if (key===definition.technical) return 'Nome técnico (exato)';

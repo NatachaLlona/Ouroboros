@@ -1,6 +1,6 @@
 import { Injectable, effect, inject, signal } from '@angular/core';
 import { Session } from '../auth/session';
-import { Resource } from './models';
+import { ConsultationResource as Resource } from './models';
 import { contract } from './resources';
 
 export interface SearchCriteria {name:string;filters:Record<string,string>;fields:string[];order:string;direction:string;}

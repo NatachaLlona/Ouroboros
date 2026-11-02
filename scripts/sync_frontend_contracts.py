@@ -11,7 +11,7 @@ from app.schemas.catalogue import RESOURCES, PATTERN_HELP
 
 def render():
     result = {}
-    for name in ('platforms', 'tags', 'work_classifications'):
+    for name in ('platforms', 'tags', 'tag_categories', 'work_classifications'):
         resource = RESOURCES[name]
         properties = resource.query.model_json_schema()['properties']
         filters = []
@@ -42,7 +42,7 @@ def main():
             raise SystemExit('Frontend public query metadata is stale; run scripts/sync_frontend_contracts.py')
     else:
         path.write_text(expected, encoding='utf-8')
-    print('Frontend metadata matches the three implemented resource contracts')
+    print('Frontend metadata matches the implemented consultation resource contracts')
 
 
 if __name__ == '__main__':

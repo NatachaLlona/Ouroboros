@@ -16,7 +16,7 @@ describe('Same-origin API boundary', () => {
     await expect(TestBed.inject(Api).request('https://untrusted.example')).rejects.toBeInstanceOf(ApiError);
     TestBed.inject(HttpTestingController).expectNone('https://untrusted.example');
   });
-  it('permits category options and tag-category association without enabling unrelated relationship or category editing routes',async()=>{
+  it('permits category CRUD and tag-category associations without enabling bulk deletion or unrelated relationship routes',async()=>{
     const api=TestBed.inject(Api),http=TestBed.inject(HttpTestingController);
     const body={tag_category_name:'category',display_name_tag_categories:'Category',description_tag_categories:null};
     const created=api.request('/tag_categories','POST',body,'test-csrf');const pending=http.expectOne('/tag_categories');
@@ -26,7 +26,10 @@ describe('Same-origin API boundary', () => {
     const links=api.request('/tag_category_relationships','GET',undefined,undefined,{id_tags:'TG0000001'});http.expectOne('/tag_category_relationships?id_tags=TG0000001').flush({count:0,page:1,page_size:50,items:[]});await links;
     const association=api.request('/tag_category_relationships','POST',{id_tags:'TG0000001',id_tag_categories:'TC0000001'},'test-csrf');const write=http.expectOne('/tag_category_relationships');expect(write.request.headers.get('X-CSRF-Token')).toBe('test-csrf');write.flush({id_tag_category_relationships:'CR0000001'});await association;
     const removed=api.request('/tag_category_relationships/CR0000001','DELETE',undefined,'test-csrf');http.expectOne('/tag_category_relationships/CR0000001').flush(null,{status:204,statusText:'No Content'});await removed;
-    for(const [path,method] of [['/tag_categories/TC0000001','PUT'],['/tag_relationships','POST'],['/tag_category_relationships','DELETE'],['/tag_category_relationships/CR0000001','PUT']])await expect(api.request(path,method)).rejects.toBeInstanceOf(ApiError);
+    const category=api.request('/tag_categories/TC0000001');http.expectOne('/tag_categories/TC0000001').flush({id_tag_categories:'TC0000001'});await category;
+    const update=api.request('/tag_categories/TC0000001','PUT',{description_tag_categories:'Changed'},'test-csrf');const mutation=http.expectOne('/tag_categories/TC0000001');expect(mutation.request.headers.get('X-CSRF-Token')).toBe('test-csrf');mutation.flush({id_tag_categories:'TC0000001'});await update;
+    const deletion=api.request('/tag_categories/TC0000001','DELETE',undefined,'test-csrf');http.expectOne('/tag_categories/TC0000001').flush(null,{status:204,statusText:'No Content'});await deletion;
+    for(const [path,method] of [['/tag_categories','DELETE'],['/tag_relationships','POST'],['/tag_category_relationships','DELETE'],['/tag_category_relationships/CR0000001','PUT']])await expect(api.request(path,method)).rejects.toBeInstanceOf(ApiError);
   });
   it('separates configuration, permissions, invalid credentials, expiry and unknown commit status', () => {
     expect(safeMessage(new ApiError(403,'BROWSER_ORIGIN_REJECTED'))).toContain('browser.origin');

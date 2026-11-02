@@ -13,6 +13,7 @@ import { NameAutocomplete } from './autocomplete';
 import { TierPosition } from './tier-position';
 import { TagCategoryField } from './tag-category-field';
 import { TagCategoryRegistration } from './tag-category-registration';
+import { tagCategoryAssociations } from './tag-category-association';
 import { uniqueSelectValues } from '../shared/select-options';
 import { currencies, priceError } from '../shared/money';
 import { UnsavedChanges } from '../shared/unsaved-changes';
@@ -42,10 +43,16 @@ import { CatalogueRecord, EditorValues, registrationDefinitions as resourceDefin
         @if(field.key==='tier'){<app-tier-position [editing]="editing()" [value]="values()['tier']||''" (valueChange)="setValue('tier',$event)" [error]="fieldError('tier')" (available)="tierReady.set($event)" />}
         @else if((field.key!=='platform_url'||values()['platform_access_types']==='website')&&(field.key!=='price_amount'||values()['platform_is_paid']==='true')&&(field.key!=='price_currency'||hasPrice())){<app-form-field [definition]="field" [requiredOverride]="field.key==='price_currency'&&hasPrice()" [value]="values()[field.key]||''" (valueChange)="setValue(field.key,$event)" [error]="fieldError(field.key)" />}
       }
-      @if(selected()==='tags'&&!editing()){
-        <app-tag-category-field [value]="categoryIds()" (valueChange)="setCategoryIds($event)" [error]="fieldError('id_tag_categories')" [disabled]="busy()||tagCategories.uncertain()" />
-        @if(tagCategories.created()){<p class="notice" role="status">A Tag já foi criada. Conclua as categorias com Cadastrar; uma nova tentativa reutiliza a mesma Tag. Se sair, os dados já gravados permanecem.</p>}
-        @if(tagCategories.uncertain()){<p class="form-error" role="alert">Não foi possível confirmar a criação da Tag. Verifique o cadastro em Consultar antes de iniciar outra tentativa; o envio não será repetido automaticamente.</p>}
+      @if(selected()==='tags'||selected()==='tag_categories'){
+        <app-tag-category-field [owner]="association().owner" [value]="associationIds()" (valueChange)="setAssociationIds($event)" [error]="fieldError(association().relatedKey)" [disabled]="busy()||tagCategories.uncertain()" />
+        @if(editing()&&tagCategories.pending()&&!busy()){<p class="notice" role="status">Algumas alterações podem já ter sido guardadas. As seleções foram preservadas; tente Salvar edição novamente para concluir os vínculos. Sair não desfaz alterações já gravadas.</p>}
+        @if(selected()==='tags'){
+          @if(tagCategories.created()){<p class="notice" role="status">A Tag já foi criada. Conclua as categorias com Cadastrar; uma nova tentativa reutiliza a mesma Tag. Se sair, os dados já gravados permanecem.</p>}
+          @if(tagCategories.uncertain()){<p class="form-error" role="alert">Não foi possível confirmar a criação da Tag. Verifique o cadastro em Consultar antes de iniciar outra tentativa; o envio não será repetido automaticamente.</p>}
+        }@else{
+          @if(tagCategories.created()){<p class="notice" role="status">A Categoria de Tag já foi criada. Conclua os vínculos com Cadastrar; uma nova tentativa reutiliza a mesma categoria. Se sair, os dados já gravados permanecem.</p>}
+          @if(tagCategories.uncertain()){<p class="form-error" role="alert">Não foi possível confirmar a criação da categoria. Verifique se ela foi criada antes de iniciar outra tentativa; o envio não será repetido automaticamente.</p>}
+        }
       }
       @if(failure()){<p class="form-error" role="alert">{{errorMessage()}}</p>}
       <div class="dialog-actions form-actions"><button class="button" type="button" [disabled]="busy()" (click)="cancelForm()">Cancelar</button><button class="button button-primary" [attr.aria-busy]="busy()" type="submit">{{busy()?'Salvando…':editing()?'Salvar edição':'Cadastrar'}}</button></div>
@@ -65,15 +72,19 @@ export class Registration {
   readonly loading=signal(true);readonly busy=signal(false);readonly dirty=signal(false);readonly notice=signal('');readonly failure=signal<unknown>(null);readonly errors=signal<Record<string,string>>({});readonly errorMessage=computed(()=>safeMessage(this.failure()));
   readonly pendingExisting=signal<CatalogueRecord|null>(null);readonly confirmationError=signal('');
   readonly success=signal<{id:string;name:string;edited:boolean}|null>(null);private readonly technicalInput=viewChild<ElementRef<HTMLInputElement>>('technicalInput');
-  readonly editLoadFailed=signal(false);private readonly pendingEdit=signal<string|null>(null);
+  readonly editLoadFailed=signal(false);private readonly pendingEdit=signal<string|null>(null);private editGeneration=0;
   readonly tierReady=signal(false);
-  readonly categoryIds=signal<string[]>([]);readonly tagCategories=inject(TagCategoryRegistration);
-  private resetTagCategories():void{this.categoryIds.set([]);this.tagCategories.reset();}
-  private updateDirty():void{const baseline=this.original()?recordValues(this.definition(),this.original()!):emptyValues(this.definition());this.dirty.set(Object.keys(baseline).some(field=>this.values()[field]!==baseline[field])||(this.selected()==='tags'&&!this.editing()&&(this.categoryIds().length>0||this.tagCategories.pending())));}
-  setCategoryIds(ids:string[]):void{if(this.busy())return;this.categoryIds.set(uniqueSelectValues(ids));this.updateDirty();}
-  constructor(){inject(DestroyRef).onDestroy(this.unsaved.register(()=>this.canDeactivate()));effect(()=>{const id=this.pendingEdit();if(id&&this.session.canCreate()&&!this.loading())untracked(()=>{this.pendingEdit.set(null);void this.openEdit(id);});});void this.initialize();}
+  readonly categoryIds=signal<string[]>([]);readonly tagIds=signal<string[]>([]);readonly tagCategories=inject(TagCategoryRegistration);
+  readonly association=computed(()=>tagCategoryAssociations[this.selected()==='tag_categories'?'tag_categories':'tags']);
+  readonly associationIds=computed(()=>this.selected()==='tag_categories'?this.tagIds():this.categoryIds());
+  readonly originalAssociationIds=signal<string[]>([]);
+  readonly associationChanged=computed(()=>{const original=new Set(this.originalAssociationIds()),selected=this.associationIds();return selected.length!==original.size||selected.some(id=>!original.has(id));});
+  private resetTagCategories():void{this.categoryIds.set([]);this.tagIds.set([]);this.originalAssociationIds.set([]);this.tagCategories.reset();}
+  private updateDirty():void{const baseline=this.original()?recordValues(this.definition(),this.original()!):emptyValues(this.definition());this.dirty.set(Object.keys(baseline).some(field=>this.values()[field]!==baseline[field])||((this.selected()==='tags'||this.selected()==='tag_categories')&&(this.associationChanged()||this.tagCategories.pending())));}
+  setAssociationIds(ids:string[]):void{if(this.busy())return;const selected=this.selected()==='tag_categories'?this.tagIds:this.categoryIds;selected.set(uniqueSelectValues(ids));this.updateDirty();}
+  constructor(){inject(DestroyRef).onDestroy(this.unsaved.register(()=>this.canDeactivate()));inject(DestroyRef).onDestroy(()=>this.editGeneration++);effect(()=>{const id=this.pendingEdit();if(id&&this.session.canCreate()&&!this.loading())untracked(()=>{this.pendingEdit.set(null);void this.openEdit(id);});});void this.initialize();}
   private async initialize():Promise<void>{
-    const resource=this.route.snapshot.queryParamMap.get('resource'),id=resource==='tag_categories'?null:this.route.snapshot.queryParamMap.get('id');
+    const resource=this.route.snapshot.queryParamMap.get('resource'),id=this.route.snapshot.queryParamMap.get('id');
     if(isResource(resource))this.choose(resource);
     try{const state=await this.session.ensure();if(!state.authenticated)this.session.openLogin('Entre para continuar.','/cadastros');else if(state.can_create&&id)await this.loadRecord(id);}
     catch(error){this.notice.set(safeMessage(error));if(id)this.editLoadFailed.set(true);}finally{this.loading.set(false);if(id&&!this.original()&&!this.editLoadFailed())this.pendingEdit.set(id);}
@@ -84,14 +95,20 @@ export class Registration {
   setValue(key:string,value:string):void{this.values.update(values=>({...values,[key]:value}));this.updateDirty();if(!this.editing())this.drafts.set(this.selected(),{...this.values()});this.errors.update(errors=>({...errors,[key]:''}));}
   technicalChanged(event:Event):void{this.setValue(this.definition().technical!,(event.target as HTMLInputElement).value);}
   completeName(focus:boolean):void{if(!this.definition().technical||!this.values()[this.definition().display]?.trim())return;this.technicalVisible.set(true);if(focus)afterNextRender(()=>this.technicalInput()?.nativeElement.focus(),{injector:this.injector});}
-  async canDeactivate():Promise<boolean>{if(this.busy())return false;if(!this.dirty()||this.success())return true;const discard=await this.unsaved.ask();if(discard){this.resetTagCategories();this.drafts.clear();this.values.set(this.original()?recordValues(this.definition(),this.original()!):emptyValues(this.definition()));this.errors.set({});this.failure.set(null);this.technicalVisible.set(this.editing());this.dirty.set(false);}return discard;}
+  async canDeactivate():Promise<boolean>{if(this.busy())return false;if(!this.dirty()||this.success())return true;const discard=await this.unsaved.ask();if(discard){if(this.editing()){const selected=this.selected()==='tag_categories'?this.tagIds:this.categoryIds;selected.set([...this.originalAssociationIds()]);}else this.resetTagCategories();this.drafts.clear();this.values.set(this.original()?recordValues(this.definition(),this.original()!):emptyValues(this.definition()));this.errors.set({});this.failure.set(null);this.technicalVisible.set(this.editing());this.dirty.set(false);}return discard;}
   async cancelForm():Promise<void>{if(!await this.canDeactivate())return;await this.router.navigate([this.editing()?'/consultas':'/cadastrar'],{queryParams:this.editing()?{resource:this.selected()}:undefined});}
-  async choose(resource:Resource):Promise<void>{if(resource===this.selected()||this.busy())return;if(this.dirty()&&!await this.canDeactivate())return;this.resetTagCategories();this.pendingEdit.set(null);this.editLoadFailed.set(false);this.selected.set(resource);this.original.set(null);this.values.set(emptyValues(resourceDefinitions[resource]));this.technicalVisible.set(false);this.technicalFocused.set(false);this.success.set(null);this.failure.set(null);this.errors.set({});this.notice.set('');this.dirty.set(false);}
+  async choose(resource:Resource):Promise<void>{if(resource===this.selected()||this.busy())return;if(this.dirty()&&!await this.canDeactivate())return;this.editGeneration++;this.resetTagCategories();this.pendingEdit.set(null);this.editLoadFailed.set(false);this.selected.set(resource);this.original.set(null);this.values.set(emptyValues(resourceDefinitions[resource]));this.technicalVisible.set(false);this.technicalFocused.set(false);this.success.set(null);this.failure.set(null);this.errors.set({});this.notice.set('');this.dirty.set(false);}
   another():void{this.resetTagCategories();this.values.set(emptyValues(this.definition()));this.drafts.delete(this.selected());this.dirty.set(false);this.success.set(null);this.failure.set(null);this.errors.set({});this.technicalVisible.set(false);}
   fieldError(key:string):string{return this.errors()[key]||(this.failure() instanceof ApiError&&(this.failure() as ApiError).details.some(detail=>detail.loc?.includes(key))?'Reveja este campo de acordo com a indicação acima.':'');}
   async loadRecord(id:string):Promise<void>{
-    const resource=this.selected();const record=await this.api.request<CatalogueRecord>('/'+resource+'/'+encodeURIComponent(id));
-    if(resource!==this.selected())return;this.resetTagCategories();this.original.set(record);this.values.set(recordValues(this.definition(),record));this.technicalVisible.set(!!this.definition().technical);this.dirty.set(false);this.failure.set(null);this.errors.set({});this.success.set(null);
+    const resource=this.selected(),generation=++this.editGeneration,current=()=>generation===this.editGeneration&&resource===this.selected();
+    const record=await this.api.request<CatalogueRecord>('/'+resource+'/'+encodeURIComponent(id));if(!current())return;
+    let ids:string[]=[];
+    if(resource==='tags'||resource==='tag_categories')ids=await this.tagCategories.loadExisting(record,resource,current);
+    if(!current())return;
+    if(resource!=='tags'&&resource!=='tag_categories')this.tagCategories.reset();
+    this.categoryIds.set(resource==='tags'?[...ids]:[]);this.tagIds.set(resource==='tag_categories'?[...ids]:[]);this.originalAssociationIds.set([...ids]);
+    this.original.set(record);this.values.set(recordValues(this.definition(),record));this.technicalVisible.set(!!this.definition().technical);this.dirty.set(false);this.failure.set(null);this.errors.set({});this.success.set(null);
   }
   async confirmExisting():Promise<void>{
     if(this.busy()||!this.pendingExisting())return;this.busy.set(true);this.confirmationError.set('');
@@ -116,17 +133,17 @@ export class Registration {
     if(values['tier']&&(!/^[1-9][0-9]*$/.test(values['tier'])||!Number.isSafeInteger(Number(values['tier']))))errors['tier']='Use uma posição inteira positiva.';
     this.errors.set(errors);if(Object.keys(errors).length)return;
     const body=editorPayload(definition,values,this.original()||undefined);
-    if(this.editing()&&!Object.keys(body).length){this.notice.set('Não há alterações para guardar.');return;}
+    if(this.editing()&&!Object.keys(body).length&&!this.associationChanged()&&!this.tagCategories.pending()){this.notice.set('Não há alterações para guardar.');return;}
     this.busy.set(true);this.failure.set(null);this.notice.set('');
     try{
       const edited=this.editing(),path='/'+this.selected()+(edited?'/'+recordId(this.selected(),this.original()!):'');
-      const record=this.selected()==='tags'&&!edited&&(this.categoryIds().length>0||this.tagCategories.pending())
-        ?await this.tagCategories.save(body,this.categoryIds(),this.session.current().csrf_token)
+      const record=(this.selected()==='tags'||this.selected()==='tag_categories')&&(edited?this.associationChanged()||this.tagCategories.pending():this.associationIds().length>0||this.tagCategories.pending())
+        ?await this.tagCategories.save(edited?editorPayload(definition,values):body,this.associationIds(),this.session.current().csrf_token,this.association().owner,this.original()||undefined,this.originalAssociationIds())
         :await this.api.request<CatalogueRecord>(path,edited?'PUT':'POST',body,this.session.current().csrf_token);
       const id=recordId(this.selected(),record),name=record[definition.display];if(!id||typeof name!=='string')throw new ApiError(502);
       this.success.set({id,name,edited});this.dirty.set(false);
       if(!edited){this.resetTagCategories();this.values.set(emptyValues(definition));this.drafts.delete(this.selected());this.errors.set({});this.technicalVisible.set(false);this.technicalFocused.set(false);}
-      else this.original.set(record);
+      else{this.original.set(record);this.originalAssociationIds.set([...this.associationIds()]);}
     }catch(error){this.failure.set(error);this.updateDirty();await this.recover(error);}finally{this.busy.set(false);}
   }
 }

@@ -1,6 +1,6 @@
 import { Component, ElementRef, HostListener, computed, inject, input, model, output, viewChild } from '@angular/core';
-import { Resource } from './models';
-import { contract, filterLabel, resourceDefinitions } from './resources';
+import { ConsultationResource as Resource } from './models';
+import { contract, filterLabel, consultationDefinitions as resourceDefinitions } from './resources';
 import { FieldLabel, FANTASY_NAME_LABEL, FANTASY_NAME_HELP_TEXT } from '../shared/field-label';
 
 /** Compact public filter picker; expanding its overlay never moves Search. */

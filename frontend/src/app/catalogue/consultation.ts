@@ -3,18 +3,18 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Session } from '../auth/session';
 import { Api, ApiError, safeMessage } from '../shared/api';
 import { CatalogueLayout } from '../shared/catalogue-layout';
-import { ResourceTabs } from '../shared/resource-tabs';
+import { RegistrationNavigation } from '../shared/registration-navigation';
 import { Confirmation } from '../shared/confirmation';
 import { Pagination } from '../shared/pagination';
 import { Notice } from '../shared/notice';
-import { Resource } from './models';
+import { ConsultationResource as Resource } from './models';
 import { CatalogueFilters } from './filters';
 import { CatalogueViewState, SearchCriteria, copyCriteria, defaultCriteria } from './view-state';
-import { CataloguePage, CatalogueRecord, contract, filterLabel, isResource, recordId, resourceDefinitions, substringPattern } from './resources';
+import { CataloguePage, CatalogueRecord, contract, filterLabel, isConsultationResource as isResource, recordId, consultationDefinitions as resourceDefinitions, substringPattern } from './resources';
 
-@Component({selector:'app-consultation',imports:[RouterLink,CatalogueLayout,ResourceTabs,Confirmation,Pagination,Notice,CatalogueFilters],template:`
+@Component({selector:'app-consultation',imports:[RouterLink,CatalogueLayout,RegistrationNavigation,Confirmation,Pagination,Notice,CatalogueFilters],template:`
   <app-catalogue-layout title="Consultar itens isolados" subtitle="Encontre, edite ou apague uma plataforma, tag ou Classificação da Obra." back="/consultar" backLabel="Voltar a Consultar" [wide]="true">
-    <app-resource-tabs [selected]="selected()" [disabled]="deleting()" (selectedChange)="choose($event)" />
+    <app-registration-navigation [selected]="selected()" [disabled]="deleting()" submenuLabel="Consultas de Tag" (selectedChange)="choose($event)" />
     @if(message()){<app-notice [text]="message()" [activation]="noticeVersion()" />}
     @if(!session.canCreate()){<p role="alert">{{session.current().authenticated?'Esta área requer permissões de catálogo: supervisor ou administrador.':'Entre para consultar o catálogo.'}}</p><button class="button" type="button" (click)="session.openLogin('Entre para consultar.','/consultas')">Entrar</button>}
     @else{

@@ -227,6 +227,100 @@ export const publicContracts = {
     ],
     "defaultOrder": "sequence_tags"
   },
+  "tag_categories": {
+    "filters": [
+      {
+        "key": "filter_timezone",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "id_tag_categories",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "sequence_tag_categories",
+        "kind": "integer",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "prefix_tag_categories",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "fantasy_name_tag_categories",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "tag_category_name",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "display_name_tag_categories",
+        "kind": "text",
+        "choices": [],
+        "pattern": true
+      },
+      {
+        "key": "description_tag_categories",
+        "kind": "text",
+        "choices": [],
+        "pattern": true
+      },
+      {
+        "key": "created_at",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "created_at_timezone",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "created_at_date",
+        "kind": "date",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "created_at_from",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      },
+      {
+        "key": "created_at_to",
+        "kind": "text",
+        "choices": [],
+        "pattern": false
+      }
+    ],
+    "orderBy": [
+      "id_tag_categories",
+      "sequence_tag_categories",
+      "prefix_tag_categories",
+      "fantasy_name_tag_categories",
+      "tag_category_name",
+      "display_name_tag_categories",
+      "description_tag_categories",
+      "created_at",
+      "created_at_timezone"
+    ],
+    "defaultOrder": "sequence_tag_categories"
+  },
   "work_classifications": {
     "filters": [
       {

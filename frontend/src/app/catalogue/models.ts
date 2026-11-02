@@ -1,5 +1,6 @@
 export type Resource = 'platforms' | 'tags' | 'work_classifications';
 export type RegistrationResource = Resource | 'tag_categories';
+export type ConsultationResource = RegistrationResource;
 export interface PlatformDraft {
   platform_name: string; platform_is_paid: boolean; platform_is_episodes: boolean; platform_is_duration_time: boolean;
   price_amount: string; price_currency: string; application: boolean; website: boolean; link: boolean; platform_url: string;
