@@ -5,6 +5,12 @@ import { uniqueSelectValues } from '../shared/select-options';
 import { CatalogueRecord, recordId, registrationDefinitions } from './resources';
 import { TagCategoryOwner, tagCategoryAssociations } from './tag-category-association';
 
+export interface AssociationReceipt {
+  record:CatalogueRecord|null;owner:TagCategoryOwner|null;editing:boolean;initialRelatedIds:string[];
+  attemptedRelatedIds:string[];recordUncertain:boolean;attemptedFields:string[];
+  created:boolean;uncertain:boolean;editPending:boolean;
+}
+
 /** Component-scoped receipt and association snapshot shared by both forms. */
 @Injectable()
 export class TagCategoryRegistration {
@@ -13,6 +19,15 @@ export class TagCategoryRegistration {
   private editing=false;private initialRelatedIds=new Set<string>();private readonly editPending=signal(false);
   private recordUncertain=false;private readonly attemptedFields=new Set<string>();
   readonly created=signal(false);readonly uncertain=signal(false);readonly pending=computed(()=>this.created()||this.uncertain()||this.editPending());
+  currentRecord():CatalogueRecord|null{return this.record;}
+  snapshot():AssociationReceipt{return {record:this.record?{...this.record}:null,owner:this.owner,editing:this.editing,initialRelatedIds:[...this.initialRelatedIds],attemptedRelatedIds:[...this.attemptedRelatedIds],recordUncertain:this.recordUncertain,attemptedFields:[...this.attemptedFields],created:this.created(),uncertain:this.uncertain(),editPending:this.editPending()};}
+  restore(receipt?:AssociationReceipt):void{
+    this.reset();if(!receipt)return;
+    this.record=receipt.record?{...receipt.record}:null;this.owner=receipt.owner;this.editing=receipt.editing;this.initialRelatedIds=new Set(receipt.initialRelatedIds);
+    for(const id of receipt.attemptedRelatedIds)this.attemptedRelatedIds.add(id);
+    this.recordUncertain=receipt.recordUncertain;for(const field of receipt.attemptedFields)this.attemptedFields.add(field);
+    this.created.set(receipt.created);this.uncertain.set(receipt.uncertain);this.editPending.set(receipt.editPending);
+  }
   reset():void{this.record=null;this.owner=null;this.editing=false;this.recordUncertain=false;this.attemptedFields.clear();this.initialRelatedIds.clear();this.attemptedRelatedIds.clear();this.created.set(false);this.uncertain.set(false);this.editPending.set(false);}
 
   private async relationships(id:string,owner:TagCategoryOwner,current:()=>boolean=()=>true):Promise<CatalogueRecord[]>{

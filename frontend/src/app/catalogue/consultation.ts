@@ -13,7 +13,7 @@ import { CatalogueViewState, SearchCriteria, copyCriteria, defaultCriteria } fro
 import { CataloguePage, CatalogueRecord, contract, filterLabel, isConsultationResource as isResource, recordId, consultationDefinitions as resourceDefinitions, substringPattern } from './resources';
 
 @Component({selector:'app-consultation',imports:[RouterLink,CatalogueLayout,RegistrationNavigation,Confirmation,Pagination,Notice,CatalogueFilters],template:`
-  <app-catalogue-layout title="Consultar itens isolados" subtitle="Encontre, edite ou apague uma plataforma, tag ou Classificação da Obra." back="/consultar" backLabel="Voltar a Consultar" [wide]="true">
+  <app-catalogue-layout title="Consultar itens isolados" subtitle="Encontre, edite ou apague uma plataforma, tag ou Classificação da Obra." back="/consultar" backLabel="Voltar a Consultar" [wide]="true" [singleBackLink]="true">
     <app-registration-navigation [selected]="selected()" [disabled]="deleting()" submenuLabel="Consultas de Tag" (selectedChange)="choose($event)" />
     @if(message()){<app-notice [text]="message()" [activation]="noticeVersion()" />}
     @if(!session.canCreate()){<p role="alert">{{session.current().authenticated?'Esta área requer permissões de catálogo: supervisor ou administrador.':'Entre para consultar o catálogo.'}}</p><button class="button" type="button" (click)="session.openLogin('Entre para consultar.','/consultas')">Entrar</button>}

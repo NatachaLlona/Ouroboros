@@ -1,4 +1,5 @@
-import { Component, DestroyRef, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Session } from '../auth/session';
 import { Api, ApiError, safeMessage } from '../shared/api';
@@ -13,17 +14,29 @@ import { NameAutocomplete } from './autocomplete';
 import { TierPosition } from './tier-position';
 import { TagCategoryField } from './tag-category-field';
 import { TagCategoryRegistration } from './tag-category-registration';
-import { tagCategoryAssociations } from './tag-category-association';
+import { RegistrationDrafts } from './registration-drafts';
+import { TagCategoryOwner, tagCategoryAssociations } from './tag-category-association';
 import { uniqueSelectValues } from '../shared/select-options';
 import { currencies, priceError } from '../shared/money';
 import { UnsavedChanges } from '../shared/unsaved-changes';
 import { RegistrationResource as Resource } from './models';
 import { CatalogueRecord, EditorValues, registrationDefinitions as resourceDefinitions, registrationTitles, emptyValues, recordValues, editorPayload, effectiveTechnical, technicalSuggestion, technicalPattern, recordId, isRegistrationResource as isResource, hasValidPrice } from './resources';
 
-@Component({selector:'app-registration',providers:[TagCategoryRegistration],imports:[RouterLink,Notice,CatalogueLayout,RegistrationNavigation,SharedFormField,Confirmation,NameAutocomplete,TierPosition,FieldLabel,TagCategoryField],template:`
-  <app-catalogue-layout [platformRegistration]="selected()==='platforms'" [class.platform-registration]="selected()==='platforms'" [title]="title()" subtitle="Uma plataforma, uma tag ou uma Classificação da Obra para o seu catálogo." [back]="editing()?'/consultas':'/cadastrar'" [backLabel]="editing()?'Voltar à consulta':'Voltar a Cadastrar'">
+interface EmbeddedAssociation {
+  resource:TagCategoryOwner;parentId:string;parentName:string;
+  ready:(form:Registration)=>void;
+  completed:(record:CatalogueRecord,selected:boolean)=>void;
+  cancelled:()=>void;
+}
+const pendingAssociationValue='pending-association-draft';
+
+@Component({selector:'app-registration',providers:[TagCategoryRegistration,RegistrationDrafts],imports:[NgComponentOutlet,NgTemplateOutlet,RouterLink,Notice,CatalogueLayout,RegistrationNavigation,SharedFormField,Confirmation,NameAutocomplete,TierPosition,FieldLabel,TagCategoryField],template:`
+  <ng-template #registrationContent>
+    @if(!embedded()){
     <h2 id="form-choice">{{editing()?'O que deseja editar?':'O que deseja cadastrar?'}}</h2>
     <app-registration-navigation [selected]="selected()" [disabled]="busy()||loading()" (selectedChange)="choose($event)" />
+    @if(!editing()&&!success()){<div class="draft-actions"><button class="text-button" type="button" [disabled]="busy()||loading()" (click)="clearCurrentDraft()">Limpar todos os campos</button></div>}
+    }
     @if(loading()){<p role="status">A carregar…</p>}
     @if(notice()){<app-notice [text]="notice()" />}
     @if(editLoadFailed()){<button class="button" type="button" (click)="retryEdit()">Tentar abrir edição novamente</button>}
@@ -32,7 +45,7 @@ import { CatalogueRecord, EditorValues, registrationDefinitions as resourceDefin
       @if(result.edited){<a class="button button-primary" routerLink="/consultas" [queryParams]="{resource:selected()}">Voltar à consulta ↗</a>}
       @else{<button class="button button-primary" type="button" (click)="another()">Cadastrar outro ↗</button>}
     </section>}
-    @else{<form (submit)="submit($event)"><p class="required-note"><strong class="required-star" aria-hidden="true">*</strong> Campo obrigatório</p><fieldset [disabled]="busy()||loading()||editLoadFailed()||!session.canCreate()">
+    @else{<form (submit)="$event.stopPropagation();submit($event)"><p class="required-note"><strong class="required-star" aria-hidden="true">*</strong> Campo obrigatório</p><fieldset [disabled]="busy()||loading()||editLoadFailed()||!session.canCreate()">
       <app-name-autocomplete [definition]="definition()" [value]="values()[definition().display]||''" (valueChange)="setValue(definition().display,$event)" [error]="fieldError(definition().display)" [enabled]="!editing()&&selected()!=='tag_categories'&&!tagCategories.pending()" (selected)="pendingExisting.set($event)" (completed)="completeName($event)" />
       @if(definition().technical && technicalVisible()){
         <div class="field"><app-field-label [fieldId]="definition().technical!" label="Nome técnico" [required]="editing()||!suggestion()" [help]="'Use minúsculas ASCII, números e underscores entre palavras.'+(editing()?'':' Vazio usa a sugestão válida; ao focar pode escrever um nome próprio.')" /><input #technicalInput [id]="definition().technical" [value]="values()[definition().technical!]||''" (input)="technicalChanged($event)" (focus)="technicalFocused.set(true)" (blur)="technicalFocused.set(false)" [placeholder]="technicalFocused()?'':suggestion()" [required]="editing()||!suggestion()" aria-required="true" [attr.aria-describedby]="definition().technical+'-help '+definition().technical+'-error'" [attr.aria-invalid]="fieldError(definition().technical!)?'true':null" pattern="[a-z][a-z0-9]*(_[a-z0-9]+)*">
@@ -44,7 +57,8 @@ import { CatalogueRecord, EditorValues, registrationDefinitions as resourceDefin
         @else if((field.key!=='platform_url'||values()['platform_access_types']==='website')&&(field.key!=='price_amount'||values()['platform_is_paid']==='true')&&(field.key!=='price_currency'||hasPrice())){<app-form-field [definition]="field" [requiredOverride]="field.key==='price_currency'&&hasPrice()" [value]="values()[field.key]||''" (valueChange)="setValue(field.key,$event)" [error]="fieldError(field.key)" />}
       }
       @if(selected()==='tags'||selected()==='tag_categories'){
-        <app-tag-category-field [owner]="association().owner" [value]="associationIds()" (valueChange)="setAssociationIds($event)" [error]="fieldError(association().relatedKey)" [disabled]="busy()||tagCategories.uncertain()" />
+        <app-tag-category-field [owner]="association().owner" [value]="associationIds()" (valueChange)="setAssociationIds($event)" [error]="fieldError(association().relatedKey)" [disabled]="busy()||tagCategories.uncertain()" [allowCreate]="!embedded()&&!editing()" (createRequested)="openRelatedRegistration()" [extraChoices]="relatedChoices()" [refresh]="associationRefresh()" />
+        @if(embedded()&&!embedded()!.parentId){<p class="help">{{pendingAssociationMessage()}}</p>}
         @if(editing()&&tagCategories.pending()&&!busy()){<p class="notice" role="status">Algumas alterações podem já ter sido guardadas. As seleções foram preservadas; tente Salvar edição novamente para concluir os vínculos. Sair não desfaz alterações já gravadas.</p>}
         @if(selected()==='tags'){
           @if(tagCategories.created()){<p class="notice" role="status">A Tag já foi criada. Conclua as categorias com Cadastrar; uma nova tentativa reutiliza a mesma Tag. Se sair, os dados já gravados permanecem.</p>}
@@ -57,15 +71,40 @@ import { CatalogueRecord, EditorValues, registrationDefinitions as resourceDefin
       @if(failure()){<p class="form-error" role="alert">{{errorMessage()}}</p>}
       <div class="dialog-actions form-actions"><button class="button" type="button" [disabled]="busy()" (click)="cancelForm()">Cancelar</button><button class="button button-primary" [attr.aria-busy]="busy()" type="submit">{{busy()?'Salvando…':editing()?'Salvar edição':'Cadastrar'}}</button></div>
     </fieldset></form>}
-  </app-catalogue-layout>
+  </ng-template>
+  @if(embedded()){
+    <ng-container [ngTemplateOutlet]="registrationContent" />
+  }@else{
+    <app-catalogue-layout [singleBackLink]="!editing()||selected()==='platforms'" [class.platform-registration]="selected()==='platforms'" [title]="title()" subtitle="Uma plataforma, uma tag ou uma Classificação da Obra para o seu catálogo." [back]="editing()?'/consultas':'/cadastrar'" [backLabel]="editing()?'Voltar à consulta':'Voltar a Cadastrar'">
+      <ng-container [ngTemplateOutlet]="registrationContent" />
+    </app-catalogue-layout>
+  }
+  @if(associationContext();as context){
+    <dialog #associationDialog class="modal category-create-modal" aria-labelledby="association-modal-title" (cancel)="$event.preventDefault();closeRelatedRegistration()">
+      <div class="modal-content"><div class="modal-top"><h2 id="association-modal-title">{{registrationTitles[context.resource]}}</h2><button class="icon-button" type="button" [attr.aria-label]="'Fechar cadastro de '+resourceDefinitions[context.resource].noun" [disabled]="associationBusy()" (click)="closeRelatedRegistration()">×</button></div>
+        <ng-container *ngComponentOutlet="registrationComponent;inputs:{embedded:context}" />
+      </div>
+    </dialog>
+  }
   @if(pendingExisting();as item){<app-confirmation [title]="'Esta '+definition().noun+' já existe. Gostaria de editar?'" [name]="item[definition().display]+''" action="Editar" [busy]="busy()" [error]="confirmationError()" (cancelled)="pendingExisting.set(null);confirmationError.set('')" (confirmed)="confirmExisting()" />}
 `})
 export class Registration {
+  readonly registrationTitles=registrationTitles;readonly resourceDefinitions=resourceDefinitions;
+  readonly embedded=input<EmbeddedAssociation|null>(null);
+  readonly registrationComponent=Registration;
+  readonly associationContext=signal<EmbeddedAssociation|null>(null);readonly associationRefresh=signal(0);
+  private readonly associationForm=signal<Registration|null>(null);private associationReturnFocus:HTMLElement|null=null;
+  private readonly createdRelatedChoices=signal<Partial<Record<TagCategoryOwner,{value:string;label:string}[]>>>({});
+  private readonly associationDialog=viewChild<ElementRef<HTMLDialogElement>>('associationDialog');
+  readonly associationBusy=computed(()=>!!this.associationContext()&&!!this.associationForm()?.busy());
+  readonly relatedChoices=computed(()=>{const context=this.embedded();return context?[{value:context.parentId||pendingAssociationValue,label:context.parentName}]:this.createdRelatedChoices()[this.association().related]||[];});
+  readonly pendingAssociationMessage=computed(()=>this.embedded()?.resource==='tags'?'A Categoria de Tag em cadastro ainda não foi salva. Seu vínculo será criado somente ao cadastrar a categoria.':'A Tag em cadastro ainda não foi salva. Seu vínculo será criado somente ao cadastrar a Tag.');
   readonly session=inject(Session);private readonly api=inject(Api);private readonly route=inject(ActivatedRoute);private readonly injector=inject(Injector);
   private readonly router=inject(Router);private readonly unsaved=inject(UnsavedChanges);
   readonly selected=signal<Resource>('platforms');readonly definition=computed(()=>resourceDefinitions[this.selected()]);
   readonly title=computed(()=>this.editing()?'Editar '+this.definition().label:registrationTitles[this.selected()]);
-  readonly values=signal<EditorValues>(emptyValues(resourceDefinitions.platforms));private readonly drafts=new Map<Resource,EditorValues>();
+  readonly values=signal<EditorValues>(emptyValues(resourceDefinitions.platforms));private readonly drafts=inject(RegistrationDrafts);
+  readonly hasDraftChanges=computed(()=>this.dirty()||this.drafts.hasChanges());
   readonly hasPrice=computed(()=>hasValidPrice(this.values()));
   readonly original=signal<CatalogueRecord|null>(null);readonly editing=computed(()=>this.original()!==null);
   readonly technicalVisible=signal(false);readonly technicalFocused=signal(false);readonly suggestion=computed(()=>this.editing()?'':technicalSuggestion(this.values()[this.definition().display]||''));
@@ -80,9 +119,53 @@ export class Registration {
   readonly originalAssociationIds=signal<string[]>([]);
   readonly associationChanged=computed(()=>{const original=new Set(this.originalAssociationIds()),selected=this.associationIds();return selected.length!==original.size||selected.some(id=>!original.has(id));});
   private resetTagCategories():void{this.categoryIds.set([]);this.tagIds.set([]);this.originalAssociationIds.set([]);this.tagCategories.reset();}
+  private storeCurrentDraft():void{
+    if(this.editing())return;
+    this.drafts.save(this.selected(),{values:{...this.values()},categoryIds:[...this.categoryIds()],tagIds:[...this.tagIds()],originalAssociationIds:[...this.originalAssociationIds()],technicalVisible:this.technicalVisible(),dirty:this.dirty(),errors:{...this.errors()},failure:this.failure(),notice:this.notice(),receipt:this.tagCategories.snapshot()});
+  }
+  private restoreCurrentDraft():void{
+    const draft=this.drafts.get(this.selected());this.drafts.remove(this.selected());
+    this.values.set(draft?{...draft.values}:emptyValues(this.definition()));
+    this.categoryIds.set(draft?[...draft.categoryIds]:[]);this.tagIds.set(draft?[...draft.tagIds]:[]);this.originalAssociationIds.set(draft?[...draft.originalAssociationIds]:[]);
+    this.tagCategories.restore(draft?.receipt);this.technicalVisible.set(draft?.technicalVisible||false);this.technicalFocused.set(false);
+    this.errors.set(draft?{...draft.errors}:{});this.failure.set(draft?.failure??null);this.notice.set(draft?.notice||'');this.dirty.set(draft?.dirty||false);
+    this.success.set(null);this.pendingExisting.set(null);this.confirmationError.set('');this.tierReady.set(false);
+  }
+  private resetCurrentDraft():void{
+    this.drafts.remove(this.selected());this.resetTagCategories();this.values.set(emptyValues(this.definition()));
+    this.errors.set({});this.failure.set(null);this.notice.set('');this.success.set(null);this.technicalVisible.set(false);this.technicalFocused.set(false);this.pendingExisting.set(null);this.confirmationError.set('');this.dirty.set(false);
+  }
+  async clearCurrentDraft():Promise<void>{
+    if(this.busy()||this.loading()||this.editing()||this.embedded())return;
+    if(this.dirty()&&!await this.unsaved.ask())return;
+    this.resetCurrentDraft();
+  }
   private updateDirty():void{const baseline=this.original()?recordValues(this.definition(),this.original()!):emptyValues(this.definition());this.dirty.set(Object.keys(baseline).some(field=>this.values()[field]!==baseline[field])||((this.selected()==='tags'||this.selected()==='tag_categories')&&(this.associationChanged()||this.tagCategories.pending())));}
   setAssociationIds(ids:string[]):void{if(this.busy())return;const selected=this.selected()==='tag_categories'?this.tagIds:this.categoryIds;selected.set(uniqueSelectValues(ids));this.updateDirty();}
-  constructor(){inject(DestroyRef).onDestroy(this.unsaved.register(()=>this.canDeactivate()));inject(DestroyRef).onDestroy(()=>this.editGeneration++);effect(()=>{const id=this.pendingEdit();if(id&&this.session.canCreate()&&!this.loading())untracked(()=>{this.pendingEdit.set(null);void this.openEdit(id);});});void this.initialize();}
+  constructor(){
+    const destroy=inject(DestroyRef);
+    afterNextRender(()=>{
+      const embedded=this.embedded();
+      if(embedded){this.selected.set(embedded.resource);this.values.set(emptyValues(resourceDefinitions[embedded.resource]));const ids=[embedded.parentId||pendingAssociationValue];if(embedded.resource==='tags')this.categoryIds.set(ids);else this.tagIds.set(ids);this.originalAssociationIds.set([...ids]);this.loading.set(false);embedded.ready(this);}
+      else{destroy.onDestroy(this.unsaved.register(()=>this.canDeactivate()));void this.initialize();}
+    });
+    destroy.onDestroy(()=>this.editGeneration++);
+    effect(()=>{const id=this.pendingEdit();if(id&&this.session.canCreate()&&!this.loading())untracked(()=>{this.pendingEdit.set(null);void this.openEdit(id);});});
+  }
+  openRelatedRegistration():void{
+    if(this.embedded()||this.busy()||this.loading()||this.associationContext()||!['tags','tag_categories'].includes(this.selected())||this.editing())return;
+    this.associationReturnFocus=document.activeElement as HTMLElement|null;
+    const record=this.original()||this.tagCategories.currentRecord(),resource=this.association().related;
+    this.associationContext.set({resource,parentId:record?recordId(this.selected(),record):'',parentName:this.values()[this.definition().display]||this.definition().label+' em cadastro',ready:form=>this.associationForm.set(form),cancelled:()=>this.finishRelatedRegistration(),completed:(related,selected)=>{
+      const id=recordId(resource,related),name=related[resourceDefinitions[resource].display] as string;
+      this.createdRelatedChoices.update(choices=>({...choices,[resource]:[...(choices[resource]||[]).filter(choice=>choice.value!==id),{value:id,label:name}]}));
+      if(selected)this.setAssociationIds([...this.associationIds(),id]);
+      this.associationRefresh.update(value=>value+1);this.finishRelatedRegistration();
+    }});
+    afterNextRender(()=>{const dialog=this.associationDialog()?.nativeElement;dialog?.showModal();dialog?.querySelector<HTMLButtonElement>('.icon-button')?.focus();},{injector:this.injector});
+  }
+  async closeRelatedRegistration():Promise<void>{const form=this.associationForm();if(!form||form.busy())return;if(await form.canDeactivate())this.finishRelatedRegistration();}
+  private finishRelatedRegistration():void{this.associationDialog()?.nativeElement.close();this.associationContext.set(null);this.associationForm.set(null);afterNextRender(()=>{const trigger=document.getElementById(this.association().prefix+'-selection');(trigger||this.associationReturnFocus)?.focus();},{injector:this.injector});}
   private async initialize():Promise<void>{
     const resource=this.route.snapshot.queryParamMap.get('resource'),id=this.route.snapshot.queryParamMap.get('id');
     if(isResource(resource))this.choose(resource);
@@ -91,14 +174,28 @@ export class Registration {
   }
   private async openEdit(id:string):Promise<void>{this.loading.set(true);this.editLoadFailed.set(false);try{await this.loadRecord(id);}catch(error){this.editLoadFailed.set(true);this.notice.set(safeMessage(error));await this.recover(error);}finally{this.loading.set(false);}}
   retryEdit():void{const id=this.route.snapshot.queryParamMap.get('id');if(id)this.pendingEdit.set(id);}
-  @HostListener('window:beforeunload',['$event']) beforeUnload(event:BeforeUnloadEvent):void{if(this.dirty()){event.preventDefault();event.returnValue='';}}
-  setValue(key:string,value:string):void{this.values.update(values=>({...values,[key]:value}));this.updateDirty();if(!this.editing())this.drafts.set(this.selected(),{...this.values()});this.errors.update(errors=>({...errors,[key]:''}));}
+  @HostListener('window:beforeunload',['$event']) beforeUnload(event:BeforeUnloadEvent):void{if(this.hasDraftChanges()){event.preventDefault();event.returnValue='';}}
+  setValue(key:string,value:string):void{this.values.update(values=>({...values,[key]:value}));this.updateDirty();this.errors.update(errors=>({...errors,[key]:''}));}
   technicalChanged(event:Event):void{this.setValue(this.definition().technical!,(event.target as HTMLInputElement).value);}
   completeName(focus:boolean):void{if(!this.definition().technical||!this.values()[this.definition().display]?.trim())return;this.technicalVisible.set(true);if(focus)afterNextRender(()=>this.technicalInput()?.nativeElement.focus(),{injector:this.injector});}
-  async canDeactivate():Promise<boolean>{if(this.busy())return false;if(!this.dirty()||this.success())return true;const discard=await this.unsaved.ask();if(discard){if(this.editing()){const selected=this.selected()==='tag_categories'?this.tagIds:this.categoryIds;selected.set([...this.originalAssociationIds()]);}else this.resetTagCategories();this.drafts.clear();this.values.set(this.original()?recordValues(this.definition(),this.original()!):emptyValues(this.definition()));this.errors.set({});this.failure.set(null);this.technicalVisible.set(this.editing());this.dirty.set(false);}return discard;}
-  async cancelForm():Promise<void>{if(!await this.canDeactivate())return;await this.router.navigate([this.editing()?'/consultas':'/cadastrar'],{queryParams:this.editing()?{resource:this.selected()}:undefined});}
-  async choose(resource:Resource):Promise<void>{if(resource===this.selected()||this.busy())return;if(this.dirty()&&!await this.canDeactivate())return;this.editGeneration++;this.resetTagCategories();this.pendingEdit.set(null);this.editLoadFailed.set(false);this.selected.set(resource);this.original.set(null);this.values.set(emptyValues(resourceDefinitions[resource]));this.technicalVisible.set(false);this.technicalFocused.set(false);this.success.set(null);this.failure.set(null);this.errors.set({});this.notice.set('');this.dirty.set(false);}
-  another():void{this.resetTagCategories();this.values.set(emptyValues(this.definition()));this.drafts.delete(this.selected());this.dirty.set(false);this.success.set(null);this.failure.set(null);this.errors.set({});this.technicalVisible.set(false);}
+  async canDeactivate():Promise<boolean>{
+    if(this.associationContext()){const form=this.associationForm();if(!form||!await form.canDeactivate())return false;this.finishRelatedRegistration();}
+    if(this.busy())return false;
+    if(this.hasDraftChanges()&&!await this.unsaved.ask())return false;
+    this.drafts.clear();
+    if(this.editing()){
+      const selected=this.selected()==='tag_categories'?this.tagIds:this.categoryIds;selected.set([...this.originalAssociationIds()]);
+      this.values.set(recordValues(this.definition(),this.original()!));this.errors.set({});this.failure.set(null);this.technicalVisible.set(true);this.dirty.set(false);
+    }else this.resetCurrentDraft();
+    return true;
+  }
+  async cancelForm():Promise<void>{if(!await this.canDeactivate())return;if(this.embedded()){this.embedded()!.cancelled();return;}await this.router.navigate([this.editing()?'/consultas':'/cadastrar'],{queryParams:this.editing()?{resource:this.selected()}:undefined});}
+  async choose(resource:Resource):Promise<void>{
+    if(resource===this.selected()||this.busy()||this.embedded()||this.associationContext())return;
+    if(this.editing()){if(!await this.canDeactivate())return;}else this.storeCurrentDraft();
+    this.editGeneration++;this.pendingEdit.set(null);this.editLoadFailed.set(false);this.selected.set(resource);this.original.set(null);this.restoreCurrentDraft();
+  }
+  another():void{this.resetCurrentDraft();}
   fieldError(key:string):string{return this.errors()[key]||(this.failure() instanceof ApiError&&(this.failure() as ApiError).details.some(detail=>detail.loc?.includes(key))?'Reveja este campo de acordo com a indicação acima.':'');}
   async loadRecord(id:string):Promise<void>{
     const resource=this.selected(),generation=++this.editGeneration,current=()=>generation===this.editGeneration&&resource===this.selected();
@@ -137,13 +234,15 @@ export class Registration {
     this.busy.set(true);this.failure.set(null);this.notice.set('');
     try{
       const edited=this.editing(),path='/'+this.selected()+(edited?'/'+recordId(this.selected(),this.original()!):'');
-      const record=(this.selected()==='tags'||this.selected()==='tag_categories')&&(edited?this.associationChanged()||this.tagCategories.pending():this.associationIds().length>0||this.tagCategories.pending())
-        ?await this.tagCategories.save(edited?editorPayload(definition,values):body,this.associationIds(),this.session.current().csrf_token,this.association().owner,this.original()||undefined,this.originalAssociationIds())
+      const record=(this.selected()==='tags'||this.selected()==='tag_categories')&&(edited?this.associationChanged()||this.tagCategories.pending():!!this.embedded()||this.associationIds().length>0||this.tagCategories.pending())
+        ?await this.tagCategories.save(edited?editorPayload(definition,values):body,this.associationIds().filter(id=>id!==pendingAssociationValue),this.session.current().csrf_token,this.association().owner,this.original()||undefined,this.originalAssociationIds().filter(id=>id!==pendingAssociationValue))
         :await this.api.request<CatalogueRecord>(path,edited?'PUT':'POST',body,this.session.current().csrf_token);
       const id=recordId(this.selected(),record),name=record[definition.display];if(!id||typeof name!=='string')throw new ApiError(502);
-      this.success.set({id,name,edited});this.dirty.set(false);
-      if(!edited){this.resetTagCategories();this.values.set(emptyValues(definition));this.drafts.delete(this.selected());this.errors.set({});this.technicalVisible.set(false);this.technicalFocused.set(false);}
+      if(this.embedded()){const context=this.embedded()!;context.completed(record,this.associationIds().includes(context.parentId||pendingAssociationValue));return;}
+      this.dirty.set(false);
+      if(!edited)this.resetCurrentDraft();
       else{this.original.set(record);this.originalAssociationIds.set([...this.associationIds()]);}
+      this.success.set({id,name,edited});
     }catch(error){this.failure.set(error);this.updateDirty();await this.recover(error);}finally{this.busy.set(false);}
   }
 }
