@@ -150,6 +150,8 @@ def load_config(root=PROJECT_ROOT):
     validate_logging(config.get("logging"))
     from app.browser_sessions import browser_settings
     browser_settings(config)
+    from app.transcription import transcription_settings
+    transcription_settings(config)
     return config
 
 

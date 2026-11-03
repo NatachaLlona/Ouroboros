@@ -1,0 +1,7 @@
+# Send only the optional cache-preparation runtime, never local credentials or data.
+**
+!Dockerfile.transcription
+!requirements-transcription.txt
+!app/
+!app/config.py
+!app/transcription.py

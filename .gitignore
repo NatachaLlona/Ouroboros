@@ -81,3 +81,5 @@ reports/
 node_modules/
 .angular/
 frontend/dist/
+.cache/speech/
+.venv-speech/

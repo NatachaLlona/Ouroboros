@@ -19,6 +19,16 @@
     {"code": "AUDIT_UNAVAILABLE", "status": 503, "message": "Required mutation auditing is unavailable; no business change was committed."},
     {"code": "INTERNAL_ERROR", "status": 500, "message": "An unexpected internal error occurred."},
     {"code": "REQUEST_CANCELLED", "status": 499, "message": "Request processing was cancelled."},
-    {"code": "TRANSPORT_FAILURE", "status": 500, "message": "Response transmission failed."}
+    {"code": "TRANSPORT_FAILURE", "status": 500, "message": "Response transmission failed."},
+    {"code": "AUDIO_INVALID", "status": 422, "message": "Audio is empty, unsupported or contains no recognizable speech."},
+    {"code": "AUDIO_LIMIT_EXCEEDED", "status": 413, "message": "Audio exceeds the configured size or duration limit."},
+    {"code": "TRANSCRIPTION_BUSY", "status": 429, "message": "Local transcription capacity is busy. Try again shortly."},
+    {"code": "TRANSCRIPTION_UNAVAILABLE", "status": 503, "message": "The local speech model or its dependencies are unavailable."},
+    {"code": "TRANSCRIPTION_LANGUAGE_REJECTED", "status": 422, "message": "The detected language is not permitted by transcription configuration."},
+    {"code": "ASSISTANT_UNAVAILABLE", "status": 503, "message": "The form assistant is unavailable. Check backend configuration or try again later."},
+    {"code": "ASSISTANT_BUSY", "status": 429, "message": "The form assistant is busy. Try again shortly."},
+    {"code": "ASSISTANT_RATE_LIMITED", "status": 429, "message": "The configured OpenAI project has reached a usage or rate limit."},
+    {"code": "ASSISTANT_UPSTREAM_REJECTED", "status": 502, "message": "The configured model could not complete this request."},
+    {"code": "ASSISTANT_INVALID_OUTPUT", "status": 502, "message": "The model returned an invalid suggestion. No form changes were applied."}
   ]
 }

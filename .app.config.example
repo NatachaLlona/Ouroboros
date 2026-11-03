@@ -13,6 +13,18 @@
     "max_batch_size": 300,
     "max_creation_body_bytes": 4194304
   },
+  "transcription": {
+    "model": "base",
+    "device": "cpu",
+    "compute_type": "int8",
+    "cache_directory": ".cache/speech",
+    "local_files_only": false,
+    "idiomas_transcricao": ["pt", "en", "es", "fr", "it"],
+    "max_audio_bytes": 8388608,
+    "max_duration_seconds": 60,
+    "max_concurrency": 1,
+    "cpu_threads": 2
+  },
   "audit": {
     "request_body_max_bytes": 8192,
     "response_body_max_bytes": 8192,

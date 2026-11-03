@@ -15,6 +15,8 @@ import { TierPosition } from './tier-position';
 import { TagCategoryField } from './tag-category-field';
 import { TagCategoryRegistration } from './tag-category-registration';
 import { RegistrationDrafts } from './registration-drafts';
+import { AssistantForm } from '../shared/site-assistant';
+import { AssistantBinding, AssistantSnapshot, AssistantSuggestion, ClassificationField, FormConversation, classificationFields } from '../shared/form-assistant';
 import { TagCategoryOwner, tagCategoryAssociations } from './tag-category-association';
 import { uniqueSelectValues } from '../shared/select-options';
 import { currencies, priceError } from '../shared/money';
@@ -30,7 +32,7 @@ interface EmbeddedAssociation {
 }
 const pendingAssociationValue='pending-association-draft';
 
-@Component({selector:'app-registration',providers:[TagCategoryRegistration,RegistrationDrafts],imports:[NgComponentOutlet,NgTemplateOutlet,RouterLink,Notice,CatalogueLayout,RegistrationNavigation,SharedFormField,Confirmation,NameAutocomplete,TierPosition,FieldLabel,TagCategoryField],template:`
+@Component({selector:'app-registration',providers:[TagCategoryRegistration,RegistrationDrafts],imports:[AssistantForm,NgComponentOutlet,NgTemplateOutlet,RouterLink,Notice,CatalogueLayout,RegistrationNavigation,SharedFormField,Confirmation,NameAutocomplete,TierPosition,FieldLabel,TagCategoryField],template:`
   <ng-template #registrationContent>
     @if(!embedded()){
     <h2 id="form-choice">{{editing()?'O que deseja editar?':'O que deseja cadastrar?'}}</h2>
@@ -45,7 +47,7 @@ const pendingAssociationValue='pending-association-draft';
       @if(result.edited){<a class="button button-primary" routerLink="/consultas" [queryParams]="{resource:selected()}">Voltar à consulta ↗</a>}
       @else{<button class="button button-primary" type="button" (click)="another()">Cadastrar outro ↗</button>}
     </section>}
-    @else{<form (submit)="$event.stopPropagation();submit($event)"><p class="required-note"><strong class="required-star" aria-hidden="true">*</strong> Campo obrigatório</p><fieldset [disabled]="busy()||loading()||editLoadFailed()||!session.canCreate()">
+    @else{<form appAssistantForm [assistantBinding]="selected()==='work_classifications'?classificationAssistant:null" (submit)="$event.stopPropagation();submit($event)"><p class="required-note"><strong class="required-star" aria-hidden="true">*</strong> Campo obrigatório</p><fieldset [disabled]="busy()||loading()||editLoadFailed()||!session.canCreate()">
       <app-name-autocomplete [definition]="definition()" [value]="values()[definition().display]||''" (valueChange)="setValue(definition().display,$event)" [error]="fieldError(definition().display)" [enabled]="!editing()&&selected()!=='tag_categories'&&!tagCategories.pending()" (selected)="pendingExisting.set($event)" (completed)="completeName($event)" />
       @if(definition().technical && technicalVisible()){
         <div class="field"><app-field-label [fieldId]="definition().technical!" label="Nome técnico" [required]="editing()||!suggestion()" [help]="'Use minúsculas ASCII, números e underscores entre palavras.'+(editing()?'':' Vazio usa a sugestão válida; ao focar pode escrever um nome próprio.')" /><input #technicalInput [id]="definition().technical" [value]="values()[definition().technical!]||''" (input)="technicalChanged($event)" (focus)="technicalFocused.set(true)" (blur)="technicalFocused.set(false)" [placeholder]="technicalFocused()?'':suggestion()" [required]="editing()||!suggestion()" aria-required="true" [attr.aria-describedby]="definition().technical+'-help '+definition().technical+'-error'" [attr.aria-invalid]="fieldError(definition().technical!)?'true':null" pattern="[a-z][a-z0-9]*(_[a-z0-9]+)*">
@@ -87,8 +89,42 @@ const pendingAssociationValue='pending-association-draft';
     </dialog>
   }
   @if(pendingExisting();as item){<app-confirmation [title]="'Esta '+definition().noun+' já existe. Gostaria de editar?'" [name]="item[definition().display]+''" action="Editar" [busy]="busy()" [error]="confirmationError()" (cancelled)="pendingExisting.set(null);confirmationError.set('')" (confirmed)="confirmExisting()" />}
+  @if(pendingAssistantChange();as pending){<app-confirmation title="Aplicar sugestões sobre valores manuais?" [name]="pending.description" action="Aplicar sugestões" cancelLabel="Cancelar e preservar meus valores" (cancelled)="decideAssistantChange(false)" (confirmed)="decideAssistantChange(true)" />}
 `})
 export class Registration {
+  readonly classificationConversation=new FormConversation();
+  readonly pendingAssistantChange=signal<{description:string;resolve:(accepted:boolean)=>void}|null>(null);
+  readonly classificationAssistant:AssistantBinding={
+    conversation:this.classificationConversation,
+    available:()=>this.selected()==='work_classifications'&&!this.busy()&&!this.loading()&&!this.editLoadFailed()&&!this.success()&&!this.pendingExisting()&&this.tierReady()&&this.session.canCreate(),
+    snapshot:()=>({mode:this.editing()?'edit':'create',epoch:this.classificationConversation.epoch,values:Object.fromEntries(classificationFields.map(field=>[field,this.values()[field]||''])) as Record<ClassificationField,string>}),
+    apply:(result,snapshot,current,abortSignal)=>this.applyAssistantSuggestion(result,snapshot,current,abortSignal)
+  };
+  decideAssistantChange(accepted:boolean):void{const pending=this.pendingAssistantChange();this.pendingAssistantChange.set(null);pending?.resolve(accepted);}
+  private async applyAssistantSuggestion(result:AssistantSuggestion,snapshot:AssistantSnapshot,current:()=>boolean,abortSignal:AbortSignal):Promise<boolean>{
+    if(!current()||!this.classificationAssistant.available()||snapshot.mode!==(this.editing()?'edit':'create'))return false;
+    const changes=result.proposals.map(item=>({field:item.field,value:item.value===null?'':String(item.value)})).filter(item=>this.values()[item.field]!==item.value);
+    if(!changes.length)return true;
+    const before={...this.values()};
+    const protectedChanges=changes.filter(item=>this.classificationConversation.manualFields.has(item.field)||before[item.field]!==snapshot.values[item.field]||(!!before[item.field]&&this.classificationConversation.appliedValues.get(item.field)!==before[item.field]));
+    if(protectedChanges.length){
+      const labels:Record<ClassificationField,string>={display_name_work_classifications:'Nome Fantasia',work_classification_name:'Nome Técnico',description_work_classifications:'Descrição',tier:'Posição'};
+      const accepted=await new Promise<boolean>(resolve=>{
+        const finish=(value:boolean)=>{abortSignal.removeEventListener('abort',cancel);resolve(value);};
+        const cancel=()=>this.decideAssistantChange(false);
+        abortSignal.addEventListener('abort',cancel,{once:true});
+        this.pendingAssistantChange.set({description:'A sugestão altera valores manuais em: '+protectedChanges.map(item=>labels[item.field]).join(', ')+'. Deseja aplicar essas alterações?',resolve:finish});
+        if(abortSignal.aborted)cancel();
+      });
+      if(!accepted)return false;
+    }
+    if(!current()||!this.classificationAssistant.available()||changes.some(item=>this.values()[item.field]!==before[item.field]))return false;
+    this.values.update(values=>({...values,...Object.fromEntries(changes.map(item=>[item.field,item.value]))}));
+    for(const item of changes){this.classificationConversation.appliedValues.set(item.field,item.value);this.classificationConversation.manualFields.delete(item.field);}
+    if(changes.some(item=>item.field==='work_classification_name'||item.field==='tier'))this.technicalVisible.set(true);
+    this.errors.update(errors=>({...errors,...Object.fromEntries(changes.map(item=>[item.field,'']))}));this.updateDirty();
+    return true;
+  }
   readonly registrationTitles=registrationTitles;readonly resourceDefinitions=resourceDefinitions;
   readonly embedded=input<EmbeddedAssociation|null>(null);
   readonly registrationComponent=Registration;
@@ -132,6 +168,7 @@ export class Registration {
     this.success.set(null);this.pendingExisting.set(null);this.confirmationError.set('');this.tierReady.set(false);
   }
   private resetCurrentDraft():void{
+    if(this.selected()==='work_classifications')this.classificationConversation.reset();
     this.drafts.remove(this.selected());this.resetTagCategories();this.values.set(emptyValues(this.definition()));
     this.errors.set({});this.failure.set(null);this.notice.set('');this.success.set(null);this.technicalVisible.set(false);this.technicalFocused.set(false);this.pendingExisting.set(null);this.confirmationError.set('');this.dirty.set(false);
   }
@@ -175,7 +212,7 @@ export class Registration {
   private async openEdit(id:string):Promise<void>{this.loading.set(true);this.editLoadFailed.set(false);try{await this.loadRecord(id);}catch(error){this.editLoadFailed.set(true);this.notice.set(safeMessage(error));await this.recover(error);}finally{this.loading.set(false);}}
   retryEdit():void{const id=this.route.snapshot.queryParamMap.get('id');if(id)this.pendingEdit.set(id);}
   @HostListener('window:beforeunload',['$event']) beforeUnload(event:BeforeUnloadEvent):void{if(this.hasDraftChanges()){event.preventDefault();event.returnValue='';}}
-  setValue(key:string,value:string):void{this.values.update(values=>({...values,[key]:value}));this.updateDirty();this.errors.update(errors=>({...errors,[key]:''}));}
+  setValue(key:string,value:string):void{if(this.selected()==='work_classifications')this.classificationConversation.manualFields.add(key);this.values.update(values=>({...values,[key]:value}));this.updateDirty();this.errors.update(errors=>({...errors,[key]:''}));}
   technicalChanged(event:Event):void{this.setValue(this.definition().technical!,(event.target as HTMLInputElement).value);}
   completeName(focus:boolean):void{if(!this.definition().technical||!this.values()[this.definition().display]?.trim())return;this.technicalVisible.set(true);if(focus)afterNextRender(()=>this.technicalInput()?.nativeElement.focus(),{injector:this.injector});}
   async canDeactivate():Promise<boolean>{
@@ -203,6 +240,7 @@ export class Registration {
     let ids:string[]=[];
     if(resource==='tags'||resource==='tag_categories')ids=await this.tagCategories.loadExisting(record,resource,current);
     if(!current())return;
+    if(resource==='work_classifications')this.classificationConversation.reset();
     if(resource!=='tags'&&resource!=='tag_categories')this.tagCategories.reset();
     this.categoryIds.set(resource==='tags'?[...ids]:[]);this.tagIds.set(resource==='tag_categories'?[...ids]:[]);this.originalAssociationIds.set([...ids]);
     this.original.set(record);this.values.set(recordValues(this.definition(),record));this.technicalVisible.set(!!this.definition().technical);this.dirty.set(false);this.failure.set(null);this.errors.set({});this.success.set(null);

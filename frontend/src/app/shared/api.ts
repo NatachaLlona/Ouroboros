@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom, timeout, Subject } from 'rxjs';
+import { firstValueFrom, timeout, Subject, takeUntil, fromEvent, EMPTY } from 'rxjs';
 
 export interface ValidationDetail { loc?: (string | number)[]; }
 export class ApiError extends Error {
@@ -13,17 +13,20 @@ export class ApiError extends Error {
 export class Api {
   private readonly http = inject(HttpClient);
   readonly deadlines = new Subject<{idle:number;absolute:number}>();
-  async request<T>(path: string, method = 'GET', body?: unknown, csrf?: string, params:Record<string,string|number>={}, userActivity=true): Promise<T> {
+  async request<T>(path: string, method = 'GET', body?: unknown, csrf?: string, params:Record<string,string|number>={}, userActivity=true, abortSignal?:AbortSignal): Promise<T> {
+    const transcription=path==='/browser/transcription'&&method==='POST';
+    const assistant=path==='/browser/assistant/work-classifications'&&method==='POST';
+    const speechOptions=path==='/browser/transcription/options'&&method==='GET';
     const categoryAccess=path==='/tag_categories'&&(method==='GET'||method==='POST');
     const categoryRecord=/^\/tag_categories\/[A-Za-z0-9]+$/.test(path)&&['GET','PUT','DELETE'].includes(method);
     const categoryLinks=path==='/tag_category_relationships'&&(method==='GET'||method==='POST')||/^\/tag_category_relationships\/[A-Za-z0-9]+$/.test(path)&&method==='DELETE';
-    if ((!categoryAccess&&!categoryRecord&&!categoryLinks&&!/^\/(?:browser\/(?:session|login|logout)|(?:platforms|tags|work_classifications)(?:\/[A-Za-z0-9]+)?)$/.test(path)) || !['GET','POST','PUT','DELETE'].includes(method)) throw new ApiError(400);
+    if (abortSignal?.aborted||(!assistant&&!speechOptions&&!transcription&&!categoryAccess&&!categoryRecord&&!categoryLinks&&!/^\/(?:browser\/(?:session|login|logout)|(?:platforms|tags|work_classifications)(?:\/[A-Za-z0-9]+)?)$/.test(path)) || !['GET','POST','PUT','DELETE'].includes(method)) throw new ApiError(400);
     let headers = new HttpHeaders({ Accept: 'application/json' });
-    if (body !== undefined) headers = headers.set('Content-Type', 'application/json');
+    if (body !== undefined) headers = headers.set('Content-Type', transcription&&body instanceof Blob?body.type:'application/json');
     if (csrf) headers = headers.set('X-CSRF-Token', csrf);
     if (userActivity && !path.startsWith('/browser/')) headers=headers.set('X-Ouroboros-Activity','user');
     try {
-      const response = await firstValueFrom(this.http.request<T>(method, path, { body, headers, params, observe: 'response' }).pipe(timeout(30000)));
+      const response = await firstValueFrom(this.http.request<T>(method, path, { body, headers, params, observe: 'response' }).pipe(timeout(transcription?300000:assistant?90000:30000),takeUntil(abortSignal?fromEvent(abortSignal,'abort'):EMPTY)));
       const idleHeader=response.headers.get('X-Browser-Expires-In'),absoluteHeader=response.headers.get('X-Browser-Absolute-Expires-In');
       if(idleHeader!==null && absoluteHeader!==null){const idle=Number(idleHeader),absolute=Number(absoluteHeader);if(Number.isFinite(idle)&&Number.isFinite(absolute)&&idle>=0&&idle<=absolute&&absolute<=86400)this.deadlines.next({idle,absolute});}
       if (response.status !== 204 && response.body === null) throw new ApiError(502, '', [], response.headers.get('X-Interaction-ID') || '', '', path, method);
@@ -41,6 +44,19 @@ export class Api {
 }
 export function safeMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Não foi possível concluir o pedido. Tente novamente mais tarde.';
+  const speechMessages:Record<string,string>={
+    ASSISTANT_UNAVAILABLE:'A assistente está indisponível. Verifique a configuração do backend ou tente novamente.',
+    ASSISTANT_BUSY:'A assistente está ocupada. Aguarde e tente novamente.',
+    ASSISTANT_RATE_LIMITED:'O projeto OpenAI atingiu um limite de uso ou requisições. Verifique o saldo e os limites da conta.',
+    ASSISTANT_UPSTREAM_REJECTED:'O modelo gpt-5.4 não conseguiu concluir o pedido. Verifique o acesso ao modelo e tente novamente.',
+    ASSISTANT_INVALID_OUTPUT:'A sugestão recebida não passou pela validação. Os campos foram preservados.',
+    AUDIO_INVALID:'O áudio está vazio, não é suportado ou não contém fala reconhecível.',
+    AUDIO_LIMIT_EXCEEDED:'O áudio excede o limite de tamanho ou duração configurado no servidor.',
+    TRANSCRIPTION_BUSY:'A transcrição local está ocupada. Aguarde e tente novamente.',
+    TRANSCRIPTION_UNAVAILABLE:'A transcrição local está indisponível. Verifique as dependências e o cache do modelo no servidor.',
+    TRANSCRIPTION_LANGUAGE_REJECTED:'O idioma detectado não está permitido na configuração do servidor.'
+  };
+  if(speechMessages[error.code])return speechMessages[error.code];
   const mutation = error.method !== 'GET' && !error.path.startsWith('/browser/');
   const messages: Record<number, string> = {
     0: mutation ? 'Não foi possível confirmar a resposta. Confirme se o registo foi criado antes de reenviar.' : 'Não foi possível comunicar com o serviço. Verifique a ligação e tente novamente.',

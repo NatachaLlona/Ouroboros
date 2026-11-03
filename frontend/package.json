@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node scripts/generate-text-limits.mjs && ng build && node scripts/stamp-build.mjs",
-    "watch": "node scripts/generate-text-limits.mjs && ng build --watch --configuration development",
-    "test": "node scripts/generate-text-limits.mjs && ng test --watch=false"
+    "build": "node scripts/generate-text-limits.mjs && node scripts/generate-assistant-theme.mjs && ng build && node scripts/stamp-build.mjs",
+    "watch": "node scripts/generate-text-limits.mjs && node scripts/generate-assistant-theme.mjs && ng build --watch --configuration development",
+    "test": "node scripts/generate-text-limits.mjs && node scripts/generate-assistant-theme.mjs && ng test --watch=false"
   },
   "engines": {
     "node": "^22.22.3 || ^24.15.0 || ^26.0.0"

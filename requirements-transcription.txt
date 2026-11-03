@@ -1,0 +1,5 @@
+# Install alongside requirements.txt in the Python process running start.py.
+# Use Python 3.12 for the complete native dependency stack; local Python 3.15
+# does not currently have all required PyAV/ONNX Runtime wheels.
+faster-whisper==1.2.1
+ctranslate2==4.8.5

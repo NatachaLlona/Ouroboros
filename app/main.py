@@ -167,6 +167,7 @@ def create_app(config, database, auth, logger):
             with anyio.CancelScope(shield=True):
                 failures = await anyio.to_thread.run_sync(lambda: cleanup_actions([
                     ("browser_sessions", app.state.browser_sessions.close),
+                    ("transcription", app.state.transcription.close),
                     ("database", database.close), ("authentication", auth.close),
                     ("thread_pool_limit", lambda: setattr(limiter, "total_tokens", previous_limit)),
                 ]))
@@ -190,6 +191,10 @@ def create_app(config, database, auth, logger):
     application.state.login_throttle = LoginThrottle()
     application.state.logger = logger
     application.state.config = config
+    from app.transcription import LocalTranscription
+    application.state.transcription = LocalTranscription(config)
+    from app.form_assistant import FormAssistant
+    application.state.form_assistant = FormAssistant()
     application.state.error_codes = codes
     from app.creation_limits import CreationBodyLimitMiddleware
     application.add_middleware(CreationBodyLimitMiddleware, config=config, codes=codes)
@@ -253,6 +258,10 @@ def create_app(config, database, auth, logger):
     from app.endpoints import browser
     from fastapi.staticfiles import StaticFiles
     application.include_router(browser.router)
+    from app.endpoints import transcription
+    application.include_router(transcription.router)
+    from app.endpoints import form_assistant
+    application.include_router(form_assistant.router)
     class ProductionAssets(StaticFiles):
         """Cache immutable hashed bundles; never cache HTML or missing assets."""
         async def get_response(self, path, scope):
