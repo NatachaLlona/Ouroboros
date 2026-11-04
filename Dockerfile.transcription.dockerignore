@@ -5,3 +5,5 @@
 !app/
 !app/config.py
 !app/transcription.py
+!app/ai_config.py
+!.ai.config.example

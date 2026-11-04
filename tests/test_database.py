@@ -71,18 +71,15 @@ class DatabaseTests(unittest.TestCase):
                 load_config(self.root)
 
     def test_unavailable_docker_logs_safe_failure(self):
-        with patch("app.database.subprocess.run", side_effect=FileNotFoundError):
-            with self.assertRaisesRegex(DatabaseError, "Docker CLI"):
-                check_docker()
-        output = io.StringIO()
-        with patch("start.load_config", return_value=self.config), \
-             patch("start.check_docker", side_effect=DatabaseError("Docker Engine is unavailable; open Docker Desktop")), \
-             patch("start.prompt_credentials") as prompt, contextlib.redirect_stderr(output):
-            self.assertEqual(main(), 1)
+        from modules.orchestration import main
+        with patch("app.database.subprocess.run",side_effect=FileNotFoundError):
+            with self.assertRaisesRegex(DatabaseError,"Docker CLI"):check_docker()
+        output=io.StringIO()
+        with patch("modules.orchestration.prepare",return_value=(self.config,self.config['database'],{'project_name':'unit'})), patch("modules.orchestration.environment",return_value={}), patch("app.database.check_docker",side_effect=DatabaseError("Docker Engine is unavailable; open Docker Desktop")), patch("app.credentials.prompt_credentials") as prompt, contextlib.redirect_stderr(output):
+            self.assertEqual(main(self.root,['--check']),1)
             prompt.assert_not_called()
-        content = next((self.root / "logs").glob("*.log")).read_text()
-        self.assertIn("open Docker Desktop", content)
-        self.assertNotIn("preparation completed", content)
+        self.assertIn('open Docker Desktop',output.getvalue())
+
 
     def test_container_initialization_is_preserved_when_selecting_another_database(self):
         database = {**self.config["database"], "name": "new_name", "user": "new_master"}

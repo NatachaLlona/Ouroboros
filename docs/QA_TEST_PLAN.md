@@ -3,6 +3,10 @@
 
 ## 🧭 **Read this first**
 
+### Current four-module runtime
+
+Use `python start.py` to build/start PostgreSQL, Base/API, frontend and assistance. Application dependencies run in compatible container images, not the host venv. [Module setup](MODULES.md) documents first-use adoption, interactive existing credentials and unchanged ports. Host dependency installation below is for running development/QA tools. Run `python scripts/verify_modules.py` from the QA environment for disposable tmpfs integration checks; it publishes no ports by default. Never run destructive tests against the normal database. See [scoped execution evidence](MODULES_QA.md); normal authenticated startup, browser and physical microphone checks must be recorded separately.
+
 For catalogue CRUD scenarios **14.1–14.7**, use the [resource/filter/permission matrix](CATALOGUE_API.md) and new canonical Postman folders. Administrator creates supervisor explicitly; standard still has no catalogue access. All collection GETs now show ordering enums. DELETE examples are skipped by default: only in disposable data, explicitly select the request, set the private local catalogue_destructive_opt_in=isolated, and for DELETE all change confirm=false to true. Never run that flow against normal records. POST/PUT/GET expose the same complete record; copy a GET body to PUT with unchanged metadata and server-controlled added_at. Troubleshooting and exact status expectations are in the CRUD guide.
 
 This guide is for a Windows tester with no prior Ouroboros, Python, Docker, OAuth2 or Git experience. **Use a separate QA folder and database. Never test against the owner's normal installation.** A green automated report verifies code/HTTP checks, not the appearance or behavior of a desktop interface. Record manual evidence separately. Expected **400, 401, 403, 409 and 422 are PASS** when the case asks for them.
@@ -322,6 +326,9 @@ The owner additionally selected **4242** for the second disposable PostgreSQL cl
 | 19.3 | [Browser catalogue authorization CSRF and atomic audit](#scenario-19-3) | both |
 | 19.4 | [Portuguese catalogue registration form feedback](#scenario-19-4) | both |
 | 19.5 | [Frontend contrast responsive layout and secure deployment](#scenario-19-5) | both |
+| 20.1 | [Structured classification assistance](#scenario-20-1) | automated |
+| 20.2 | [Complete local speech lifecycle](#scenario-20-2) | automated |
+| 20.3 | [Four-module trust and availability boundaries](#scenario-20-3) | automated |
 
 <a id="scenario-1-1"></a>
 ## 1.1 - Configuration and independent credential prompts
@@ -3984,6 +3991,147 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 
 - `test_frontend.FrontendAssetTests.test_palette_contrast_and_no_persistent_browser_secrets`
 - `test_frontend.BrowserSessionTests.test_secure_defaults_capacity_and_settings_validation`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-20-1"></a>
+## 20.1 - Structured classification assistance
+
+**Objective:** Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes.
+
+**User:** Authorized QA operator
+
+**Prerequisites and data:** Installed declared QA dependencies; owned disposable fixtures only.
+
+**Type:** automated. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Run the mapped unit checks using the declared test environment.
+2. For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.
+3. Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests.
+
+**Approval criterion:** Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes. All mapped assertions pass; private audio, transcript and credentials never enter reports.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_form_assistant.AssistantEndpointTests.test_authentication_csrf_and_current_role_are_required`
+- `test_form_assistant.AssistantEndpointTests.test_authorized_suggestions_keep_messages_and_key_out_of_audit_and_logs`
+- `test_form_assistant.AssistantEndpointTests.test_unrecognized_fields_are_rejected_without_echoing_input`
+- `test_form_assistant.AssistantTransportTests.test_concurrency_limit_does_not_call_provider`
+- `test_form_assistant.AssistantTransportTests.test_invalid_output_other_models_and_secret_reflections_fail_closed`
+- `test_form_assistant.AssistantTransportTests.test_only_full_gpt54_responses_strict_schema_no_tools_no_storage`
+- `test_form_assistant.AssistantTransportTests.test_provider_errors_are_safe_and_slots_are_released`
+- `test_form_assistant.AssistantValidationTests.test_duplicate_extra_and_unknown_fields_are_rejected`
+- `test_form_assistant.AssistantValidationTests.test_key_is_loaded_from_backend_env_without_export`
+- `test_form_assistant.AssistantValidationTests.test_missing_required_information_produces_question`
+- `test_form_assistant.AssistantValidationTests.test_real_types_ranges_description_and_optional_clear`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-20-2"></a>
+## 20.2 - Complete local speech lifecycle
+
+**Objective:** Preserve full audio processing, configured budgets, cancellation and private content omission.
+
+**User:** Authorized QA operator
+
+**Prerequisites and data:** Installed declared QA dependencies; owned disposable fixtures only.
+
+**Type:** automated. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Run the mapped unit checks using the declared test environment.
+2. For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.
+3. Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests.
+
+**Approval criterion:** Preserve full audio processing, configured budgets, cancellation and private content omission. All mapped assertions pass; private audio, transcript and credentials never enter reports.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_transcription.SpeechAssemblyTests.test_cancellation_and_processing_timeout_are_checked_between_segments`
+- `test_transcription.SpeechAssemblyTests.test_limits_and_failures_never_return_partial_text`
+- `test_transcription.SpeechAssemblyTests.test_separate_ai_configuration_overrides_legacy_limits_without_rewriting_them`
+- `test_transcription.SpeechAssemblyTests.test_ten_minute_defaults_and_no_silence_removed_before_native_windows`
+- `test_transcription.SpeechAssemblyTests.test_transcript_longer_than_old_character_limit_is_returned_in_full`
+- `test_transcription.SpeechEndpointTests.test_runtime_options_and_complete_response_omit_contents_from_audits`
+- `test_transcription.SpeechEndpointTests.test_worker_failure_returns_standard_error_without_partial_output`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-20-3"></a>
+## 20.3 - Four-module trust and availability boundaries
+
+**Objective:** Reject forged/replayed inference requests and keep the API independent of model execution.
+
+**User:** Authorized QA operator
+
+**Prerequisites and data:** Installed declared QA dependencies; owned disposable fixtures only.
+
+**Type:** automated. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Run the mapped unit checks using the declared test environment.
+2. For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.
+3. Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests.
+
+**Approval criterion:** Reject forged/replayed inference requests and keep the API independent of model execution. All mapped assertions pass; private audio, transcript and credentials never enter reports.
+
+
+**Exact log evidence:**
+
+Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+| INFO | request | * * | `HTTP request received` — **required** | empty object |
+| INFO | request | * * | `HTTP request finished` — **required** | status, response_started, outcome, duration_ms |
+
+**Forbidden evidence data:** Passwords; Tokens; Hashes; SQL values; Connection strings
+
+**Automated correspondence:**
+
+- `test_module_architecture.AssistanceBoundaryTests.test_api_client_fails_closed_without_running_local_inference`
+- `test_module_architecture.AssistanceBoundaryTests.test_browser_cannot_supply_roles_instead_of_delegation`
+- `test_module_architecture.AssistanceBoundaryTests.test_failure_never_returns_partial_text_and_releases_capacity`
+- `test_module_architecture.AssistanceBoundaryTests.test_runtime_options_and_full_audio_response_require_signed_requests`
+- `test_module_architecture.DelegationTests.test_signature_body_operation_expiration_and_replay_are_bound`
+- `test_module_architecture.ModuleOrchestrationTests.test_assistance_failure_does_not_prevent_frontend_startup`
+- `test_module_architecture.ModuleOrchestrationTests.test_forwarded_client_address_is_accepted_only_from_resolved_frontend`
+- `test_module_architecture.ModuleOrchestrationTests.test_launcher_help_does_not_import_host_site_packages`
+- `test_module_architecture.ModuleOrchestrationTests.test_module_adoption_preserves_existing_configuration_and_user_customization`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |

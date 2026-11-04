@@ -1,5 +1,7 @@
 # 🏗️ **Architecture and persistence**
 
+**Current runtime:** [Four-module architecture](MODULES.md) replaces the former host API/Compose-only-database deployment described historically below. `start.py` now orchestrates independent PostgreSQL, Base/API, Angular/Nginx and assistance containers. Business and persistence contracts below remain authoritative.
+
 Ouroboros is an entertainment catalogue with an inherited **single-process Python API** and PostgreSQL managed by Compose. The API runs in the virtual environment on the host; Compose runs only PostgreSQL. Migration 005 implements the catalogue schema; migration 006 adds supervisor. See [the catalogue model](CATALOGUE.md) and [individual CRUD API](CATALOGUE_API.md). No production deployment automation is implemented.
 
 | Component | Responsibility / ownership |

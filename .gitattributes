@@ -1,3 +1,4 @@
 # Migration integrity is defined by exact bytes, not checkout-specific newlines.
 # Preserve each committed migration's original bytes on every platform.
 sql/migrations/*.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+modules/frontend/*.sh text eol=lf

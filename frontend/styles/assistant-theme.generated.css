@@ -1,3 +1,3 @@
-/* Generated from frontend.config.ts; do not edit manually. */
-app-site-assistant[data-assistant="general"]{--assistant-text:#424A40;--assistant-highlighted-text:#4E3944;--assistant-primary:#FFFCF6;--assistant-accent:#4E3944;--assistant-user-text:#823746}
-app-site-assistant[data-assistant="forms"]{--assistant-text:#424A40;--assistant-highlighted-text:#4E3944;--assistant-primary:#FFFCF6;--assistant-accent:#4E3944;--assistant-user-text:#823746}
+/* Generated from public runtime configuration; do not edit manually. */
+app-site-assistant[data-assistant="general"]{--assistant-text:#424A40;--assistant-highlighted-text:#4E3944;--assistant-primary:#FFFCF6;--assistant-accent:#4E3944;--assistant-user-text:#823746;--assistant-balloon-image:url('/frontend/images/text_box_2.png')}
+app-site-assistant[data-assistant="forms"]{--assistant-text:#424A40;--assistant-highlighted-text:#4E3944;--assistant-primary:#FFFCF6;--assistant-accent:#4E3944;--assistant-user-text:#823746;--assistant-balloon-image:url('/frontend/images/text_box_2.png')}

@@ -118,23 +118,20 @@ class InfrastructureTests(unittest.TestCase):
         self.assertEqual(sorted(len(path.read_text().splitlines()) for path in paths), [1, 2])
 
     def test_bootstrap_failure_and_valid_run(self):
-        output = io.StringIO()
-        with patch("start.load_config", side_effect=ConfigurationError("port is invalid")), contextlib.redirect_stderr(output):
-            self.assertEqual(main(), 1)
-        self.assertIn("port", output.getvalue())
-        self.config["logging"]["directory"] = str(self.root / "logs")
-        with patch("start.load_config", return_value=self.config), \
-             patch("start.check_docker"), patch("start.prompt_credentials", return_value="test-only"), \
-             patch("start.write_secret"), patch("start.start_postgres"), \
-             patch("start.connect"), patch("start.migrate"), patch("start.ensure_database"), \
-             patch("start.configure_api_credentials"), patch("start.APIUserStore"), patch("start.AuthService"), patch("start.load_signing_secret", return_value="unit-signing-key" * 4), \
-             patch("start.run_api"), contextlib.redirect_stderr(output):
-            self.assertEqual(main(), 0)
-        self.assertIn("Ouroboros preparation completed", output.getvalue())
+        from modules.orchestration import main, StartupError
+        output=io.StringIO()
+        with patch("modules.orchestration.prepare",side_effect=StartupError("port is invalid")), contextlib.redirect_stderr(output):
+            self.assertEqual(main(self.root,['--check']),1)
+        self.assertIn('port',output.getvalue())
+        with patch("modules.orchestration.prepare",return_value=(self.config,self.config['database'],{'project_name':'unit'})), patch("modules.orchestration.environment",return_value={}), patch("app.database.check_docker"), patch("modules.orchestration.run"), contextlib.redirect_stdout(output):
+            self.assertEqual(main(self.root,['--check']),0)
+        self.assertIn('configuration and Compose validated',output.getvalue())
+
 
     def test_execution_from_another_directory(self):
         # Copy the real entry point and modules to avoid modifying local configuration.
         import shutil
+        shutil.copyfile(PROJECT_ROOT/'.ai.config.example',self.root/'.ai.config.example')
         (self.root / "check_config.py").write_text(
             "from app.config import load_config\nfrom app.logger import ApplicationLogger\n"
             "config = load_config()\nlogger = ApplicationLogger(config['logging'])\n"

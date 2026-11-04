@@ -33,7 +33,11 @@ async def suggest(request: Request, actor: Actor):
             selection.bind_filter_timezone(request.app.state.config)
             return CatalogueRepository(request.app.state.database, RESOURCE).page(selection)['count']
         count = await anyio.to_thread.run_sync(read_count)
-        return await request.app.state.form_assistant.suggest(payload, count+int(payload.mode == 'create'))
+        service = request.app.state.form_assistant
+        maximum = count+int(payload.mode == 'create')
+        if hasattr(service, 'call'):
+            return await service.suggest(payload, maximum, actor)
+        return await service.suggest(payload, maximum)
     except AssistantError as error:
         return error_response(codes, error.code)
     except (ValidationError, ValueError, ClientDisconnect, TimeoutError):

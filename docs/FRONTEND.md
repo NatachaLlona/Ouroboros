@@ -1,5 +1,7 @@
 # Ouroboros frontend and browser security
 
+**Container runtime:** the Angular application is now served by its own Nginx container, proxying the same API paths and public origin. [Module runtime](MODULES.md) defines the verified proxy boundary, external presentation configuration and startup. The session, CSRF and permissions contracts below remain in force.
+
 Current phase-one registration controls: see [Individual registration UI](REGISTRATION_UI.md). It documents the unanswered checkboxes, exact comma-decimal input, currency/access selectors, conditional address, twenty-result anchored autocomplete, cancel-first unsaved-change protection, compact consultation filters and session-only recent searches. No API or database contract changes are required.
 
 The public home, login modal and catalogue registration page now use Angular 22 with strict TypeScript, standalone components, Signals, Signal Forms and zoneless change detection under `frontend/`. FastAPI serves the optimized static build on the existing origin. Read [ANGULAR.md](ANGULAR.md) for dependency versions, Windows build/start commands, feature boundaries, three-form walkthrough and current execution evidence. Build before Python startup; there is no separate frontend runtime server, CDN, public signup or work/watchlist/history screen. Visible interface text is Portuguese; implementation and developer documentation remain English. The three original card illustrations and friendly snake mascot are local SVGs authored for this project; they do not copy the reference brands or hotlink images.

@@ -1,0 +1,36 @@
+{
+  "form_assistant": {
+    "model": "gpt-5.4",
+    "max_concurrency": 2,
+    "request_timeout_seconds": 75,
+    "connect_timeout_seconds": 10,
+    "max_output_tokens": 2500,
+    "max_response_bytes": 262144
+  },
+  "transcription": {
+    "model": "base",
+    "device": "cpu",
+    "compute_type": "int8",
+    "cache_directory": ".cache/speech",
+    "local_files_only": false,
+    "idiomas_transcricao": [
+      "pt",
+      "en",
+      "es",
+      "fr",
+      "it"
+    ],
+    "max_audio_bytes": 67108864,
+    "max_duration_seconds": 600,
+    "duration_tolerance_ms": 1000,
+    "max_concurrency": 1,
+    "cpu_threads": 2,
+    "upload_timeout_seconds": 180,
+    "processing_timeout_seconds": 1200,
+    "request_timeout_seconds": 1500,
+    "max_transcript_chars": 120000,
+    "segment_seconds": 30,
+    "recording_chunk_ms": 250,
+    "audio_bits_per_second": 64000
+  }
+}

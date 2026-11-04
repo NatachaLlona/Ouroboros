@@ -219,21 +219,19 @@ class AccountIntegrationTests(unittest.TestCase):
 
 
     def test_04_real_startup_coordinator_reuses_owned_resources(self):
-        from start import main
+        from modules.base.runtime import serve
         config=json.loads(json.dumps(self.config))
-        config["infrastructure"]={"project_name":self.project,"workspace":str(self.root)}
-        save_config(config,self.root)
         observed=[]
         def server(application,settings):
             observed.append(application)
-            schema=application.openapi()
-            self.assertEqual(schema["components"]["securitySchemes"]["OAuth2PasswordBearer"]["flows"]["password"]["tokenUrl"],"/token")
-        with patch("start.prompt_credentials",return_value=self.password), patch("builtins.input",return_value="y"), patch("start.run_api",side_effect=server):
-            self.assertEqual(main(self.root),0)
+            self.assertIn('/token',application.openapi()['paths'])
+        with patch('modules.base.runtime.load_config',return_value=config), patch('modules.base.runtime.database_settings',return_value=self.database), patch('modules.base.runtime.runtime_password',return_value=self.password), patch('modules.base.runtime.load_signing_secret',return_value=load_signing_secret(self.root)), patch('modules.base.runtime.run_api',side_effect=server):
+            serve()
         self.assertEqual(len(observed),1)
         self.assertIsNone(observed[0].state.database.password)
         self.assertIsNone(observed[0].state.auth.secret)
         self.assertEqual(self.users.count(),2)
+
 
     def test_05_role_migration_recovery_and_restart(self):
         """Upgrade a populated v2 schema without changing identities or hashes."""

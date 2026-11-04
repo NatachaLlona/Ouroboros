@@ -1,5 +1,7 @@
 # Ouroboros
 
+Ouroboros now starts four Docker Compose services: PostgreSQL, Base/API, Angular/Nginx frontend and isolated assistance. From the project directory run `python start.py`; enter existing credentials in its interactive bootstrap. Host virtual environments are preserved but are no longer application runtimes. See [module configuration and startup](docs/MODULES.md) and [executed/pending QA](docs/MODULES_QA.md). Existing ports, data, API paths and permissions are preserved.
+
 Registration keeps its three main choices and adds a **Tag / Categoria de Tag** submenu inside Tag, with category creation through the existing API. Available navigation-card images share their buttons' destinations; Watchlist and Watched remain unavailable. See [Tag/category registration and image navigation](docs/TAG_CATEGORY_UI.md) for the contract, checks and pending browser verification.
 
 **Cadastrar Tag** also offers an optional searchable multi-category dropdown with checkboxes, Select All and Clear All. Existing category IDs are linked through the current relationship API; selections follow the form's reset/unsaved-change rules. See [multiple category selection](docs/TAG_CATEGORIES_SELECTION.md), including staged-save recovery and manual-validation notes.

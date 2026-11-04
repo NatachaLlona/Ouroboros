@@ -38,6 +38,9 @@ logs/
 .app.config
 .app.config.*
 !.app.config.example
+.ai.config
+.ai.config.*
+!.ai.config.example
 
 # Temporary files and copies that may contain credentials
 *.tmp
@@ -83,3 +86,6 @@ node_modules/
 frontend/dist/
 .cache/speech/
 .venv-speech/
+modules/**/.config.json
+.orchestration.json
+frontend/public/assistant-theme.css

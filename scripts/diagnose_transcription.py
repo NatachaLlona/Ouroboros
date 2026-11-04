@@ -22,7 +22,8 @@ def main():
     config = load_config()
     service = LocalTranscription(config)
     public_keys = ('model', 'device', 'compute_type', 'cache_directory', 'local_files_only',
-                   'idiomas_transcricao', 'max_audio_bytes', 'max_duration_seconds', 'max_concurrency', 'cpu_threads')
+                   'idiomas_transcricao', 'max_audio_bytes', 'max_duration_seconds', 'max_concurrency', 'cpu_threads',
+                   'upload_timeout_seconds', 'processing_timeout_seconds', 'request_timeout_seconds', 'max_transcript_chars', 'segment_seconds')
     print('Speech settings:', json.dumps({key: service.settings[key] for key in public_keys}))
     failed = False
     for module, package in (('av', 'av'), ('numpy', 'numpy'), ('faster_whisper', 'faster-whisper'), ('ctranslate2', 'ctranslate2'), ('onnxruntime', 'onnxruntime')):

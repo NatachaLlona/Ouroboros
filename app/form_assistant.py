@@ -129,13 +129,15 @@ def text_message(role, text):
 
 
 class FormAssistant:
-    def __init__(self, key_provider=load_api_key, transport=None):
+    def __init__(self, key_provider=load_api_key, transport=None, settings=None):
         self._key_provider = key_provider
         self._transport = transport
         self._active = 0
+        from app.ai_config import form_assistant_settings
+        self.settings = form_assistant_settings(settings)
 
     async def suggest(self, payload, maximum_tier):
-        if self._active >= 2:
+        if self._active >= self.settings['max_concurrency']:
             raise AssistantError('ASSISTANT_BUSY')
         self._active += 1
         try:
@@ -160,11 +162,11 @@ class FormAssistant:
                         text_message('user', json.dumps({'form_state': payload.values.model_dump(), 'mode': payload.mode}, ensure_ascii=False))]
             messages.extend(text_message(item.role, item.content) for item in payload.history)
             messages.append(text_message('user', payload.message))
-            body = {'model': MODEL, 'store': False, 'input': messages, 'max_output_tokens': 2500,
+            body = {'model': MODEL, 'store': False, 'input': messages, 'max_output_tokens': self.settings['max_output_tokens'],
                     'reasoning': {'effort': 'none'}, 'text': {'format': {'type': 'json_schema', 'name': 'classification_suggestion',
                         'strict': True, 'schema': ModelSuggestion.model_json_schema()}}}
             try:
-                async with httpx.AsyncClient(timeout=httpx.Timeout(75, connect=10), transport=self._transport, trust_env=False) as client:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(self.settings['request_timeout_seconds'], connect=self.settings['connect_timeout_seconds']), transport=self._transport, trust_env=False) as client:
                     async with client.stream('POST', 'https://api.openai.com/v1/responses',
                         headers={'Authorization': 'Bearer '+key, 'Content-Type': 'application/json'}, json=body) as response:
                         if response.status_code == 429:
@@ -173,7 +175,7 @@ class FormAssistant:
                             raise AssistantError('ASSISTANT_UPSTREAM_REJECTED')
                         raw = bytearray()
                         async for chunk in response.aiter_bytes():
-                            if len(raw)+len(chunk) > 262144:
+                            if len(raw)+len(chunk) > self.settings['max_response_bytes']:
                                 raise AssistantError('ASSISTANT_INVALID_OUTPUT')
                             raw.extend(chunk)
                 document = json.loads(raw)

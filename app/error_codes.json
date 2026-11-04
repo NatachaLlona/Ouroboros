@@ -29,6 +29,7 @@
     {"code": "ASSISTANT_BUSY", "status": 429, "message": "The form assistant is busy. Try again shortly."},
     {"code": "ASSISTANT_RATE_LIMITED", "status": 429, "message": "The configured OpenAI project has reached a usage or rate limit."},
     {"code": "ASSISTANT_UPSTREAM_REJECTED", "status": 502, "message": "The configured model could not complete this request."},
-    {"code": "ASSISTANT_INVALID_OUTPUT", "status": 502, "message": "The model returned an invalid suggestion. No form changes were applied."}
+    {"code": "ASSISTANT_INVALID_OUTPUT", "status": 502, "message": "The model returned an invalid suggestion. No form changes were applied."},
+    {"code": "TRANSCRIPTION_TIMEOUT", "status": 504, "message": "Local transcription exceeded its processing budget. No partial transcript was returned."}
   ]
 }

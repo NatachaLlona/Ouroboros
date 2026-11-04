@@ -1,6 +1,7 @@
 """Load and validate project-local JSON configuration."""
 import json
 import logging
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -37,7 +38,7 @@ def validate_logging(config):
 
 def load_config(root=PROJECT_ROOT):
     root = Path(root).resolve()
-    path = root / ".app.config"
+    path = Path(os.environ.get('OUROBOROS_BASE_CONFIG', root / '.app.config'))
     try:
         if not path.exists():
             example = (root / ".app.config.example").read_bytes()
@@ -150,6 +151,9 @@ def load_config(root=PROJECT_ROOT):
     validate_logging(config.get("logging"))
     from app.browser_sessions import browser_settings
     browser_settings(config)
+    if os.environ.get('OUROBOROS_EXTERNAL_ASSISTANCE') != '1':
+        from app.ai_config import apply_ai_config
+        apply_ai_config(config, root)
     from app.transcription import transcription_settings
     transcription_settings(config)
     return config
@@ -157,14 +161,15 @@ def load_config(root=PROJECT_ROOT):
 
 def save_config(config, root=PROJECT_ROOT):
     """Persist non-secret settings atomically without dropping existing fields."""
+    if os.environ.get('OUROBOROS_EXTERNAL_ASSISTANCE') == '1':
+        config = {key: value for key, value in config.items() if key != 'transcription'}
     if config.get("auth", {}).get("password_hash"):
         raise ConfigurationError("Migrate legacy API credentials before saving configuration; no hash copy was written")
-    import os
     import tempfile
-    path = Path(root) / ".app.config"
+    path = Path(os.environ.get('OUROBOROS_BASE_CONFIG', Path(root) / '.app.config'))
     temporary = None
     try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=root, delete=False) as target:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as target:
             temporary = Path(target.name)
             json.dump(config, target, indent=2, ensure_ascii=False)
             target.write("\n")

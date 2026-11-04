@@ -191,10 +191,9 @@ def create_app(config, database, auth, logger):
     application.state.login_throttle = LoginThrottle()
     application.state.logger = logger
     application.state.config = config
-    from app.transcription import LocalTranscription
-    application.state.transcription = LocalTranscription(config)
-    from app.form_assistant import FormAssistant
-    application.state.form_assistant = FormAssistant()
+    from modules.base.assistance_client import AssistanceClient
+    application.state.transcription = AssistanceClient(config)
+    application.state.form_assistant = application.state.transcription
     application.state.error_codes = codes
     from app.creation_limits import CreationBodyLimitMiddleware
     application.add_middleware(CreationBodyLimitMiddleware, config=config, codes=codes)
@@ -203,6 +202,8 @@ def create_app(config, database, auth, logger):
     application.add_middleware(RequestAuditingMiddleware, database=database, logger=logger, config=config, codes=codes)
     from app.endpoints.browser import BrowserHeadersMiddleware
     application.add_middleware(BrowserHeadersMiddleware)
+    from app.proxy import FrontendProxyMiddleware
+    application.add_middleware(FrontendProxyMiddleware)
 
     @application.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error):

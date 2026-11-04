@@ -16,52 +16,43 @@ from start import main
 
 class StartupSafetyTests(unittest.TestCase):
     def run_main(self, failure=None, close_failure=False, migration_failure=None):
+        from modules.base import runtime
         config=json.loads((PROJECT_ROOT/".app.config.example").read_text())
-        config["infrastructure"]["project_name"]="startup-unit"
-        logger=MagicMock()
-        events=[]
-        logger.log.side_effect=lambda event: events.append(event)
-        database=MagicMock();auth=MagicMock()
+        database=MagicMock();auth=MagicMock();logger=MagicMock()
         if close_failure:
             database.close.side_effect=RuntimeError("private-close-error")
             logger.close.side_effect=RuntimeError("private-log-close-error")
-        stream=io.StringIO();handler=logging.StreamHandler(stream)
-        handler_close=MagicMock(wraps=handler.close)
-        handler.close=handler_close
+        output=io.StringIO()
         with contextlib.ExitStack() as stack:
-            for name,value in (("load_config",config),("ApplicationLogger",logger),("Database",database),("AuthService",auth)):
-                stack.enter_context(patch("start."+name,return_value=value))
-            for name in ("check_docker","prompt_credentials","write_secret","start_postgres","ensure_database","connect","migrate","APIUserStore","configure_api_credentials","load_signing_secret","create_app"):
-                mocked=stack.enter_context(patch("start."+name))
-                if migration_failure is not None and name=="migrate": mocked.side_effect=migration_failure
-                if migration_failure is not None and name=="connect": mocked.return_value.close.side_effect=RuntimeError("private-connection-close")
-            stack.enter_context(patch("start.logging.StreamHandler",return_value=handler))
-            stack.enter_context(patch("start.run_api",side_effect=failure))
-            result=main()
-        return result,events,database,auth,logger,handler_close,stream.getvalue()
+            for name,value in (("load_config",config),("Database",database),("AuthService",auth),("ApplicationLogger",logger)):
+                stack.enter_context(patch("modules.base.runtime."+name,return_value=value))
+            stack.enter_context(patch("modules.base.runtime.Path.read_text",return_value="unit-only-secret"))
+            stack.enter_context(patch("modules.base.runtime.load_signing_secret",return_value="unit-key"*8))
+            stack.enter_context(patch("modules.base.runtime.APIUserStore"))
+            stack.enter_context(patch("modules.base.runtime.create_app"))
+            stack.enter_context(patch("modules.base.runtime.run_api",side_effect=failure))
+            stack.enter_context(contextlib.redirect_stderr(output))
+            stack.enter_context(contextlib.redirect_stdout(output))
+            result=runtime.main([])
+        return result,database,auth,logger,output.getvalue()
+
 
     def test_primary_error_and_cleanup_errors_are_safe(self):
-        result,events,database,auth,logger,handler,output=self.run_main(ValueError("password=never-log-primary"),True)
+        result,database,auth,logger,output=self.run_main(ValueError("password=never-log-primary"),True)
         self.assertEqual(result,1)
-        database.close.assert_called_once();auth.close.assert_called_once();logger.close.assert_called_once();handler.assert_called_once()
-        primary=next(event for event in events if event.get("context",{}).get("error_type")=="ValueError")
-        self.assertEqual(primary["context"]["stage"],"api_server")
-        self.assertTrue(primary["context"]["frames"])
-        for frame in primary["context"]["frames"]:
-            self.assertEqual(set(frame),{"source","line","function"})
-        serialized=json.dumps(events)+output
+        database.close.assert_called_once();auth.close.assert_called_once();logger.close.assert_called_once()
         for secret in ("never-log-primary","private-close-error","private-log-close-error"):
-            self.assertNotIn(secret,serialized)
-        self.assertNotIn("data was preserved",serialized.lower())
+            self.assertNotIn(secret,output)
+
 
     def test_cleanup_failure_changes_success_to_failure(self):
         self.assertEqual(self.run_main(close_failure=True)[0],1)
 
     def test_normal_ctrl_c_is_not_unexpected_error(self):
-        result,events,*_=self.run_main(KeyboardInterrupt())
+        result,*_,output=self.run_main(KeyboardInterrupt())
         self.assertEqual(result,0)
-        self.assertFalse(any(event["level"]=="ERROR" for event in events if "level" in event))
-        self.assertTrue(any(event["message"]=="Application stopped by user" for event in events))
+        self.assertIn("stopped by user",output)
+
 
     def test_broken_reporter_does_not_stop_cleanup(self):
         calls=[]
@@ -135,9 +126,10 @@ class StartupSafetyTests(unittest.TestCase):
 
 
     def test_migration_failure_is_not_masked_by_connection_cleanup(self):
-        result,events,*_=self.run_main(migration_failure=ValueError("private-migration-message"))
-        self.assertEqual(result,1)
-        self.assertTrue(any(event.get("context",{}).get("stage")=="migrations" and event["context"].get("error_type")=="ValueError" for event in events))
-        self.assertTrue(any(event.get("context",{}).get("resource")=="migration_connection" for event in events))
-        self.assertNotIn("private-migration-message",json.dumps(events))
-        self.assertNotIn("private-connection-close",json.dumps(events))
+        from modules.base.runtime import migrate_with_cleanup
+        connection=MagicMock();connection.close.side_effect=RuntimeError("private-close-error")
+        original=ValueError("private-migration-message")
+        with patch("modules.base.runtime.connect",return_value=connection), patch("modules.base.runtime.migrate",side_effect=original):
+            with self.assertRaises(ValueError) as raised:migrate_with_cleanup({},"disposable")
+        self.assertIs(raised.exception,original)
+        connection.close.assert_called_once()

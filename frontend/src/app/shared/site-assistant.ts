@@ -3,6 +3,7 @@ import { AssistantBinding, AssistantMessage, AssistantSuggestion, FormAssistantB
 import { assistantGreeting, frontendConfig } from '../frontend.config';
 import { Api, ApiError, safeMessage } from './api';
 import { Session } from '../auth/session';
+import { AudioLevelMeter } from './audio-level-meter';
 
 /** Track rendered catalogue forms independently of routes and nested modal lifetimes. */
 @Injectable({providedIn:'root'})
@@ -10,7 +11,7 @@ export class AssistantContext {
   private readonly forms=signal<readonly HTMLFormElement[]>([]);
   readonly activeForm=computed(()=>this.forms().at(-1)||null);
   readonly formActive=computed(()=>this.forms().length>0);
-  readonly image=computed(()=>this.formActive()?'/frontend/images/assistente_2.png':'/frontend/images/assistente.png');
+  readonly image=computed(()=>this.formActive()?frontendConfig.assistant_2_image:frontendConfig.assistant_image);
   private presentation:HTMLElement|null=null;private home:Node|null=null;
   registerPresentation(element:HTMLElement,destroy:DestroyRef):void{
     this.presentation=element;this.home=element.parentNode;this.place();
@@ -38,10 +39,10 @@ export class AssistantForm {
   }
 }
 
-interface SpeechOptions {max_audio_bytes:number;max_duration_seconds:number;}
-interface SpeechResult {text:string;language:string;}
+interface SpeechOptions {max_audio_bytes:number;max_duration_seconds:number;request_timeout_seconds:number;recording_chunk_ms:number;audio_bits_per_second:number;}
+interface SpeechResult {text:string;language:string;complete:boolean;}
 
-@Component({selector:'app-site-assistant',host:{'[attr.data-assistant]':"context.formActive()?'forms':'general'"},template:`
+@Component({selector:'app-site-assistant',imports:[AudioLevelMeter],host:{'[attr.data-assistant]':"context.formActive()?'forms':'general'"},template:`
   @if(context.formActive()){
     <button #trigger class="site-assistant assistant-trigger" type="button" [attr.aria-label]="'Conversar com '+assistantName" [attr.aria-expanded]="open()" [attr.aria-controls]="open()?'assistant-panel':null" (click)="toggle()"><img [src]="context.image()" alt="" draggable="false"></button>
   }@else{<img class="site-assistant" [src]="context.image()" alt="" draggable="false">}
@@ -54,11 +55,15 @@ interface SpeechResult {text:string;language:string;}
         <p class="assistant-help">{{bridge.active()?'Escreva ou dite uma mensagem para preencher o formulário. O cadastro depende da sua confirmação.':'Escreva ou dite uma mensagem. O envio é apenas local nesta etapa.'}}</p>
         <div class="assistant-messages" aria-live="polite" aria-label="Conversa com o assistente">@for(message of visibleMessages();track $index){<p [class.assistant-user-message]="message.role==='user'" [attr.data-message-role]="message.role">{{message.role==='user'?'Você: ':assistantName+': '}}{{message.content}}</p>}</div>
         </div>
-        <div class="assistant-composer">
+        <div class="assistant-composer" [class.assistant-is-recording]="state()==='recording'">
           <textarea #messageInput id="assistant-message" aria-label="Mensagem para o assistente" rows="2" [value]="message()" (input)="edit($event)"></textarea>
           <div class="assistant-composer-actions">
-            <button type="button" class="assistant-control" [disabled]="state()==='requesting'||state()==='transcribing'" [attr.aria-label]="state()==='recording'?'Finalizar gravação':'Iniciar gravação'" [attr.aria-pressed]="state()==='recording'" (click)="record()">{{state()==='recording'?'■':'🎙'}}</button>
-            <button type="button" class="assistant-control" [disabled]="!message().trim()||assistantBusy()" (click)="send()">Enviar</button>
+            @if(state()==='recording'){
+              <button type="button" class="assistant-control" aria-label="Descartar gravação de áudio" title="Descartar gravação" (click)="discardRecording()">×</button>
+              @if(recordingStream();as stream){<app-audio-level-meter [stream]="stream" />}
+            }
+            <button type="button" class="assistant-control" [disabled]="state()==='requesting'||state()==='transcribing'" [attr.aria-label]="state()==='recording'?'Concluir gravação e transcrever':'Iniciar gravação'" [attr.aria-pressed]="state()==='recording'" (click)="record()">{{state()==='recording'?'Concluir':'🎙'}}</button>
+            <button type="button" class="assistant-control assistant-send" [disabled]="!message().trim()||assistantBusy()" (click)="send()">Enviar</button>
           </div>
         </div>
         <div class="assistant-feedback"><p class="assistant-status" role="status">{{statusText()}}</p>
@@ -75,12 +80,13 @@ export class SiteAssistant {
   readonly assistantName=frontendConfig.nome_assistente_2;readonly greeting=assistantGreeting(true);
   readonly open=signal(false);readonly message=signal('');readonly messages=signal<string[]>([]);readonly error=signal('');
   readonly state=signal<'idle'|'requesting'|'recording'|'transcribing'>('idle');
-  readonly statusText=computed(()=>this.assistantBusy()?'A interpretar a mensagem…':({idle:'',requesting:'A preparar o microfone…',recording:'A gravar. Clique em finalizar quando terminar.',transcribing:'A transcrever localmente…'})[this.state()]);
+  readonly statusText=computed(()=>this.assistantBusy()?'A interpretar a mensagem…':({idle:'',requesting:'A preparar o microfone…',recording:'A gravar. Clique em Concluir quando terminar.',transcribing:'A transcrever localmente…'})[this.state()]);
   private readonly api=inject(Api);private readonly session=inject(Session);
   private readonly injector=inject(Injector);
   private readonly trigger=viewChild<ElementRef<HTMLButtonElement>>('trigger');private readonly input=viewChild<ElementRef<HTMLTextAreaElement>>('messageInput');
   private readonly conversationViewport=viewChild<ElementRef<HTMLDivElement>>('conversationViewport');
   private recorder:MediaRecorder|null=null;private stream:MediaStream|null=null;private timer:ReturnType<typeof setTimeout>|undefined;
+  readonly recordingStream=signal<MediaStream|null>(null);
   private request:AbortController|null=null;private generation=0;
   private assistantRequest:AbortController|null=null;
   constructor(){
@@ -135,9 +141,14 @@ export class SiteAssistant {
     if(this.timer!==undefined)clearTimeout(this.timer);this.timer=undefined;
     if(this.recorder){this.recorder.ondataavailable=null;this.recorder.onstop=null;this.recorder.onerror=null;if(this.recorder.state!=='inactive')this.recorder.stop();this.recorder=null;}
     this.stream?.getTracks().forEach(track=>track.stop());this.stream=null;
+    this.recordingStream.set(null);
+  }
+  discardRecording():void{
+    if(this.state()!=='recording')return;
+    this.generation++;this.request?.abort();this.request=null;this.release();this.state.set('idle');this.error.set('');
   }
   async record():Promise<void>{
-    if(this.state()==='recording'){this.recorder?.stop();this.stream?.getTracks().forEach(track=>track.stop());return;}
+    if(this.state()==='recording'){if(this.recorder?.state==='recording')this.recorder.stop();this.stream?.getTracks().forEach(track=>track.stop());return;}
     if(this.state()!=='idle')return;
     this.error.set('');
     if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){this.error.set('A gravação não é suportada neste navegador ou nesta ligação. Utilize HTTPS ou localhost.');return;}
@@ -147,10 +158,10 @@ export class SiteAssistant {
     try{
       const options=await this.api.request<SpeechOptions>('/browser/transcription/options','GET',undefined,undefined,{},true,this.request.signal);
       if(generation!==this.generation)return;
-      if(!Number.isSafeInteger(options.max_audio_bytes)||options.max_audio_bytes<1||!Number.isFinite(options.max_duration_seconds)||options.max_duration_seconds<1)throw new ApiError(502);
+      if([options.max_audio_bytes,options.max_duration_seconds,options.request_timeout_seconds,options.recording_chunk_ms,options.audio_bits_per_second].some(value=>!Number.isSafeInteger(value)||value<1))throw new ApiError(502);
       const stream=await navigator.mediaDevices.getUserMedia({audio:true});
       if(generation!==this.generation){stream.getTracks().forEach(track=>track.stop());return;}
-      this.stream=stream;const recorder=new MediaRecorder(stream,{mimeType:mime});this.recorder=recorder;
+      this.stream=stream;const recorder=new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:options.audio_bits_per_second});this.recorder=recorder;
       const chunks:Blob[]=[];let bytes=0;
       recorder.ondataavailable=event=>{
         if(generation!==this.generation||!event.data.size)return;
@@ -159,17 +170,17 @@ export class SiteAssistant {
         chunks.push(event.data);
       };
       recorder.onerror=()=>{if(generation!==this.generation)return;this.generation++;this.release();this.state.set('idle');this.error.set('Não foi possível concluir a gravação. Verifique o dispositivo.');};
-      recorder.onstop=()=>{if(generation!==this.generation)return;const blob=new Blob(chunks,{type:mime});this.release();if(!blob.size){this.state.set('idle');this.error.set('A gravação está vazia.');return;}void this.transcribe(blob,generation);};
-      recorder.start(250);this.state.set('recording');
-      this.timer=setTimeout(()=>{if(generation===this.generation&&recorder.state==='recording'){recorder.stop();stream.getTracks().forEach(track=>track.stop());}},Math.max(250,options.max_duration_seconds*1000-500));
+      recorder.onstop=()=>{if(generation!==this.generation)return;const blob=new Blob(chunks,{type:mime});this.release();if(!blob.size){this.state.set('idle');this.error.set('A gravação está vazia.');return;}void this.transcribe(blob,generation,options);};
+      recorder.start(options.recording_chunk_ms);this.recordingStream.set(stream);this.state.set('recording');
+      this.timer=setTimeout(()=>{if(generation===this.generation&&recorder.state==='recording'){recorder.stop();stream.getTracks().forEach(track=>track.stop());}},options.max_duration_seconds*1000);
     }catch(error){if(generation!==this.generation)return;this.release();this.state.set('idle');const name=error instanceof DOMException?error.name:'';this.error.set(name==='NotAllowedError'?'Permissão de microfone negada. Autorize o acesso no navegador.':name==='NotFoundError'?'Nenhum microfone foi encontrado.':name==='NotReadableError'?'O microfone está indisponível ou em uso por outra aplicação.':error instanceof ApiError?safeMessage(error):'Não foi possível iniciar a gravação neste navegador.');await this.recover(error);}
   }
-  private async transcribe(audio:Blob,generation:number):Promise<void>{
+  private async transcribe(audio:Blob,generation:number,options:SpeechOptions):Promise<void>{
     this.state.set('transcribing');this.request=new AbortController();
     try{
-      const result=await this.api.request<SpeechResult>('/browser/transcription','POST',audio,this.session.current().csrf_token,{},true,this.request.signal);
+      const result=await this.api.request<SpeechResult>('/browser/transcription','POST',audio,this.session.current().csrf_token,{},true,this.request.signal,options.request_timeout_seconds*1000);
       if(generation!==this.generation||!this.open())return;
-      if(typeof result.text!=='string'||typeof result.language!=='string')throw new ApiError(502);
+      if(typeof result.text!=='string'||typeof result.language!=='string'||result.complete!==true)throw new ApiError(502);
       this.message.update(text=>text+(text&&!/\s$/.test(text)?'\n':'')+result.text);
       const input=this.input()?.nativeElement;if(input){input.value=this.message();this.resize();}
     }catch(error){if(generation===this.generation){this.error.set(safeMessage(error));await this.recover(error);}}

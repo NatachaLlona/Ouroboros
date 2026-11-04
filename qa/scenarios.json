@@ -7891,6 +7891,225 @@
         ],
         "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
       }
+    },
+    {
+      "id": "20.1",
+      "name": "Structured classification assistance",
+      "objective": "Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes.",
+      "prerequisites": [
+        "Installed declared QA dependencies; owned disposable fixtures only."
+      ],
+      "actor": "Authorized QA operator",
+      "steps": [
+        "Run the mapped unit checks using the declared test environment.",
+        "For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.",
+        "Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests."
+      ],
+      "requests": [],
+      "expected": "Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes. All mapped assertions pass; private audio, transcript and credentials never enter reports.",
+      "tests": [
+        "test_form_assistant.AssistantEndpointTests.test_authentication_csrf_and_current_role_are_required",
+        "test_form_assistant.AssistantEndpointTests.test_authorized_suggestions_keep_messages_and_key_out_of_audit_and_logs",
+        "test_form_assistant.AssistantEndpointTests.test_unrecognized_fields_are_rejected_without_echoing_input",
+        "test_form_assistant.AssistantTransportTests.test_concurrency_limit_does_not_call_provider",
+        "test_form_assistant.AssistantTransportTests.test_invalid_output_other_models_and_secret_reflections_fail_closed",
+        "test_form_assistant.AssistantTransportTests.test_only_full_gpt54_responses_strict_schema_no_tools_no_storage",
+        "test_form_assistant.AssistantTransportTests.test_provider_errors_are_safe_and_slots_are_released",
+        "test_form_assistant.AssistantValidationTests.test_duplicate_extra_and_unknown_fields_are_rejected",
+        "test_form_assistant.AssistantValidationTests.test_key_is_loaded_from_backend_env_without_export",
+        "test_form_assistant.AssistantValidationTests.test_missing_required_information_produces_question",
+        "test_form_assistant.AssistantValidationTests.test_real_types_ranges_description_and_optional_clear"
+      ],
+      "type": "automated",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "20.2",
+      "name": "Complete local speech lifecycle",
+      "objective": "Preserve full audio processing, configured budgets, cancellation and private content omission.",
+      "prerequisites": [
+        "Installed declared QA dependencies; owned disposable fixtures only."
+      ],
+      "actor": "Authorized QA operator",
+      "steps": [
+        "Run the mapped unit checks using the declared test environment.",
+        "For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.",
+        "Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests."
+      ],
+      "requests": [],
+      "expected": "Preserve full audio processing, configured budgets, cancellation and private content omission. All mapped assertions pass; private audio, transcript and credentials never enter reports.",
+      "tests": [
+        "test_transcription.SpeechAssemblyTests.test_cancellation_and_processing_timeout_are_checked_between_segments",
+        "test_transcription.SpeechAssemblyTests.test_limits_and_failures_never_return_partial_text",
+        "test_transcription.SpeechAssemblyTests.test_separate_ai_configuration_overrides_legacy_limits_without_rewriting_them",
+        "test_transcription.SpeechAssemblyTests.test_ten_minute_defaults_and_no_silence_removed_before_native_windows",
+        "test_transcription.SpeechAssemblyTests.test_transcript_longer_than_old_character_limit_is_returned_in_full",
+        "test_transcription.SpeechEndpointTests.test_runtime_options_and_complete_response_omit_contents_from_audits",
+        "test_transcription.SpeechEndpointTests.test_worker_failure_returns_standard_error_without_partial_output"
+      ],
+      "type": "automated",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "20.3",
+      "name": "Four-module trust and availability boundaries",
+      "objective": "Reject forged/replayed inference requests and keep the API independent of model execution.",
+      "prerequisites": [
+        "Installed declared QA dependencies; owned disposable fixtures only."
+      ],
+      "actor": "Authorized QA operator",
+      "steps": [
+        "Run the mapped unit checks using the declared test environment.",
+        "For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.",
+        "Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests."
+      ],
+      "requests": [],
+      "expected": "Reject forged/replayed inference requests and keep the API independent of model execution. All mapped assertions pass; private audio, transcript and credentials never enter reports.",
+      "tests": [
+        "test_module_architecture.AssistanceBoundaryTests.test_api_client_fails_closed_without_running_local_inference",
+        "test_module_architecture.AssistanceBoundaryTests.test_browser_cannot_supply_roles_instead_of_delegation",
+        "test_module_architecture.AssistanceBoundaryTests.test_failure_never_returns_partial_text_and_releases_capacity",
+        "test_module_architecture.AssistanceBoundaryTests.test_runtime_options_and_full_audio_response_require_signed_requests",
+        "test_module_architecture.DelegationTests.test_signature_body_operation_expiration_and_replay_are_bound",
+        "test_module_architecture.ModuleOrchestrationTests.test_assistance_failure_does_not_prevent_frontend_startup",
+        "test_module_architecture.ModuleOrchestrationTests.test_forwarded_client_address_is_accepted_only_from_resolved_frontend",
+        "test_module_architecture.ModuleOrchestrationTests.test_launcher_help_does_not_import_host_site_packages",
+        "test_module_architecture.ModuleOrchestrationTests.test_module_adoption_preserves_existing_configuration_and_user_customization"
+      ],
+      "type": "automated",
+      "integration": false,
+      "required": true,
+      "depends_on": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "file_pattern": "application_YYYY-MM-DD_HHMMSS_<8 lowercase hex>.log",
+        "locate": "Use only this disposable run’s logs/application_*.log. Match the response X-Interaction-ID to the actual request. Mapped HTTP tests inspect their own captures; do not inspect normal/private logs or infer GUI evidence.",
+        "events": [
+          {
+            "message": "HTTP request received",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          },
+          {
+            "message": "HTTP request finished",
+            "level": "INFO",
+            "category": "request",
+            "method": "*",
+            "endpoint": "*",
+            "context_fields": [
+              "status",
+              "response_started",
+              "outcome",
+              "duration_ms"
+            ],
+            "context_values": {},
+            "statuses": [],
+            "presence": "required"
+          }
+        ],
+        "forbidden_data": [
+          "Passwords",
+          "Tokens",
+          "Hashes",
+          "SQL values",
+          "Connection strings"
+        ],
+        "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
     }
   ]
 }

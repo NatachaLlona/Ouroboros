@@ -65,7 +65,7 @@ class BrowserSessions:
             raise HTTPException(403, 'Browser origin rejected')
         if not self.secure:
             try:
-                if not request.client or not ipaddress.ip_address(request.client.host).is_loopback:
+                if not request.scope.get('verified_frontend_proxy') and (not request.client or not ipaddress.ip_address(request.client.host).is_loopback):
                     raise ValueError
             except ValueError:
                 raise HTTPException(403, 'Loopback HTTP development only') from None

@@ -1,5 +1,9 @@
 ## 🧭 **Read this first**
 
+### Current four-module runtime
+
+Use `python start.py` to build/start PostgreSQL, Base/API, frontend and assistance. Application dependencies run in compatible container images, not the host venv. [Module setup](MODULES.md) documents first-use adoption, interactive existing credentials and unchanged ports. Host dependency installation below is for running development/QA tools. Run `python scripts/verify_modules.py` from the QA environment for disposable tmpfs integration checks; it publishes no ports by default. Never run destructive tests against the normal database. See [scoped execution evidence](MODULES_QA.md); normal authenticated startup, browser and physical microphone checks must be recorded separately.
+
 For catalogue CRUD scenarios **14.1–14.7**, use the [resource/filter/permission matrix](CATALOGUE_API.md) and new canonical Postman folders. Administrator creates supervisor explicitly; standard still has no catalogue access. All collection GETs now show ordering enums. DELETE examples are skipped by default: only in disposable data, explicitly select the request, set the private local catalogue_destructive_opt_in=isolated, and for DELETE all change confirm=false to true. Never run that flow against normal records. POST/PUT/GET expose the same complete record; copy a GET body to PUT with unchanged metadata and server-controlled added_at. Troubleshooting and exact status expectations are in the CRUD guide.
 
 This guide is for a Windows tester with no prior Ouroboros, Python, Docker, OAuth2 or Git experience. **Use a separate QA folder and database. Never test against the owner's normal installation.** A green automated report verifies code/HTTP checks, not the appearance or behavior of a desktop interface. Record manual evidence separately. Expected **400, 401, 403, 409 and 422 are PASS** when the case asks for them.

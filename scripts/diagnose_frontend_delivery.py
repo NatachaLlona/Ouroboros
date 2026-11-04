@@ -38,7 +38,7 @@ def source_fingerprint():
     frontend=ROOT/'frontend';files=[]
     for directory in ('src','styles','assets','scripts'):
         files.extend(path for path in (frontend/directory).rglob('*') if path.is_file() and not path.is_symlink() and not path.name.endswith('.spec.ts'))
-    files.extend(frontend/name for name in ('package.json','package-lock.json','angular.json','tsconfig.json','tsconfig.app.json'))
+    files.extend(frontend/name for name in ('package.json','package-lock.json','angular.json','tsconfig.json','tsconfig.app.json','public/runtime-config.json'))
     result=hashlib.sha256()
     for path in sorted(files,key=str):
         result.update((path.relative_to(frontend).as_posix()+'\0').encode());result.update(path.read_bytes())
@@ -65,7 +65,9 @@ def inspect(origin, probe=False):
     report={'checked_at':datetime.now(timezone.utc).isoformat(),'origin':origin,'build_directory':str(BUILD.resolve()),'shell':{**home,'http_sha256':digest(body),'disk_sha256':digest(local),'matches_disk':body==local,'asset_urls':parser.urls},'routes':{},'assets':[],'service_worker_paths':{},'directory_probe':{'executed':False}}
     for path in ('/cadastrar','/consultar','/cadastros','/consultas','/docs','/openapi.json'):
         info,content=get(path);report['routes'][path]={**info,'matches_index':content==local}
-    queue=list(parser.urls);seen=set();texts={}
+    queue=[url for url in parser.urls if url!='/frontend/assistant-theme.css'];seen=set();texts={}
+    theme_info,_=get('/frontend/assistant-theme.css')
+    report['runtime_theme']={**theme_info,'compiled_asset':False}
     while queue:
         path=queue.pop(0)
         if path in seen:continue

@@ -75,6 +75,18 @@ def selection():
     return application_shell()
 
 
+@router.get('/browser/page-access', include_in_schema=False)
+def page_access(request: Request):
+    """Same protected-page authorization for the separate frontend proxy."""
+    try:
+        _, user, _ = request.app.state.browser_sessions.authenticate(request)
+    except HTTPException as error:
+        if error.status_code == 401:
+            return Response(status_code=401)
+        raise
+    return Response(status_code=200 if user.role in ('administrator', 'supervisor') else 403)
+
+
 @router.get('/browser/session', response_model=SessionView)
 def current_session(request: Request, response: Response):
     response.headers['Cache-Control'] = 'no-store'
@@ -132,7 +144,7 @@ class BrowserHeadersMiddleware:
                 application = scope.get('app')
                 if key and application is not None and 200 <= message['status'] < 300:
                     incoming = dict(scope.get('headers', ()))
-                    renew = scope['path'] in ('/cadastros', '/consultas') or (
+                    renew = scope['path'] in ('/cadastros', '/consultas', '/browser/page-access') or (
                         not scope['path'].startswith('/browser/') and incoming.get(b'x-ouroboros-activity') == b'user')
                     deadlines = application.state.browser_sessions.accepted_activity(key, renew=renew)
                     if deadlines is not None:

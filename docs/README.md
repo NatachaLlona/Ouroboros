@@ -6,6 +6,8 @@
 | QA tester, no code knowledge required | [Generated QA test plan](QA_TEST_PLAN.md) |
 | Windows setup, Swagger/Postman and report instructions | [QA setup source](QA_SETUP.md) |
 | Component responsibilities, data and transactions | [Architecture](ARCHITECTURE.md) |
+| Four containers, module-local configuration, proxy, startup and isolation | [Module runtime](MODULES.md) |
+| Executed modularization checks and pending owner/manual verification | [Module QA record](MODULES_QA.md) |
 | Catalogue schema, relationships and pending decisions | [Catalogue model](CATALOGUE.md) |
 | Catalogue CRUD, supervisor permissions, filter/order matrix and safe deletion | [Catalogue API](CATALOGUE_API.md) |
 | First frontend, browser sessions, configuration and walkthrough | [Frontend](FRONTEND.md) |

@@ -18,8 +18,79 @@ services:
       timeout: 3s
       retries: 30
       start_period: 5s
+    networks: [database, database_host]
+  api:
+    build:
+      context: .
+      dockerfile: modules/base/Dockerfile
+    environment:
+      OUROBOROS_BASE_CONFIG: /config/base/.config.json
+      OUROBOROS_EXTERNAL_ASSISTANCE: '1'
+      OUROBOROS_DB_HOST: ${OUROBOROS_DB_HOST:-postgres}
+      OUROBOROS_BROWSER_PROXY_HOST: frontend
+      OUROBOROS_ASSISTANCE_URL: ${OUROBOROS_ASSISTANCE_URL:-http://assistance:8000}
+      OUROBOROS_SERVICE_KEY_FILE: /run/secrets/service_key
+    volumes:
+      - ./modules/base/config:/config/base
+      - ./.secrets:/runtime/.secrets
+      - ./logs:/runtime/logs
+    secrets: [postgres_password, service_key]
+    networks: [database, assistance, web]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 5s
+      timeout: 8s
+      retries: 30
+  assistance:
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 2g
+    cpus: 2
+    build:
+      context: .
+      dockerfile: modules/assistance/Dockerfile
+    environment:
+      OUROBOROS_AI_CONFIG: /config/assistance.json
+      OUROBOROS_SERVICE_KEY_FILE: /run/secrets/service_key
+      OUROBOROS_SPEECH_CACHE: /models
+    volumes:
+      - ./modules/assistance/.config.json:/config/assistance.json:ro
+      - ./.env:/runtime/.env:ro
+      - ${OUROBOROS_MODEL_CACHE:-./.cache/speech}:/models
+    secrets: [service_key]
+    networks: [assistance]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 5s
+      timeout: 8s
+      retries: 30
+  frontend:
+    environment:
+      OUROBOROS_API_UPSTREAM: ${OUROBOROS_API_UPSTREAM:-api:8000}
+    build:
+      context: .
+      dockerfile: modules/frontend/Dockerfile
+    ports:
+      - "${OUROBOROS_PUBLIC_HOST:-127.0.0.1}:${OUROBOROS_PUBLIC_PORT:-6969}:8080"
+    volumes:
+      - ./modules/frontend/.config.json:/config/frontend.json:ro
+      - ./frontend/public/images:/usr/share/nginx/html/frontend/images:ro
+    networks: [web]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/frontend-health"]
+      interval: 5s
+      timeout: 8s
+      retries: 30
 secrets:
   postgres_password:
     file: ${OUROBOROS_DB_SECRET_FILE:?Run python start.py first}
+  service_key:
+    file: ./.secrets/assistance_service_key
 volumes:
   postgres_data:
+networks:
+  database:
+    internal: true
+  database_host:
+  assistance:
+  web:

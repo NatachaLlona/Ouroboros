@@ -1,5 +1,7 @@
 # ⚙️ **Installation, operation and troubleshooting**
 
+**Current startup:** use `python start.py` for the four-service container runtime. Follow [module configuration, credentials, startup and troubleshooting](MODULES.md). Earlier host-venv serving recipes below are retained for development/history; they are not the current production entry point. No normal database reset or automatic port fallback is permitted.
+
 Use the [project README](../README.md#setup-and-run) for a quick developer start and [QA setup](QA_SETUP.md) for fully guided Windows installation, independent master prompts, Swagger, Postman and isolated evidence. Install `requirements-dev.txt` when running QA checks; `requirements.txt` is sufficient for the application. The canonical conventions remain [NEXTGENERATION.md](../NEXTGENERATION.md).
 
 ## ▶️ **Lifecycle and data safety**

@@ -99,7 +99,7 @@ def connect(database, password):
         raise DatabaseError("PostgreSQL driver is unavailable; run python -m pip install -r requirements.txt") from None
     connection = None
     try:
-        connection = psycopg.connect(host="127.0.0.1", port=database["port"],
+        connection = psycopg.connect(host=database.get("host", "127.0.0.1"), port=database["port"],
                                     dbname=database["name"], user=database["user"],
                                     password=password, connect_timeout=database["connect_timeout"],
                                     options=f"-c statement_timeout={database['statement_timeout'] * 1000} -c timezone=UTC")

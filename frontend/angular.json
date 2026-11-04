@@ -7,8 +7,8 @@
     "architect": {
       "build": {"builder": "@angular/build:application", "options": {
         "outputPath": "dist", "deleteOutputPath": false, "browser": "src/main.ts", "index": "src/index.html", "tsConfig": "tsconfig.app.json",
-        "assets": [{"glob": "**/*", "input": "assets", "output": "assets"}, {"glob": "{assistente,assistente_2,text_box_2}.png", "input": "public/images", "output": "images"}],
-        "styles": ["styles/main.css", "styles/shared-fields.css", "styles/assistant-theme.generated.css", "styles/assistant.css"], "baseHref": "/", "deployUrl": "/frontend/", "inlineStyleLanguage": "css"
+        "assets": [{"glob": "**/*", "input": "assets", "output": "assets"}, {"glob": "*.png", "input": "public/images", "output": "images"}, {"glob": "{runtime-config.json,assistant-theme.css}", "input": "public", "output": "/"}],
+        "styles": ["styles/main.css", "styles/shared-fields.css", "styles/assistant.css"], "baseHref": "/", "deployUrl": "/frontend/", "inlineStyleLanguage": "css"
       }, "configurations": {
         "production": {"outputHashing": "all", "optimization": {"scripts": true, "styles": {"minify": true, "inlineCritical": false}, "fonts": false}, "budgets": [{"type": "initial", "maximumWarning": "350kB", "maximumError": "450kB"}, {"type": "anyComponentStyle", "maximumWarning": "4kB", "maximumError": "8kB"}]},
         "development": {"optimization": false, "sourceMap": true, "extractLicenses": false}

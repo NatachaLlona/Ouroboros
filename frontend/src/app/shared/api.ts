@@ -13,7 +13,7 @@ export class ApiError extends Error {
 export class Api {
   private readonly http = inject(HttpClient);
   readonly deadlines = new Subject<{idle:number;absolute:number}>();
-  async request<T>(path: string, method = 'GET', body?: unknown, csrf?: string, params:Record<string,string|number>={}, userActivity=true, abortSignal?:AbortSignal): Promise<T> {
+  async request<T>(path: string, method = 'GET', body?: unknown, csrf?: string, params:Record<string,string|number>={}, userActivity=true, abortSignal?:AbortSignal, requestTimeoutMs?:number): Promise<T> {
     const transcription=path==='/browser/transcription'&&method==='POST';
     const assistant=path==='/browser/assistant/work-classifications'&&method==='POST';
     const speechOptions=path==='/browser/transcription/options'&&method==='GET';
@@ -26,7 +26,7 @@ export class Api {
     if (csrf) headers = headers.set('X-CSRF-Token', csrf);
     if (userActivity && !path.startsWith('/browser/')) headers=headers.set('X-Ouroboros-Activity','user');
     try {
-      const response = await firstValueFrom(this.http.request<T>(method, path, { body, headers, params, observe: 'response' }).pipe(timeout(transcription?300000:assistant?90000:30000),takeUntil(abortSignal?fromEvent(abortSignal,'abort'):EMPTY)));
+      const response = await firstValueFrom(this.http.request<T>(method, path, { body, headers, params, observe: 'response' }).pipe(timeout(requestTimeoutMs??(assistant?90000:30000)),takeUntil(abortSignal?fromEvent(abortSignal,'abort'):EMPTY)));
       const idleHeader=response.headers.get('X-Browser-Expires-In'),absoluteHeader=response.headers.get('X-Browser-Absolute-Expires-In');
       if(idleHeader!==null && absoluteHeader!==null){const idle=Number(idleHeader),absolute=Number(absoluteHeader);if(Number.isFinite(idle)&&Number.isFinite(absolute)&&idle>=0&&idle<=absolute&&absolute<=86400)this.deadlines.next({idle,absolute});}
       if (response.status !== 204 && response.body === null) throw new ApiError(502, '', [], response.headers.get('X-Interaction-ID') || '', '', path, method);
@@ -54,7 +54,8 @@ export function safeMessage(error: unknown): string {
     AUDIO_LIMIT_EXCEEDED:'O áudio excede o limite de tamanho ou duração configurado no servidor.',
     TRANSCRIPTION_BUSY:'A transcrição local está ocupada. Aguarde e tente novamente.',
     TRANSCRIPTION_UNAVAILABLE:'A transcrição local está indisponível. Verifique as dependências e o cache do modelo no servidor.',
-    TRANSCRIPTION_LANGUAGE_REJECTED:'O idioma detectado não está permitido na configuração do servidor.'
+    TRANSCRIPTION_LANGUAGE_REJECTED:'O idioma detectado não está permitido na configuração do servidor.',
+    TRANSCRIPTION_TIMEOUT:'A transcrição excedeu o tempo de processamento configurado. Nenhum texto parcial foi inserido.'
   };
   if(speechMessages[error.code])return speechMessages[error.code];
   const mutation = error.method !== 'GET' && !error.path.startsWith('/browser/');

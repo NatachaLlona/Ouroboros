@@ -8,7 +8,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const build=resolve(root,'dist/browser');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 let html=readFileSync(resolve(build,'index.html'),'utf8');
-const queue=[...html.matchAll(/(?:src|href)="(\/frontend\/[^"?]+\.(?:js|css))"/g)].map(match=>match[1]);
+const queue=[...html.matchAll(/(?:src|href)="(\/frontend\/[^"?]+\.(?:js|css))"/g)].map(match=>match[1]).filter(url=>url!=='/frontend/assistant-theme.css');
 const assets=new Map();
 while(queue.length){
   const url=queue.shift();if(assets.has(url))continue;
@@ -23,7 +23,7 @@ const id=hash(JSON.stringify(ordered)).slice(0,16);
 const sourceFiles=[];
 function collect(directory){for(const entry of readdirSync(directory,{withFileTypes:true})){const path=resolve(directory,entry.name);if(entry.isDirectory())collect(path);else if(entry.isFile()&&!entry.name.endsWith('.spec.ts'))sourceFiles.push(path);}}
 for(const directory of ['src','styles','assets','scripts'])collect(resolve(root,directory));
-for(const name of ['package.json','package-lock.json','angular.json','tsconfig.json','tsconfig.app.json'])sourceFiles.push(resolve(root,name));
+for(const name of ['package.json','package-lock.json','angular.json','tsconfig.json','tsconfig.app.json','public/runtime-config.json'])sourceFiles.push(resolve(root,name));
 const sourceHash=createHash('sha256');
 for(const path of sourceFiles.sort()){sourceHash.update(relative(root,path).replaceAll('\\','/')+'\0');sourceHash.update(readFileSync(path));}
 html=html.replace(/<meta name="ouroboros-build" content="[^"]*">/g,'').replace('</head>',`<meta name="ouroboros-build" content="${id}"></head>`);

@@ -1,6 +1,8 @@
 """Bounded local speech transcription; audio and text never enter application logs."""
 import io
 import threading
+import time
+import os
 from pathlib import Path
 
 from app.config import ConfigurationError, PROJECT_ROOT
@@ -10,17 +12,21 @@ def transcription_settings(config):
     settings = config.setdefault('transcription', {})
     if not isinstance(settings, dict):
         raise ConfigurationError('transcription must be an object')
-    defaults = dict(model='base', device='cpu', compute_type='int8', cache_directory='.cache/speech',
-                    idiomas_transcricao=['pt', 'en', 'es', 'fr', 'it'], max_audio_bytes=8388608,
-                    max_duration_seconds=60, max_concurrency=1, cpu_threads=2, local_files_only=False)
+    from app.ai_config import transcription_defaults
+    defaults = transcription_defaults()
     for key, value in defaults.items():
         settings.setdefault(key, value)
     for key in ('model', 'device', 'compute_type', 'cache_directory'):
         if not isinstance(settings[key], str) or not settings[key].strip():
             raise ConfigurationError('transcription presentation-independent runtime settings must be nonblank strings')
-    for key, maximum in (('max_audio_bytes', 33554432), ('max_duration_seconds', 300), ('max_concurrency', 4), ('cpu_threads', 16)):
+    for key, maximum in (('max_audio_bytes', 268435456), ('max_duration_seconds', 3600), ('max_concurrency', 4), ('cpu_threads', 16),
+            ('duration_tolerance_ms', 2000), ('upload_timeout_seconds', 600), ('processing_timeout_seconds', 7200),
+            ('request_timeout_seconds', 8400), ('max_transcript_chars', 1000000), ('segment_seconds', 30),
+            ('recording_chunk_ms', 2000), ('audio_bits_per_second', 256000)):
         if type(settings[key]) is not int or not 1 <= settings[key] <= maximum:
             raise ConfigurationError('transcription limits must be positive bounded integers')
+    if settings['request_timeout_seconds'] <= settings['upload_timeout_seconds'] + settings['processing_timeout_seconds']:
+        raise ConfigurationError('transcription request timeout must exceed upload and processing budgets')
     languages = settings['idiomas_transcricao']
     if not isinstance(languages, list) or not languages or any(not isinstance(value, str) or not value.isascii() or not value.isalpha() or not 2 <= len(value) <= 3 or value != value.lower() for value in languages):
         raise ConfigurationError('transcription.idiomas_transcricao must contain lowercase language codes')
@@ -59,7 +65,7 @@ class LocalTranscription:
 
     @property
     def cache_path(self):
-        cache = Path(self.settings['cache_directory'])
+        cache = Path(os.environ.get('OUROBOROS_SPEECH_CACHE', self.settings['cache_directory']))
         return (cache if cache.is_absolute() else PROJECT_ROOT / cache).resolve()
 
     def model(self):
@@ -90,7 +96,14 @@ class LocalTranscription:
         with self._model_lock:
             self._model = None
 
-    def transcribe(self, data):
+    def transcribe(self, data, cancelled=None):
+        deadline = time.monotonic() + self.settings['processing_timeout_seconds']
+        def check_progress():
+            if cancelled is not None and cancelled.is_set():
+                raise SpeechError('REQUEST_CANCELLED')
+            if time.monotonic() > deadline:
+                raise SpeechError('TRANSCRIPTION_TIMEOUT')
+        check_progress()
         try:
             import av
             import numpy as np
@@ -108,7 +121,7 @@ class LocalTranscription:
         else:
             raise SpeechError('AUDIO_INVALID')
         # Decode only the permitted duration. Do not trust MIME, filename or container metadata.
-        maximum = self.settings['max_duration_seconds'] * 16000
+        maximum = int((self.settings['max_duration_seconds'] + self.settings['duration_tolerance_ms'] / 1000) * 16000)
         chunks, samples = [], 0
         try:
             with av.open(io.BytesIO(data), mode='r', format=container_format, options={'protocol_whitelist': ''}) as container:
@@ -117,6 +130,7 @@ class LocalTranscription:
                 stream = container.streams.audio[0]
                 resampler = av.AudioResampler(format='fltp', layout='mono', rate=16000)
                 for frame in container.decode(stream):
+                    check_progress()
                     if not 1000 <= frame.sample_rate <= 192000 or len(frame.layout.channels) > 8:
                         raise SpeechError('AUDIO_INVALID')
                     for converted in resampler.resample(frame):
@@ -139,16 +153,28 @@ class LocalTranscription:
         if not np.isfinite(audio).all() or float(np.max(np.abs(audio))) < 0.0001:
             raise SpeechError('AUDIO_INVALID')
         try:
+            check_progress()
+            # faster-whisper advances across the complete waveform in native windows.
+            # Keep pauses in the waveform; do not delete intervals using a pre-VAD pass.
             segments, info = self.model().transcribe(audio, language=None, beam_size=3,
-                condition_on_previous_text=False, vad_filter=True, log_progress=False)
+                condition_on_previous_text=False, vad_filter=False, chunk_length=self.settings['segment_seconds'], log_progress=False)
             if info.language not in self.settings['idiomas_transcricao']:
                 raise SpeechError('TRANSCRIPTION_LANGUAGE_REJECTED')
-            text = ' '.join(segment.text.strip() for segment in segments).strip()
+            parts, characters, last_start = [], 0, -1.0
+            for segment in segments:
+                check_progress()
+                if segment.start < last_start:
+                    raise SpeechError('TRANSCRIPTION_UNAVAILABLE', 'segment_order')
+                last_start = segment.start
+                characters += len(segment.text)
+                if characters > self.settings['max_transcript_chars']:
+                    raise SpeechError('AUDIO_LIMIT_EXCEEDED')
+                parts.append(segment.text)
+            check_progress()
+            text = ''.join(parts).strip()
             if not text:
                 raise SpeechError('AUDIO_INVALID')
-            if len(text) > 16000:
-                raise SpeechError('AUDIO_LIMIT_EXCEEDED')
-            return {'text': text, 'language': info.language}
+            return {'text': text, 'language': info.language, 'complete': True, 'duration_seconds': samples / 16000}
         except SpeechError:
             raise
         except Exception as error:
