@@ -3,12 +3,12 @@ import json
 import unittest
 from pathlib import Path
 import jsonschema
-from app.config import PROJECT_ROOT
+from api.app.config import PROJECT_ROOT
 
 
 class PostmanTests(unittest.TestCase):
     def test_batch_examples_are_explicit_and_guarded(self):
-        from app.schemas.catalogue import RESOURCES
+        from shared.schemas.catalogue import RESOURCES
         collection = json.loads((PROJECT_ROOT / 'postman/Ouroboros.postman_collection.json').read_text(encoding='utf-8'))
         group = next(item for item in collection['item'] if item['name'] == 'Atomic array creation (isolated opt-in only)')
         for table in (*RESOURCES, 'test'):

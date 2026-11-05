@@ -1,4 +1,5 @@
 """Real HTTP/schema/authorization contracts in exclusively owned disposable storage."""
+from support_config import example_config, example_path, config_path, config_example_path
 import io
 import json
 import os
@@ -14,17 +15,17 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 from fastapi.testclient import TestClient
-from app.api_credentials import PASSWORD_HASHER
-from app.api_users import APIUserStore, UserManagementError
-from app.auth import AuthService
-from app.config import PROJECT_ROOT
-from app.credentials import write_secret
-from app.database import (Database, check_docker, compose_command, compose_environment,
+from api.app.api_credentials import PASSWORD_HASHER
+from api.app.api_users import APIUserStore, UserManagementError
+from api.app.auth import AuthService
+from api.app.config import PROJECT_ROOT
+from api.app.credentials import write_secret
+from api.app.database import (Database, check_docker, compose_command, compose_environment,
                           connect, ensure_database, run_command, start_postgres)
-from app.logger import ApplicationLogger
-from app.main import create_app
-from app.migrate import migrate
-from app.schemas.catalogue import RESOURCES, PATTERN_HELP
+from api.app.logger import ApplicationLogger
+from api.app.main import create_app
+from api.app.migrate import migrate
+from shared.schemas.catalogue import RESOURCES, PATTERN_HELP
 
 
 @unittest.skipUnless(os.environ.get('FOUNDATION_RUN_INTEGRATION') == '1', 'Requires owned disposable Docker integration')
@@ -37,7 +38,7 @@ class CatalogueAPITests(unittest.TestCase):
         cls.project = 'ouroboros-crud-' + uuid.uuid4().hex
         shutil.copy(PROJECT_ROOT / 'compose.yaml', cls.root)
         shutil.copytree(PROJECT_ROOT / 'sql', cls.root / 'sql')
-        cls.config = json.loads((PROJECT_ROOT / '.app.config.example').read_text(encoding='utf-8'))
+        cls.config = json.loads((example_path()).read_text(encoding='utf-8'))
         from support_ports import approved_port
         port = approved_port('database')
         cls.db = {**cls.config['database'], 'name': 'crud_base', 'user': 'crud_master', 'port': port, 'startup_timeout': 240}
@@ -50,7 +51,7 @@ class CatalogueAPITests(unittest.TestCase):
         # Docker's local-socket healthcheck can observe the temporary init server
         # before the published TCP listener is ready. Bound QA readiness by an
         # authenticated connection to this run's own ephemeral endpoint.
-        from app.database import DatabaseError
+        from api.app.database import DatabaseError
         deadline = time.monotonic() + 30
         while True:
             try:
@@ -325,7 +326,7 @@ class CatalogueAPITests(unittest.TestCase):
         self.assertEqual((final['title'], final['synopsis']), ('After', 'Independent change'))
         # Force demotion between initial request authentication and transaction lock.
         from unittest.mock import patch
-        from app.catalogue_repository import CatalogueRepository
+        from api.app.catalogue_repository import CatalogueRepository
         original = CatalogueRepository.delete
         def demote_then_delete(repository, actor, record_id=None):
             self.users.change_role(self.accounts['administrator'].id, self.accounts['supervisor'].id, 'standard')

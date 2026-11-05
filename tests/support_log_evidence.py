@@ -2,7 +2,7 @@
 import json
 import re
 import time
-from app.config import PROJECT_ROOT
+from api.app.config import PROJECT_ROOT
 
 
 def assert_response_logs(test, response, output, logger):

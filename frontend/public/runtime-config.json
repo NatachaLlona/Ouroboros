@@ -1,11 +1,1 @@
-{
-  "nome_assistente": "Aurie",
-  "nome_assistente_2": "Evie",
-  "mensagem_boas_vindas_assistente": "Oi, meu nome é {nome_assistente}!",
-  "mensagem_boas_vindas_assistente_2": "Oi, meu nome é {nome_assistente_2}!",
-  "assistant_image": "/frontend/images/assistente.png",
-  "assistant_2_image": "/frontend/images/assistente_2.png",
-  "balloon_image": "/frontend/images/text_box_2.png",
-  "assistant_colors": {"text":"#424A40","highlighted_text":"#4E3944","primary":"#FFFCF6","accent":"#4E3944","user_text":"#823746"},
-  "assistant_2_colors": {"text":"#424A40","highlighted_text":"#4E3944","primary":"#FFFCF6","accent":"#4E3944","user_text":"#823746"}
-}
+{"nome_assistente":"Aurie","nome_assistente_2":"Evie","mensagem_boas_vindas_assistente":"Oi, meu nome é {nome_assistente}!","mensagem_boas_vindas_assistente_2":"Oi, meu nome é {nome_assistente_2}!","assistant_image":"/frontend/images/assistente.png","assistant_2_image":"/frontend/images/assistente_2.png","balloon_image":"/frontend/images/text_box_2.png","assistant_colors":{"text":"#424A40","highlighted_text":"#4E3944","primary":"#FFFCF6","accent":"#4E3944","user_text":"#823746"},"assistant_2_colors":{"text":"#424A40","highlighted_text":"#4E3944","primary":"#FFFCF6","accent":"#4E3944","user_text":"#823746"}}

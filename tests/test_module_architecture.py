@@ -1,4 +1,5 @@
 """Container boundaries, delegated authority and controlled inference failures."""
+from support_config import example_config, example_path, config_path, config_example_path
 import asyncio
 import json
 import unittest
@@ -13,10 +14,10 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import httpx
 from fastapi.testclient import TestClient
-from modules.service_auth import delegate, DelegationVerifier
-from modules.assistance.main import create_assistance
-from modules.base.assistance_client import AssistanceClient
-from app.transcription import SpeechError, transcription_settings
+from shared.service_auth import delegate, DelegationVerifier
+from assistance.main import create_assistance
+from api.assistance_client import AssistanceClient
+from shared.speech import SpeechError, transcription_settings
 
 
 KEY = b'disposable-service-key-for-unit-tests-only'
@@ -91,7 +92,7 @@ class AssistanceBoundaryTests(unittest.TestCase):
 
     def test_api_client_fails_closed_without_running_local_inference(self):
         client = AssistanceClient({})
-        with patch('app.transcription.LocalTranscription.model') as model:
+        with patch('assistance.transcription.LocalTranscription.model') as model:
             with self.assertRaises(SpeechError):
                 asyncio.run(client.call('options', b'', ACTOR))
         model.assert_not_called()
@@ -105,7 +106,7 @@ class ModuleOrchestrationTests(unittest.TestCase):
         self.assertIn(b'--api-only',result.stdout)
 
     def test_assistance_failure_does_not_prevent_frontend_startup(self):
-        from modules.orchestration import main, StartupError
+        from orchestration import main, StartupError
         calls=[]
         def run(command,*args,**kwargs):
             calls.append(command)
@@ -114,36 +115,35 @@ class ModuleOrchestrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);(root/'.secrets').mkdir();(root/'.secrets/postgres_password').touch()
             settings={'project_name':'unit-module','startup_timeout_seconds':20,'public_host':'127.0.0.1','public_port':6969}
-            with patch('modules.orchestration.prepare',return_value=({'database':{}},{},settings)), patch('modules.orchestration.environment',return_value={}), patch('modules.orchestration.run',side_effect=run), patch('app.database.check_docker'), patch('app.database.start_postgres'), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with patch('orchestration.prepare',return_value=({'database':{}},{},settings)), patch('orchestration.environment',return_value={}), patch('orchestration.run',side_effect=run), patch('api.app.database.check_docker'), patch('api.app.database.start_postgres'), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(main(root,[]),0)
         self.assertTrue(any('up' in command and command[-1]=='frontend' for command in calls))
         self.assertFalse(any('down' in command or '--volumes' in command for command in calls))
 
-    def test_module_adoption_preserves_existing_configuration_and_user_customization(self):
-        from modules.orchestration import prepare
+    def test_five_configs_preserve_values_and_do_not_read_retired_paths(self):
+        from orchestration import prepare
         source=Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
-            config=json.loads((source/'.app.config.example').read_text(encoding='utf-8'))
-            config['infrastructure']={'project_name':'unit-module','workspace':str(root)}
-            legacy=json.dumps(config)
-            (root/'.app.config').write_text(legacy,encoding='utf-8')
-            (root/'.ai.config.example').write_bytes((source/'.ai.config.example').read_bytes())
-            public=root/'frontend/public';public.mkdir(parents=True)
-            (public/'runtime-config.json').write_bytes((source/'frontend/public/runtime-config.json').read_bytes())
-            with patch('app.credentials.write_secret'):
+            for module in ('','api','database','assistance','frontend'):
+                folder=root/module;folder.mkdir(exist_ok=True)
+                (folder/'config.example.json').write_bytes((source/module/'config.example.json').read_bytes())
+            with patch('api.app.credentials.write_secret'):
                 prepare(root)
-                path=root/'modules/frontend/.config.json';custom=json.loads(path.read_text());custom['nome_assistente']='Customized assistant'
+                path=root/'frontend/config.json';custom=json.loads(path.read_text());custom['nome_assistente']='Customized assistant'
                 path.write_text(json.dumps(custom),encoding='utf-8')
+                (root/'.app.config').write_text('invalid retired configuration',encoding='utf-8')
                 prepare(root)
             self.assertEqual(json.loads(path.read_text())['nome_assistente'],'Customized assistant')
-            self.assertEqual((root/'.app.config').read_text(),legacy)
+            for module in ('','api','database','assistance','frontend'):
+                self.assertTrue((root/module/'config.json').is_file())
+            self.assertNotIn('infrastructure',json.loads((root/'api/config.json').read_text()))
 
     def test_forwarded_client_address_is_accepted_only_from_resolved_frontend(self):
-        from app.proxy import FrontendProxyMiddleware
+        from api.app.proxy import FrontendProxyMiddleware
         observed=[]
         async def app(scope,receive,send):observed.append(scope)
-        with patch.dict(os.environ,{'OUROBOROS_BROWSER_PROXY_HOST':'frontend'}), patch('app.proxy.socket.getaddrinfo',return_value=[(None,None,None,None,('172.20.0.2',0))]):
+        with patch.dict(os.environ,{'OUROBOROS_BROWSER_PROXY_HOST':'frontend'}), patch('api.app.proxy.socket.getaddrinfo',return_value=[(None,None,None,None,('172.20.0.2',0))]):
             middleware=FrontendProxyMiddleware(app)
             for source in ('172.20.0.2','172.20.0.9'):
                 asyncio.run(middleware({'type':'http','client':(source,100),'headers':[(b'x-forwarded-for',b'127.0.0.1')]},None,None))

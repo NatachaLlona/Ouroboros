@@ -1,4 +1,5 @@
 """Unicode, structured bodies, safe colors, and visible column widths."""
+from support_config import example_config, example_path, config_path, config_example_path
 import io
 import json
 import tempfile
@@ -6,11 +7,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.config import PROJECT_ROOT
-from app.console import prepare_console, supports_color
-from app.log_safety import body_preview
-from app.logger import ApplicationLogger
-from app.request_context import RequestContext, request_context
+from api.app.config import PROJECT_ROOT
+from api.app.console import prepare_console, supports_color
+from shared.log_safety import body_preview
+from api.app.logger import ApplicationLogger
+from shared.request_context import RequestContext, request_context
 
 TEXT = "Ouroboros est\u00e1 vivo! \U0001f40d\U0001f4bb"
 
@@ -20,7 +21,7 @@ class LogPresentationTests(unittest.TestCase):
         directory=tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.root=Path(directory.name)
-        self.config=json.loads((PROJECT_ROOT/".app.config.example").read_text())
+        self.config=json.loads((example_path()).read_text())
 
     def test_unicode_object_context_widths_and_single_line(self):
         stream=io.StringIO()
@@ -63,7 +64,7 @@ class LogPresentationTests(unittest.TestCase):
         stream=io.StringIO()
         logger=ApplicationLogger(self.config["logging"],root=self.root,stream=stream)
         try:
-            with patch("app.console.supports_color",return_value=True):
+            with patch("api.app.console.supports_color",return_value=True):
                 for level in ("DEBUG","INFO","WARNING","ERROR","CRITICAL"):
                     logger.log({"level":level,"message":TEXT})
             for line in stream.getvalue().splitlines():

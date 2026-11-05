@@ -6,9 +6,9 @@ import unittest
 import re
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from app.browser_sessions import BrowserSessions, browser_settings
-from app.config import ConfigurationError, PROJECT_ROOT
-from app.audit_privacy import sensitive_operation
+from api.app.browser_sessions import BrowserSessions, browser_settings
+from api.app.config import ConfigurationError, PROJECT_ROOT
+from shared.audit_privacy import sensitive_operation
 import test_api as api
 import test_catalogue_api as legacy
 
@@ -140,7 +140,7 @@ class BrowserSessionTests(unittest.TestCase):
         self.assertNotIn('private-test-value', self.output.getvalue())
 
     def test_cookie_and_bearer_catalogue_permission_parity(self):
-        from app.catalogue_repository import CatalogueRepository
+        from api.app.catalogue_repository import CatalogueRepository
         self.browser()
         with patch.object(CatalogueRepository, 'page', return_value={'count': 0, 'page': 1, 'page_size': 50, 'items': []}):
             for role in ('administrator', 'supervisor', 'standard'):
@@ -251,7 +251,7 @@ class BrowserSessionTests(unittest.TestCase):
         self.assertEqual(self.client.get('/consultas').status_code, 200)
         self.assertEqual(sessions.entries[key].expires, 14300)
         self.assertEqual(sessions.entries[key].absolute_expires, absolute)
-        from app.catalogue_repository import CatalogueRepository
+        from api.app.catalogue_repository import CatalogueRepository
         with patch.object(CatalogueRepository, 'page', return_value={'count': 0, 'page': 1, 'page_size': 10, 'items': []}):
             now[0] = 7200
             self.assertEqual(self.client.get('/platforms').status_code, 200)
@@ -278,7 +278,7 @@ class BrowserCreationIntegrationTests(unittest.TestCase):
 
     def test_cookie_tag_category_creation_matches_openapi_and_audits(self):
         """Verify the form payload using only the fixture's UUID-owned database."""
-        from app.text_limits import DESCRIPTION_MAX_LENGTH
+        from shared.text_limits import DESCRIPTION_MAX_LENGTH
         schema = self.client.app.openapi()['components']['schemas']['TagCategoriesCreate']
         fields = {'tag_category_name', 'display_name_tag_categories', 'description_tag_categories'}
         self.assertEqual(set(schema['properties']), fields)
@@ -303,7 +303,7 @@ class BrowserCreationIntegrationTests(unittest.TestCase):
             self.assertEqual(browser.post('/tag_categories', headers=HEADERS, json=payload).status_code, 403)
 
     def test_cookie_platform_tag_creation_audit_and_transaction_authority(self):
-        from app.catalogue_repository import CatalogueRepository
+        from api.app.catalogue_repository import CatalogueRepository
         # The provider and accounts are allocated by the UUID-owned legacy harness.
         with TestClient(self.client.app, base_url=ORIGIN, client=('127.0.0.1', 43211)) as browser:
             for role in ('administrator', 'supervisor', 'standard'):

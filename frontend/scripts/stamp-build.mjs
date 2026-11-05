@@ -23,7 +23,7 @@ const id=hash(JSON.stringify(ordered)).slice(0,16);
 const sourceFiles=[];
 function collect(directory){for(const entry of readdirSync(directory,{withFileTypes:true})){const path=resolve(directory,entry.name);if(entry.isDirectory())collect(path);else if(entry.isFile()&&!entry.name.endsWith('.spec.ts'))sourceFiles.push(path);}}
 for(const directory of ['src','styles','assets','scripts'])collect(resolve(root,directory));
-for(const name of ['package.json','package-lock.json','angular.json','tsconfig.json','tsconfig.app.json','public/runtime-config.json'])sourceFiles.push(resolve(root,name));
+for(const name of ['package.json','package-lock.json','angular.json','tsconfig.json','tsconfig.app.json','config.example.json'])sourceFiles.push(resolve(root,name));
 const sourceHash=createHash('sha256');
 for(const path of sourceFiles.sort()){sourceHash.update(relative(root,path).replaceAll('\\','/')+'\0');sourceHash.update(readFileSync(path));}
 html=html.replace(/<meta name="ouroboros-build" content="[^"]*">/g,'').replace('</head>',`<meta name="ouroboros-build" content="${id}"></head>`);

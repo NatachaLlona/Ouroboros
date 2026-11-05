@@ -2,7 +2,7 @@
 
 ## One application policy
 
-`app/text_limits.json` is the single application configuration source. It initially specifies `description_max_length: 4000` and grapheme Unicode version **16.0.0**. The backend loads it through `app/text_limits.py`. `frontend/scripts/generate-text-limits.mjs` generates the public `DESCRIPTION_MAX_LENGTH` and Unicode-version constants; npm build, test and watch generate them before compiling. Components and validators consume the generated constant, never a local numeric limit. Change the JSON, rebuild the frontend and restart the API to deploy a new limit consistently. `node frontend/scripts/generate-text-limits.mjs --check` detects stale generated configuration.
+`shared/text_limits.json` is the single application configuration source. It initially specifies `description_max_length: 4000` and grapheme Unicode version **16.0.0**. The backend loads it through `shared/text_limits.py`. `frontend/scripts/generate-text-limits.mjs` generates the public `DESCRIPTION_MAX_LENGTH` and Unicode-version constants; npm build, test and watch generate them before compiling. Components and validators consume the generated constant, never a local numeric limit. Change the JSON, rebuild the frontend and restart the API to deploy a new limit consistently. `node frontend/scripts/generate-text-limits.mjs --check` detects stale generated configuration.
 
 Both implementations use Unicode 16 extended grapheme clusters under [UAX #29 revision 45](https://www.unicode.org/reports/tr29/tr29-45.html): Python [uniseg 0.10.1](https://pypi.org/project/uniseg/0.10.1/) and JavaScript [unicode-segmenter 0.14.5](https://github.com/cometkim/unicode-segmenter/tree/unicode-segmenter%400.14.5). Versions are pinned deliberately; browser ICU/Intl versions do not control application counting. Shared `qa/grapheme-vectors.json` contains **1,093 official Unicode 16 conformance cases**, source/license references included. Both test suites verify every segmentation boundary against this same fixture. Refresh deliberately with `scripts/update_grapheme_vectors.py` when changing the segmentation policy and both dependencies together.
 
@@ -18,7 +18,7 @@ No normal description was inspected or changed during implementation. Whether no
 
 ```powershell
 cd C:\Dev\Ouroboros
-.\.venv\Scripts\python.exe scripts/inspect_description_lengths.py
+.\.venv\Scripts\python.exe api/scripts/inspect_description_lengths.py
 ```
 
 Enter the existing API username/password only in that terminal. The script uses ordinary bearer authentication and read-only paginated API calls, prints counts plus oversized IDs/lengths, and never prints descriptions, credentials or tokens. It does not extract saved secrets or automatically fix/delete/truncate anything. The scan is not a transaction snapshot; rerun if records change concurrently.
@@ -45,7 +45,7 @@ Current result reports are `reports/description_tier_tests.txt`, `reports/descri
 
 ```powershell
 cd C:\Dev\Ouroboros
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r api/requirements.txt
 $env:PATH="$PWD\.tools\node-v24.15.0-win-x64;$env:PATH"
 npm.cmd --prefix frontend ci --no-fund --no-audit
 npm.cmd --prefix frontend run build

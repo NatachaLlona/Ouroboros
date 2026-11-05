@@ -1,4 +1,5 @@
 """ASGI boundary failures must not create a second response or leak context."""
+from support_config import example_config, example_path, config_path, config_example_path
 import asyncio
 import io
 import json
@@ -7,10 +8,10 @@ import unittest
 import traceback
 from pathlib import Path
 
-from app.config import PROJECT_ROOT
-from app.logger import ApplicationLogger, active_logger
-from app.main import RequestLoggingMiddleware
-from app.request_context import request_context
+from api.app.config import PROJECT_ROOT
+from api.app.logger import ApplicationLogger, active_logger
+from api.app.main import RequestLoggingMiddleware
+from shared.request_context import request_context
 
 
 class MiddlewareFailureTests(unittest.TestCase):
@@ -18,7 +19,7 @@ class MiddlewareFailureTests(unittest.TestCase):
         async def check(started):
             with tempfile.TemporaryDirectory() as directory:
                 output = io.StringIO()
-                config = json.loads((PROJECT_ROOT/".app.config.example").read_text())["logging"]
+                config = json.loads((example_path()).read_text())["logging"]
                 logger = ApplicationLogger(config, root=Path(directory), stream=output)
                 messages = []
                 secret = "private-unhandled-error-content"
@@ -64,7 +65,7 @@ class MiddlewareFailureTests(unittest.TestCase):
         async def check(cancel):
             with tempfile.TemporaryDirectory() as directory:
                 output = io.StringIO()
-                config = json.loads((PROJECT_ROOT/".app.config.example").read_text())["logging"]
+                config = json.loads((example_path()).read_text())["logging"]
                 logger = ApplicationLogger(config, root=Path(directory), stream=output)
                 async def downstream(scope, receive, send):
                     if cancel:
@@ -93,7 +94,7 @@ class MiddlewareFailureTests(unittest.TestCase):
         async def check():
             with tempfile.TemporaryDirectory() as directory:
                 output = io.StringIO()
-                config = json.loads((PROJECT_ROOT/".app.config.example").read_text())["logging"]
+                config = json.loads((example_path()).read_text())["logging"]
                 logger = ApplicationLogger(config, root=Path(directory), stream=output)
                 attempts = []
                 async def downstream(scope, receive, send):

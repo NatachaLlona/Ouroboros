@@ -35,12 +35,6 @@ logs/
 # Local configuration and secrets
 .env
 .env.*
-.app.config
-.app.config.*
-!.app.config.example
-.ai.config
-.ai.config.*
-!.ai.config.example
 
 # Temporary files and copies that may contain credentials
 *.tmp
@@ -86,6 +80,12 @@ node_modules/
 frontend/dist/
 .cache/speech/
 .venv-speech/
-modules/**/.config.json
-.orchestration.json
 frontend/public/assistant-theme.css
+
+# Canonical per-installation module configuration
+/config.json
+/frontend/config.json
+/api/config.json
+/assistance/config.json
+/database/config.json
+frontend/public/runtime-config.json

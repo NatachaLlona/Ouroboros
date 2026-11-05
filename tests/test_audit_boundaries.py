@@ -6,12 +6,12 @@ import unittest
 from pathlib import Path
 from datetime import datetime
 from unittest.mock import Mock
-from app.audit_context import audit_context
-from app.audit_middleware import RequestAuditingMiddleware
-from app.audit_privacy import BodyCapture
-from app.config import ConfigurationError, PROJECT_ROOT
-from app.datetimes import source_values, present
-from app.errors import load_error_codes
+from shared.audit_context import audit_context
+from api.app.audit_middleware import RequestAuditingMiddleware
+from shared.audit_privacy import BodyCapture
+from api.app.config import ConfigurationError, PROJECT_ROOT
+from shared.datetimes import source_values, present
+from shared.errors import load_error_codes
 
 
 class AuditBoundaryTests(unittest.TestCase):
@@ -60,7 +60,7 @@ class AuditBoundaryTests(unittest.TestCase):
             asyncio.run(check(mode))
 
     def test_catalogue_validation_and_sensitive_capture(self):
-        document = (PROJECT_ROOT / 'app/error_codes.json').read_text(encoding='utf-8')
+        document = (PROJECT_ROOT / 'shared/error_codes.json').read_text(encoding='utf-8')
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'codes.json'
             for content in ('{}', document.replace('"version": 1','"version": 2'), document.replace('"version": 1','"version": 1, "version": 1')):
@@ -70,7 +70,7 @@ class AuditBoundaryTests(unittest.TestCase):
         capture.feed(b'{"password":"private"}',True)
         self.assertEqual(len(capture.data),0)
         self.assertEqual(capture.result()[1]['reason'],'sensitive_operation')
-        from app.audit_privacy import bounded_value
+        from shared.audit_privacy import bounded_value
         safe, flags = bounded_value({'ordinary':'host=localhost dbname=private_db user=private_user password=private_password'},256)
         self.assertNotIn('private_',str(safe))
         safe, flags = bounded_value({'password=private_key':'private_value'},256)

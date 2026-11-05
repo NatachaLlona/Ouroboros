@@ -6,7 +6,7 @@ This investigation compares current source, production output and real HTTP resp
 
 The inspected listener on 6969 was PID **12272**, parent **25284**, started at **2026-10-29 19:59:18.046 UTC**. Its command line was `"C:\Dev\Ouroboros\.venv\Scripts\python.exe" start.py`, and its process current directory was **C:\Dev\Ouroboros**. CIM identified the underlying Python executable at `C:\Users\Natacha\AppData\Local\Python\pythoncore-3.15-64\python.exe`. `scripts/inspect_listener.py` reads only the bounded process current-directory parameter; it does not dump environment variables or arbitrary command arguments.
 
-`app/endpoints/browser.py` resolves `BUILD` to `PROJECT_ROOT/frontend/dist/browser`; `app/main.py` mounts that directory at `/frontend`. A unique inert static file created there, retrieved successfully through the live server, and immediately removed confirmed the actual directory independently of source assumptions. No catalogue or credentials were accessed or changed.
+`api/app/endpoints/browser.py` resolves `BUILD` to `PROJECT_ROOT/frontend/dist/browser`; `api/app/main.py` mounts that directory at `/frontend`. A unique inert static file created there, retrieved successfully through the live server, and immediately removed confirmed the actual directory independently of source assumptions. No catalogue or credentials were accessed or changed.
 
 At **22:47:14 UTC**, the freshly generated index and all **seven** transitively imported JS/CSS assets matched their HTTP responses byte for byte. The build was **2561b78c4da73d71**, with main `/frontend/main-53N2OAP4.js` and stylesheet `/frontend/styles-72VMH4FJ.css`. Index SHA256: `be00fedbe982688ec169104145e1260c6c1151cf4620e51d681b0bb497eec8f1`. The public build manifest matched the source fingerprint, index, meta identifier and complete asset graph. The previous build also matched its HTTP responses; a wrong server directory was not reproduced.
 
@@ -55,7 +55,7 @@ Enter existing startup credentials only in the terminal. Do not start a second l
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/inspect_listener.py
-.\.venv\Scripts\python.exe scripts/diagnose_frontend_delivery.py --probe-directory --output reports/frontend_delivery_after.json --summary
+.\.venv\Scripts\python.exe frontend/scripts/diagnose_frontend_delivery.py --probe-directory --output reports/frontend_delivery_after.json --summary
 ```
 
 1. Preserve any current draft before reloading. Open a fresh tab at http://localhost:6969/. Compare footer `Interface 2561b78c4da73d71` with `/frontend/build-info.json` (a later rebuild may produce another ID).

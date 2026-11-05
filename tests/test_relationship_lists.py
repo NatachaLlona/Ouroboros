@@ -9,11 +9,11 @@ from psycopg import Cursor, IsolationLevel
 from pydantic import ValidationError
 import test_api as api
 import test_catalogue_api as legacy
-from app.catalogue_repository import CatalogueRepository
-from app.creation import CREATION_EXAMPLES
-from app.database import connect
-from app.schemas.catalogue import RESOURCES
-from app.schemas.relationships import RELATIONSHIPS, SUMMARY_FIELDS
+from api.app.catalogue_repository import CatalogueRepository
+from api.app.creation import CREATION_EXAMPLES
+from api.app.database import connect
+from shared.schemas.catalogue import RESOURCES
+from shared.schemas.relationships import RELATIONSHIPS, SUMMARY_FIELDS
 
 
 class RelationshipListUnitTests(unittest.TestCase):
@@ -191,7 +191,7 @@ class RelationshipListIntegrationTests(unittest.TestCase):
         tag = self.create('tags', tag_name='before_tag', display_name_tags='Before tag')
         category = self.create('tag_categories', tag_category_name='before_category', display_name_tag_categories='Before category')
         link = self.create('tag_category_relationships', id_tags=tag['id_tags'], id_tag_categories=category['id_tag_categories'])
-        from app.collection_queries import select_page
+        from api.app.collection_queries import select_page
         def rename():
             # Exact disposable database owned by this fixture; a separate committed writer.
             with connect(self.database_config, self.master) as connection:
@@ -204,7 +204,7 @@ class RelationshipListIntegrationTests(unittest.TestCase):
             with ThreadPoolExecutor(max_workers=1) as pool:
                 pool.submit(rename).result(timeout=10)
             return result
-        with patch('app.catalogue_repository.select_page', concurrent_page):
+        with patch('api.app.catalogue_repository.select_page', concurrent_page):
             response = self.call('GET', '/tag_category_relationships')
         row = response.json()['items'][0]
         self.assertEqual(row['id_tag_category_relationships'], link['id_tag_category_relationships'])

@@ -25,7 +25,7 @@ The existing `Registration.choose()` and `UnsavedChanges` guard handle every for
 
 ## Verified existing contract
 
-The database model in migration 005, `app/schemas/catalogue.py`, `app/endpoints/catalogue.py` and the running server's `/openapi.json` agree. No backend contract or business rule was changed.
+The database model in migration 005, `shared/schemas/catalogue.py`, `api/app/endpoints/catalogue.py` and the running server's `/openapi.json` agree. No backend contract or business rule was changed.
 
 | UI | POST /tag_categories property | Existing contract |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ The database model in migration 005, `app/schemas/catalogue.py`, `app/endpoints/
 
 Automatic identity, sequence, prefix, fixed table name and UTC dates are not editable. The category form sends one object using shared `editorPayload` and `Api`. Subsequent Tag multi-selection additionally uses GET /tag_categories and the existing tag-category relationship read/create/individual-delete routes internally. Category editing and Tag Relationship endpoints remain unavailable. Authentication and transactional authority remain enforced by the existing backend.
 
-Reuse `FieldLabel`, global fantasy-name wording, technical-name suggestion/manual preservation, `SharedFormField`, `DescriptionInput` and the generated limit from `app/text_limits.json` (currently 4000 Unicode 16 graphemes). Description has its shared counter and no tooltip. Existing validation, busy/duplicate prevention, API feedback and failed-draft retention apply. Confirmed success clears editable state immediately and uses the existing success notice and horizontally centered Cadastrar outro button.
+Reuse `FieldLabel`, global fantasy-name wording, technical-name suggestion/manual preservation, `SharedFormField`, `DescriptionInput` and the generated limit from `shared/text_limits.json` (currently 4000 Unicode 16 graphemes). Description has its shared counter and no tooltip. Existing validation, busy/duplicate prevention, API feedback and failed-draft retention apply. Confirmed success clears editable state immediately and uses the existing success notice and horizontally centered Cadastrar outro button.
 
 ## Image navigation
 

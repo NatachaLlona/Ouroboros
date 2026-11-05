@@ -1,0 +1,10 @@
+{
+  "project_name": "ouroboros",
+  "public_host": "127.0.0.1",
+  "public_port": 6969,
+  "startup_timeout_seconds": 180,
+  "api_upstream": "api:8000",
+  "assistance_url": "http://assistance:8000",
+  "database_host": "postgres",
+  "workspace": ""
+}

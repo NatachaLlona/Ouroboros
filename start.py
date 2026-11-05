@@ -1,5 +1,5 @@
 """Single standard-library entry point; application dependencies run inside Docker."""
-from modules.orchestration import main
+from orchestration import main
 
 
 if __name__ == "__main__":

@@ -10,11 +10,11 @@ import uuid
 
 from psycopg import errors, sql
 
-from app.config import PROJECT_ROOT
-from app.credentials import write_secret
-from app.database import (check_docker, compose_command, compose_environment,
+from api.app.config import PROJECT_ROOT
+from api.app.credentials import write_secret
+from api.app.database import (check_docker, compose_command, compose_environment,
                           connect, run_command, start_postgres)
-from app.migrate import migrate
+from api.app.migrate import migrate
 
 
 TABLES = {

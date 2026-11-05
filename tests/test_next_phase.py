@@ -76,7 +76,7 @@ class NextPhaseTests(unittest.TestCase):
         return self.call('GET', '/api_audit_logs', params={'interaction_id':response.headers['X-Interaction-ID']}).json()['items'][0]
 
     def test_audit_atomicity_outage_and_finalization(self):
-        from app.audit_store import AuditStore
+        from api.app.audit_store import AuditStore
         work = self.create('works', title='Preserved', title_language='en')
         with patch.object(AuditStore, 'begin', side_effect=RuntimeError('safe injected outage')):
             self.call('PUT', '/works/' + work['id_works'], expected=503, json={'synopsis':'must roll back'})
@@ -93,7 +93,7 @@ class NextPhaseTests(unittest.TestCase):
         self.assertEqual(self.audit(rejected)['business_outcome'], 'rolled_back')
         self.assertIsNone(self.call('GET', '/works/' + work['id_works']).json()['synopsis'])
         # Restore only the function from the copied migration in this owned database.
-        migration = (self.root / 'sql/migrations/008_create_api_audit_logs.sql').read_text(encoding='utf-8')
+        migration = (self.root / 'database/sql/migrations/008_create_api_audit_logs.sql').read_text(encoding='utf-8')
         function = migration.split('CREATE FUNCTION public.capture_api_mutation()',1)[1].split('\nDO $$',1)[0]
         with self.provider.connection() as connection, connection.cursor() as cursor:
             cursor.execute('CREATE OR REPLACE FUNCTION public.capture_api_mutation()' + function)
@@ -106,7 +106,7 @@ class NextPhaseTests(unittest.TestCase):
         self.assertIn('API audit persistence failed', self.output.getvalue())
 
     def test_unknown_routes_auth_and_internal_error_codes(self):
-        from app.catalogue_repository import CatalogueRepository
+        from api.app.catalogue_repository import CatalogueRepository
         for method,path,status,code in [('GET','/unknown-route',404,'RESOURCE_NOT_FOUND'),('PATCH','/works',405,'METHOD_NOT_ALLOWED')]:
             response = self.call(method,path,expected=status)
             self.assertEqual(response.json()['error']['code'],code)
@@ -124,15 +124,15 @@ class NextPhaseTests(unittest.TestCase):
         import tempfile
         import uuid
         from pathlib import Path
-        from app.database import ensure_database, connect
-        from app.migrate import migrate
+        from api.app.database import ensure_database, connect
+        from api.app.migrate import migrate
         database = {**self.db,'name':'historical_' + uuid.uuid4().hex}
         ensure_database(database,self.master)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'sql/migrations').mkdir(parents=True)
-            for source in (self.root / 'sql/migrations').glob('*.sql'):
-                if source.name[:3] < '007': shutil.copy(source,root / 'sql/migrations')
+            (root / 'database/sql/migrations').mkdir(parents=True)
+            for source in (self.root / 'database/sql/migrations').glob('*.sql'):
+                if source.name[:3] < '007': shutil.copy(source,root / 'database/sql/migrations')
             with connect(database,self.master) as connection:
                 migrate(connection,root)
                 connection.execute("INSERT INTO public.works(title,title_language) VALUES ('Historical','en')")

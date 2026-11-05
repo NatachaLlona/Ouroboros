@@ -10,7 +10,7 @@ import wave
 from types import SimpleNamespace
 from pathlib import Path
 from unittest.mock import patch
-from app.transcription import LocalTranscription, SpeechError
+from assistance.transcription import LocalTranscription, SpeechError
 
 
 def test_wave(seconds=1):
@@ -22,19 +22,17 @@ def test_wave(seconds=1):
 
 
 class SpeechAssemblyTests(unittest.TestCase):
-    def test_separate_ai_configuration_overrides_legacy_limits_without_rewriting_them(self):
-        from app.ai_config import apply_ai_config
+    def test_module_configuration_preserves_limits_without_rewriting_other_files(self):
+        from shared.assistance_settings import read_ai_config
         with tempfile.TemporaryDirectory() as directory:
-            path=Path(directory)/'.ai.config'
+            root=Path(directory)
+            path=root/'assistance/config.json';path.parent.mkdir()
             document={'transcription':{'max_duration_seconds':600}}
             path.write_text(json.dumps(document),encoding='utf-8')
-            legacy={'max_duration_seconds':60,'model':'base'}
-            config={'transcription':legacy,'unrelated':{'preserved':True}}
-            apply_ai_config(config,directory)
-            self.assertEqual(config['transcription']['max_duration_seconds'],600)
-            self.assertEqual(config['transcription']['model'],'base')
-            self.assertEqual(legacy['max_duration_seconds'],60)
-            self.assertTrue(config['unrelated']['preserved'])
+            unrelated=root/'api/config.json';unrelated.parent.mkdir();unrelated.write_text('{"preserved":true}',encoding='utf-8')
+            original=unrelated.read_bytes()
+            self.assertEqual(read_ai_config(path)['max_duration_seconds'],600)
+            self.assertEqual(unrelated.read_bytes(),original)
             self.assertEqual(json.loads(path.read_text(encoding='utf-8')),document)
 
     def service(self,segments,**limits):
@@ -81,7 +79,7 @@ class SpeechAssemblyTests(unittest.TestCase):
             yield SimpleNamespace(text=' first',start=0)
             clock[0]=2000
             yield SimpleNamespace(text=' last',start=1)
-        with patch('app.transcription.time.monotonic',side_effect=lambda:clock[0]):
+        with patch('shared.speech.time.monotonic',side_effect=lambda:clock[0]):
             with self.assertRaises(SpeechError) as error:self.service(slow()).transcribe(test_wave())
         self.assertEqual(error.exception.code,'TRANSCRIPTION_TIMEOUT')
 
@@ -96,7 +94,7 @@ class SpeechEndpointTests(unittest.TestCase):
         import test_api
         from test_frontend import BrowserSessionTests
         test_api.APITests.setUp(self)
-        auditing=patch('app.audit_middleware.AuditStore');self.audit=auditing.start().return_value
+        auditing=patch('api.app.audit_middleware.AuditStore');self.audit=auditing.start().return_value
         self.audit.begin.return_value=1;self.addCleanup(auditing.stop)
         self.browser=BrowserSessionTests.browser.__get__(self);self.login=BrowserSessionTests.login.__get__(self)
         session=self.login().json()

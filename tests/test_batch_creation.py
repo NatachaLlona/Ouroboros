@@ -1,4 +1,5 @@
 """Atomic array creation contracts in memory and exclusively owned QA databases."""
+from support_config import example_config, example_path, config_path, config_example_path
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import json
@@ -10,13 +11,13 @@ from unittest.mock import patch
 
 import test_api as api
 import test_catalogue_api as legacy
-from app.audit_context import bounded_mutation_details
-from app.catalogue_repository import CatalogueRepository
-from app.config import ConfigurationError, PROJECT_ROOT, load_config
-from app.creation_limits import CreationBodyLimitMiddleware
-from app.database_test import TestRepository
-from app.errors import AuditUnavailable, load_error_codes
-from app.schemas.catalogue import RESOURCES
+from shared.audit_context import bounded_mutation_details
+from api.app.catalogue_repository import CatalogueRepository
+from api.app.config import ConfigurationError, PROJECT_ROOT, load_config
+from api.app.creation_limits import CreationBodyLimitMiddleware
+from api.app.database_test import TestRepository
+from shared.errors import AuditUnavailable, load_error_codes
+from shared.schemas.catalogue import RESOURCES
 
 
 class BatchCreationUnitTests(unittest.TestCase):
@@ -102,13 +103,13 @@ class BatchCreationUnitTests(unittest.TestCase):
     def test_configuration_bounds_defaults_and_bounded_summary(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            base = json.loads((PROJECT_ROOT / '.app.config.example').read_text(encoding='utf-8'))
+            base = json.loads((example_path()).read_text(encoding='utf-8'))
             base.pop('api')
-            (root / '.app.config').write_text(json.dumps(base), encoding='utf-8')
+            (config_path(root)).write_text(json.dumps(base), encoding='utf-8')
             self.assertEqual(load_config(root)['api'], {'max_batch_size': 300, 'max_creation_body_bytes': 4194304})
             for settings in ([], {'max_batch_size': True}, {'max_batch_size': 0}, {'max_batch_size': 10001},
                              {'max_creation_body_bytes': 0}, {'max_creation_body_bytes': '4194304'}):
-                (root / '.app.config').write_text(json.dumps({**base, 'api': settings}), encoding='utf-8')
+                (config_path(root)).write_text(json.dumps({**base, 'api': settings}), encoding='utf-8')
                 with self.assertRaises(ConfigurationError):
                     load_config(root)
         value = bounded_mutation_details({'operation': 'batch_create', 'created_count': 300,
@@ -276,8 +277,8 @@ class BatchCreationIntegrationTests(unittest.TestCase):
             self.call('POST', '/test', role='standard', expected=401, json=[{'value': 'Revoked'}])
 
     def test_audit_failure_atomicity_and_300_item_capture_limits(self):
-        for table, target, body in [('works', 'app.catalogue_repository.batch_evidence', [{'title': 'No commit', 'title_language': 'en'}] * 3),
-                                    ('test', 'app.database_test.batch_evidence', [{'value': 'No commit'}] * 3)]:
+        for table, target, body in [('works', 'api.app.catalogue_repository.batch_evidence', [{'title': 'No commit', 'title_language': 'en'}] * 3),
+                                    ('test', 'api.app.database_test.batch_evidence', [{'value': 'No commit'}] * 3)]:
             before = self.count(table)
             with patch(target, side_effect=AuditUnavailable('Mandatory audit unavailable')):
                 response = self.call('POST', '/' + table, expected=503, json=body)

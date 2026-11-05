@@ -3,7 +3,7 @@ import { provideHttpClient, withNoXsrfProtection } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { App } from './app/app';
 import { leaveRegistration } from './app/shared/unsaved-changes';
-import { loadFrontendConfig } from './app/frontend.config';
+import { loadFrontendConfig } from './app/configuration';
 
 // CSRF uses the existing synchronizer token, not Angular's cookie-based default.
 loadFrontendConfig().then(()=>bootstrapApplication(App, { providers: [provideHttpClient(withNoXsrfProtection()), provideRouter([

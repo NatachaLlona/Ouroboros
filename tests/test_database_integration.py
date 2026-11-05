@@ -1,4 +1,5 @@
 """Opt-in real PostgreSQL checks using resources created solely by this test."""
+from support_config import example_config, example_path, config_path, config_example_path
 import json
 import os
 import secrets
@@ -9,12 +10,12 @@ import unittest
 import uuid
 from pathlib import Path
 
-from app.config import PROJECT_ROOT
-from app.credentials import write_secret
-from app.database import (DatabaseError, check_docker, compose_command,
+from api.app.config import PROJECT_ROOT
+from api.app.credentials import write_secret
+from api.app.database import (DatabaseError, check_docker, compose_command,
                           compose_environment, connect, run_command, start_postgres)
-from app.database_test import insert_entry, read_entry
-from app.migrate import migrate
+from api.app.database_test import insert_entry, read_entry
+from api.app.migrate import migrate
 
 
 @unittest.skipUnless(os.environ.get("FOUNDATION_RUN_INTEGRATION") == "1", "Set FOUNDATION_RUN_INTEGRATION=1 for an isolated Docker test")
@@ -24,7 +25,7 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
         project = "foundation-test-" + uuid.uuid4().hex
         root = Path(tempfile.mkdtemp(prefix="foundation-postgres-"))
         shutil.copy(PROJECT_ROOT / "compose.yaml", root)
-        shutil.copytree(PROJECT_ROOT / "sql", root / "sql")
+        shutil.copytree(PROJECT_ROOT / "database" / "sql", root / "database" / "sql")
         from support_ports import approved_port
         port = approved_port('database')
         database = {"name": "foundation_test", "user": "foundation_test_master", "port": port,
@@ -44,7 +45,7 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
             # Only change the test's private copy; prove exact-byte rejection and recovery.
             with connect(database, password) as connection:
                 registry = connection.execute('SELECT version,checksum,applied_at FROM public.foundation_migrations ORDER BY version').fetchall()
-                path = root / 'sql/migrations/005_create_catalogue.sql'
+                path = root / 'database/sql/migrations/005_create_catalogue.sql'
                 original = path.read_bytes()
                 lf = original.replace(b'\r\n', b'\n')
                 changed = lf if original != lf else lf.replace(b'\n', b'\r\n')
@@ -80,13 +81,13 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
             import httpx
             import uvicorn
             from fastapi.testclient import TestClient
-            from app.api_credentials import PASSWORD_HASHER
-            from app.auth import AuthService
-            from app.api_users import APIUserStore
-            from app.database import Database
-            from app.logger import ApplicationLogger
-            from app.main import create_app
-            config = json.loads((PROJECT_ROOT / ".app.config.example").read_text())
+            from api.app.api_credentials import PASSWORD_HASHER
+            from api.app.auth import AuthService
+            from api.app.api_users import APIUserStore
+            from api.app.database import Database
+            from api.app.logger import ApplicationLogger
+            from api.app.main import create_app
+            config = json.loads((example_path()).read_text())
             api_password = secrets.token_urlsafe(24)
             users = APIUserStore(Database(database, password))
             api_hash = PASSWORD_HASHER.hash(api_password)
@@ -206,7 +207,7 @@ class PostgreSQLIntegrationTests(unittest.TestCase):
                 application = create_app(config, provider, auth, logger)
                 @application.get("/concurrency/{index}")
                 def concurrency_probe(index: int):
-                    from app.logger import log_event
+                    from api.app.logger import log_event
                     with provider.connection() as connection:
                         log_event("DEBUG","Concurrent operation entered",component="probe")
                         with connection.cursor() as cursor:

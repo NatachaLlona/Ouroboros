@@ -22,16 +22,20 @@ services:
   api:
     build:
       context: .
-      dockerfile: modules/base/Dockerfile
+      dockerfile: api/Dockerfile
     environment:
-      OUROBOROS_BASE_CONFIG: /config/base/.config.json
+      OUROBOROS_API_CONFIG: /config/api/config.json
+      OUROBOROS_DATABASE_CONFIG: /config/database/config.json
+      OUROBOROS_PUBLIC_HOST: ${OUROBOROS_PUBLIC_HOST:-127.0.0.1}
+      OUROBOROS_PUBLIC_PORT: ${OUROBOROS_PUBLIC_PORT:-6969}
       OUROBOROS_EXTERNAL_ASSISTANCE: '1'
       OUROBOROS_DB_HOST: ${OUROBOROS_DB_HOST:-postgres}
       OUROBOROS_BROWSER_PROXY_HOST: frontend
       OUROBOROS_ASSISTANCE_URL: ${OUROBOROS_ASSISTANCE_URL:-http://assistance:8000}
       OUROBOROS_SERVICE_KEY_FILE: /run/secrets/service_key
     volumes:
-      - ./modules/base/config:/config/base
+      - ./api:/config/api
+      - ./database:/config/database
       - ./.secrets:/runtime/.secrets
       - ./logs:/runtime/logs
     secrets: [postgres_password, service_key]
@@ -48,14 +52,14 @@ services:
     cpus: 2
     build:
       context: .
-      dockerfile: modules/assistance/Dockerfile
+      dockerfile: assistance/Dockerfile
     environment:
-      OUROBOROS_AI_CONFIG: /config/assistance.json
+      OUROBOROS_AI_CONFIG: /runtime/assistance/config.json
       OUROBOROS_SERVICE_KEY_FILE: /run/secrets/service_key
       OUROBOROS_SPEECH_CACHE: /models
     volumes:
-      - ./modules/assistance/.config.json:/config/assistance.json:ro
-      - ./.env:/runtime/.env:ro
+      - ./assistance/config.json:/runtime/assistance/config.json:ro
+      - ./assistance/.env:/runtime/assistance/.env:ro
       - ${OUROBOROS_MODEL_CACHE:-./.cache/speech}:/models
     secrets: [service_key]
     networks: [assistance]
@@ -69,11 +73,11 @@ services:
       OUROBOROS_API_UPSTREAM: ${OUROBOROS_API_UPSTREAM:-api:8000}
     build:
       context: .
-      dockerfile: modules/frontend/Dockerfile
+      dockerfile: frontend/Dockerfile
     ports:
       - "${OUROBOROS_PUBLIC_HOST:-127.0.0.1}:${OUROBOROS_PUBLIC_PORT:-6969}:8080"
     volumes:
-      - ./modules/frontend/.config.json:/config/frontend.json:ro
+      - ./frontend/config.json:/config/frontend/config.json:ro
       - ./frontend/public/images:/usr/share/nginx/html/frontend/images:ro
     networks: [web]
     healthcheck:

@@ -7985,7 +7985,7 @@
       "tests": [
         "test_transcription.SpeechAssemblyTests.test_cancellation_and_processing_timeout_are_checked_between_segments",
         "test_transcription.SpeechAssemblyTests.test_limits_and_failures_never_return_partial_text",
-        "test_transcription.SpeechAssemblyTests.test_separate_ai_configuration_overrides_legacy_limits_without_rewriting_them",
+        "test_transcription.SpeechAssemblyTests.test_module_configuration_preserves_limits_without_rewriting_other_files",
         "test_transcription.SpeechAssemblyTests.test_ten_minute_defaults_and_no_silence_removed_before_native_windows",
         "test_transcription.SpeechAssemblyTests.test_transcript_longer_than_old_character_limit_is_returned_in_full",
         "test_transcription.SpeechEndpointTests.test_runtime_options_and_complete_response_omit_contents_from_audits",
@@ -8062,7 +8062,7 @@
         "test_module_architecture.ModuleOrchestrationTests.test_assistance_failure_does_not_prevent_frontend_startup",
         "test_module_architecture.ModuleOrchestrationTests.test_forwarded_client_address_is_accepted_only_from_resolved_frontend",
         "test_module_architecture.ModuleOrchestrationTests.test_launcher_help_does_not_import_host_site_packages",
-        "test_module_architecture.ModuleOrchestrationTests.test_module_adoption_preserves_existing_configuration_and_user_customization"
+        "test_module_architecture.ModuleOrchestrationTests.test_five_configs_preserve_values_and_do_not_read_retired_paths"
       ],
       "type": "automated",
       "integration": false,

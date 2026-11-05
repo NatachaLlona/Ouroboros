@@ -7,9 +7,9 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 from uniseg.graphemecluster import grapheme_clusters
-from app.config import PROJECT_ROOT
-from app.schemas.catalogue import RESOURCES
-from app.text_limits import DESCRIPTION_MAX_LENGTH, GRAPHEME_UNICODE_VERSION, description_length
+from api.app.config import PROJECT_ROOT
+from shared.schemas.catalogue import RESOURCES
+from shared.text_limits import DESCRIPTION_MAX_LENGTH, GRAPHEME_UNICODE_VERSION, description_length
 import test_api as api
 import test_catalogue_api as legacy
 
@@ -62,9 +62,9 @@ class DescriptionHTTPTests(unittest.TestCase):
     def test_direct_api_overflow_returns_standard_error_without_mutations(self):
         self.users.users[self.user.id] = replace(self.user, role='administrator')
         headers = api.APITests.bearer(self)
-        with patch('app.catalogue_repository.CatalogueRepository.create') as create, \
-             patch('app.catalogue_repository.CatalogueRepository.create_many') as create_many, \
-             patch('app.catalogue_repository.CatalogueRepository.bulk') as bulk:
+        with patch('api.app.catalogue_repository.CatalogueRepository.create') as create, \
+             patch('api.app.catalogue_repository.CatalogueRepository.create_many') as create_many, \
+             patch('api.app.catalogue_repository.CatalogueRepository.bulk') as bulk:
             for table, (field, base) in DESCRIPTIONS.items():
                 for unit in ('x', ' ', 'e\u0301', '👩🏽‍💻', '👨‍👩‍👧‍👦', '🇵🇹'):
                     response = self.client.post('/'+table, headers=headers, json={**base, field:unit*(DESCRIPTION_MAX_LENGTH+1)})
@@ -97,7 +97,7 @@ class DescriptionIntegrationTests(unittest.TestCase):
             self.assertEqual(invalid.json()['error']['code'], 'VALIDATION_ERROR')
             self.assertEqual(self.client.get('/'+table+'/'+identifier, headers=headers).json()[field], valid)
             # A lowered future policy must not break GET or an unrelated partial PUT.
-            with patch('app.text_limits.DESCRIPTION_MAX_LENGTH', 2):
+            with patch('shared.text_limits.DESCRIPTION_MAX_LENGTH', 2):
                 read = self.client.get('/'+table+'/'+identifier, headers=headers)
                 self.assertEqual(read.status_code, 200);self.assertEqual(read.json()[field], valid)
                 display = next(key for key in base if key.startswith('display_name_'))

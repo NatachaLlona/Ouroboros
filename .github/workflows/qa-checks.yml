@@ -52,6 +52,10 @@ jobs:
           npm test
       - name: Verify Python and Docker prerequisites
         run: python scripts/run_checks.py --preflight-only
+      - name: Build the reorganized module images
+        run: python start.py --build-only
+      - name: Verify canonical configuration and isolated module communication
+        run: python scripts/verify_modules.py
       - name: Run catalogue scenarios in isolated infrastructure
         if: always()
         run: python scripts/run_checks.py

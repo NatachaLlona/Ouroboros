@@ -15,7 +15,7 @@ Migration010 adds automatic immutable creation context to the integer-ID test ta
 Command (owned synthetic infrastructure only):
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/benchmark_api.py --rows 5000 --classifications 100 --requests 40
+.\.venv\Scripts\python.exe api/scripts/benchmark_api.py --rows 5000 --classifications 100 --requests 40
 ```
 
 Baseline measurement before the pagination optimization: Windows11 build26300, Python3.15.0, 16 logical host CPUs, PostgreSQL17.11 Docker image, FastAPI0.143.5, Uvicorn0.49.0, Psycopg3.3.6, Pydantic2.14.1, AnyIO4.15.1. One real loopback HTTP worker,40 thread-pool slots,8 short-lived database connection slots with5-second capacity wait, DEBUG file logging. A unique Docker project/volume, ephemeral ports and random credentials were allocated and cleaned up. Normal services/data were never selected. This is a local workstation shared with ordinary background services, not a dedicated performance laboratory.
@@ -49,7 +49,7 @@ After the fix, a second fresh owned dataset compared both formulations with warm
 | Selective text filter | 1.972 / 0 | 3.445 / 0 |
 | Deep page | 22.766 / 2532 | 9.153 / 1692 |
 
-The first/deep-page spool cost decreased; a selective filter did more scan work (shared hits doubled from 1,000 to 2,000) and became slower in this small sample. This is an explicit tradeoff, not a claim that every query became faster. Deep sorting still spills. These are executor timings, not updated HTTP percentile measurements or statistically stable production estimates. Reproduce with `scripts/benchmark_api.py --plans-only --rows 5000 --classifications 100 --requests 8 --output reports/pagination-plans.json`. The [PostgreSQL CTE rules](https://www.postgresql.org/docs/17/queries-with.html) describe the folding/materialization tradeoff; [deferred constraints](https://www.postgresql.org/docs/17/sql-set-constraints.html) support temporary tier overlaps within a transaction.
+The first/deep-page spool cost decreased; a selective filter did more scan work (shared hits doubled from 1,000 to 2,000) and became slower in this small sample. This is an explicit tradeoff, not a claim that every query became faster. Deep sorting still spills. These are executor timings, not updated HTTP percentile measurements or statistically stable production estimates. Reproduce with `api/scripts/benchmark_api.py --plans-only --rows 5000 --classifications 100 --requests 8 --output reports/pagination-plans.json`. The [PostgreSQL CTE rules](https://www.postgresql.org/docs/17/queries-with.html) describe the folding/materialization tradeoff; [deferred constraints](https://www.postgresql.org/docs/17/sql-set-constraints.html) support temporary tier overlaps within a transaction.
 
 ### Findings and disposition
 
@@ -72,7 +72,7 @@ Official [OWASP ASVS 5.0.0](https://owasp.org/projects/asvs) and Cheat Sheets fo
 | B110 | Last-resort audit fallback deliberately does not recurse if the file sink also fails. Required limitation; no fabricated persistence. |
 | B404/B603 and Windows B607 | Reviewed bounded subprocess argument lists/shell=False and trusted local Docker/ACL tools. Windows ACL utility still relies on the operator's trusted executable PATH; no HTTP input selects shell commands. |
 | Ruff0.17.1, F correctness rules, app/start.py |No remaining findings. Seven unused-import/variable issues were removed; not a claim of all-rule style compliance. |
-| pip-audit2.10.1, requirements.txt and requirements-dev.txt |No known vulnerabilities reported for resolved declared dependency sets at the time of the run. Tool dependencies are optional/pinned separately in requirements-review.txt; vulnerability databases can change. |
+| pip-audit2.10.1, api/requirements.txt and requirements-dev.txt |No known vulnerabilities reported for resolved declared dependency sets at the time of the run. Tool dependencies are optional/pinned separately in requirements-review.txt; vulnerability databases can change. |
 | pip check / compileall |No broken requirements; source compilation passed. |
 | SonarLint/SonarQube for IDE |Did not run. Standard VS Code extension inventory returned no Sonar extension; CLI inventory also emitted a local log-directory permission warning. Bandit/Ruff are the actual static tools used. |
 
@@ -115,7 +115,7 @@ Verification: full scripts/run_checks.py exited 0 with **133 PASS, 0 FAIL, 1 opt
 
 ## Atomic array creation extension (2026-10-25)
 
-Implemented on branch feat/initial-tables while retaining the existing uncommitted calendar-filter work. The eleven catalogue POST endpoints and /test now accept one object or an array of existing create-schema objects. Single-object status/record behavior remains compatible; arrays return 201 with created_count and full final records in request order. Generic request/response contracts and indexed safe errors live in app/creation.py, body-byte enforcement in app/creation_limits.py, and transaction ownership remains in the existing repositories. No applied migration, table constraint or seed data was changed. See [the authoritative creation and operations guide](BATCH_CREATION.md).
+Implemented on branch feat/initial-tables while retaining the existing uncommitted calendar-filter work. The eleven catalogue POST endpoints and /test now accept one object or an array of existing create-schema objects. Single-object status/record behavior remains compatible; arrays return 201 with created_count and full final records in request order. Generic request/response contracts and indexed safe errors live in api/app/creation.py, body-byte enforcement in api/app/creation_limits.py, and transaction ownership remains in the existing repositories. No applied migration, table constraint or seed data was changed. See [the authoritative creation and operations guide](BATCH_CREATION.md).
 
 Each array uses one business connection/cursor and one transaction-time authorization recheck under the existing membership/actor locks. Reused parameterized INSERT RETURNING gives the active failing item index without per-item connection acquisition or ordinary post-insert reads. Classification arrays also use the list lock, sequential tier edits, deferred uniqueness, a cached locked list size and a final set refresh of created records. Appends skip empty shift queries. Mandatory row triggers count all inserts and tier shifts in the same transaction; one final bounded summary records created count and at most 20 created IDs/shift samples. Small capture budgets preserve counts and explicitly omit samples. Request/response bodies keep the existing bounded capture and redaction; a 300-item body above the logging inspection ceiling succeeded under the 4 MiB acceptance budget.
 

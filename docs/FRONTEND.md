@@ -8,7 +8,7 @@ The public home, login modal and catalogue registration page now use Angular 22 
 
 ## Start the local application
 
-Keep all existing `.app.config` fields and credentials. Explicitly add this non-secret development section when using the existing local HTTP server:
+Keep all existing `api/config.json` fields and credentials. Explicitly add this non-secret development section when using the existing local HTTP server:
 
 ```json
 "browser": {
@@ -116,7 +116,7 @@ The shared form shows **Nome fantasia** first: platform_name for platforms, disp
 
 Autocomplete debounces escaped literal ILIKE substring searches, fetches ten records per page, disregards stale results and exposes native scrolling, explicit scroll controls, arrows, Enter and Escape. A unique prefix match has a translucent suffix; middle/end matches have no invented suffix. Selection only opens **Cancelar / Editar** confirmation. Confirming retrieves the current record, and individual PUT sends changed editable fields, preserving omissions versus explicit nulls. Empty tiers append on creation; the backend owns all tier shifts. Confirmed creation immediately clears editable state/drafts and unmounts autocomplete; the saved name/ID remains separately in the success notice. Failed writes preserve input and are never retried automatically.
 
-Consultation starts at page=1/page_size=10, using count/page/page_size/items. Basic name search adds escaped substring wildcards. Advanced filters expose the implemented public query metadata, exported by `scripts/sync_frontend_contracts.py`; `--check` detects drift. An advanced filter on the display-name field replaces/disables the basic search. Calendar dates/ranges retain application/filter timezone semantics. Ordering uses only published scalar fields and asc/desc. Apply/order/resource changes reset the page. Out-of-range pages recover to the last available page. Edit actions retrieve by ID; trash requires explicit confirmation before a single DELETE by ID. Dependency conflicts retain the dialog and explain the restriction. Successful deletion refreshes count/page; no bulk deletion exists.
+Consultation starts at page=1/page_size=10, using count/page/page_size/items. Basic name search adds escaped substring wildcards. Advanced filters expose the implemented public query metadata, exported by `frontend/scripts/sync_frontend_contracts.py`; `--check` detects drift. An advanced filter on the display-name field replaces/disables the basic search. Calendar dates/ranges retain application/filter timezone semantics. Ordering uses only published scalar fields and asc/desc. Apply/order/resource changes reset the page. Out-of-range pages recover to the last available page. Edit actions retrieve by ID; trash requires explicit confirmation before a single DELETE by ID. Dependency conflicts retain the dialog and explain the restriction. Successful deletion refreshes count/page; no bulk deletion exists.
 
 The header keeps the existing circular mark with the single wordmark **Ouroboros**. The password button is a non-submit accessible eye/crossed-eye icon. Required fields have semantic required state and bold #CA7239 asterisks plus **\* Campo obrigatório**. The remaining warm palette/artwork is preserved.
 
@@ -133,7 +133,7 @@ $env:OUROBOROS_QA_DERIVED_DB_PORT = '4242'
 .\.venv\Scripts\python.exe scripts/run_checks.py
 # Only after the checks have released these ports:
 $env:FOUNDATION_RUN_INTEGRATION = '1'
-.\.venv\Scripts\python.exe scripts/preview_angular.py --port 2469
+.\.venv\Scripts\python.exe frontend/scripts/preview_angular.py --port 2469
 # Ctrl+C cleans up the owned preview. Normal startup uses existing private prompts:
 .\.venv\Scripts\python.exe start.py
 ```

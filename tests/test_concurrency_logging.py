@@ -1,4 +1,5 @@
 """Overlapping ASGI requests, cleanup, filtering, redaction, and bounded connections."""
+from support_config import example_config, example_path, config_path, config_example_path
 import asyncio
 import io
 import json
@@ -12,11 +13,11 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
 import httpx
-from app.config import PROJECT_ROOT, ConfigurationError, validate_logging
-from app.database import Database
-from app.logger import ApplicationLogger, log_event
-from app.main import create_app, RequestLoggingMiddleware
-from app.request_context import request_context, RequestContext, create_interaction_id
+from api.app.config import PROJECT_ROOT, ConfigurationError, validate_logging
+from api.app.database import Database
+from api.app.logger import ApplicationLogger, log_event
+from api.app.main import create_app, RequestLoggingMiddleware
+from shared.request_context import request_context, RequestContext, create_interaction_id
 
 
 class LoggingConcurrencyTests(unittest.TestCase):
@@ -24,7 +25,7 @@ class LoggingConcurrencyTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
-        self.config = json.loads((PROJECT_ROOT / ".app.config.example").read_text())
+        self.config = json.loads((example_path()).read_text())
         self.config["logging"]["body_max_chars"] = 128
         self.output = io.StringIO()
         self.logger = ApplicationLogger(self.config["logging"], root=self.root, stream=self.output)
@@ -125,7 +126,7 @@ class LoggingConcurrencyTests(unittest.TestCase):
         database=Database({"max_connections":2,"connection_acquire_timeout":2},"not-a-real-password")
         def operation(index):
             with database.connection(): time.sleep(0.02)
-        with patch("app.database.connect",side_effect=connection):
+        with patch("api.app.database.connect",side_effect=connection):
             with ThreadPoolExecutor(max_workers=8) as executor: list(executor.map(operation,range(16)))
         self.assertEqual(peak,2)
         self.assertEqual(active,0)

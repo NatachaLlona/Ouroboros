@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 import httpx
 from pydantic import ValidationError
-from app.form_assistant import (AssistantError, ClassificationState, ConversationMessage, FormAssistant, ModelSuggestion,
+from assistance.form_assistant import (AssistantError, ClassificationState, ConversationMessage, FormAssistant, ModelSuggestion,
     Proposal, SuggestionRequest, load_api_key, validate_suggestion)
 
 
@@ -49,7 +49,7 @@ class AssistantValidationTests(unittest.TestCase):
         self.assertIn('?',result.reply)
 
     def test_key_is_loaded_from_backend_env_without_export(self):
-        with tempfile.TemporaryDirectory() as directory,patch.dict(os.environ,{},clear=True),patch('app.form_assistant.PROJECT_ROOT',Path(directory)):
+        with tempfile.TemporaryDirectory() as directory,patch.dict(os.environ,{},clear=True),patch('assistance.form_assistant.ASSISTANCE_ROOT',Path(directory)):
             (Path(directory)/'.env').write_text('OPENAI_API_KEY=unit-test-placeholder\n',encoding='utf8')
             self.assertTrue(bool(load_api_key()))
             self.assertNotIn('OPENAI_API_KEY',os.environ)
@@ -100,12 +100,12 @@ class AssistantEndpointTests(unittest.TestCase):
         import test_api
         from test_frontend import BrowserSessionTests
         test_api.APITests.setUp(self)
-        self.audit_patch=patch('app.audit_middleware.AuditStore')
+        self.audit_patch=patch('api.app.audit_middleware.AuditStore')
         self.audit=self.audit_patch.start().return_value;self.audit.begin.return_value=1
         self.addCleanup(self.audit_patch.stop)
-        self.count_patch=patch('app.endpoints.form_assistant.CatalogueRepository.page',return_value={'count':9,'items':[]})
+        self.count_patch=patch('api.app.endpoints.form_assistant.CatalogueRepository.page',return_value={'count':9,'items':[]})
         self.count=self.count_patch.start();self.addCleanup(self.count_patch.stop)
-        self.writes=patch('app.catalogue_repository.CatalogueRepository.create')
+        self.writes=patch('api.app.catalogue_repository.CatalogueRepository.create')
         self.create_record=self.writes.start();self.addCleanup(self.writes.stop)
         self.app.state.form_assistant=FormAssistant(key_provider=lambda:'unit-test-placeholder',transport=httpx.MockTransport(lambda request:httpx.Response(200,json=document())))
         self.browser=BrowserSessionTests.browser.__get__(self)

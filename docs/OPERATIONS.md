@@ -2,7 +2,7 @@
 
 **Current startup:** use `python start.py` for the four-service container runtime. Follow [module configuration, credentials, startup and troubleshooting](MODULES.md). Earlier host-venv serving recipes below are retained for development/history; they are not the current production entry point. No normal database reset or automatic port fallback is permitted.
 
-Use the [project README](../README.md#setup-and-run) for a quick developer start and [QA setup](QA_SETUP.md) for fully guided Windows installation, independent master prompts, Swagger, Postman and isolated evidence. Install `requirements-dev.txt` when running QA checks; `requirements.txt` is sufficient for the application. The canonical conventions remain [NEXTGENERATION.md](../NEXTGENERATION.md).
+Use the [project README](../README.md#setup-and-run) for a quick developer start and [QA setup](QA_SETUP.md) for fully guided Windows installation, independent master prompts, Swagger, Postman and isolated evidence. Install `requirements-dev.txt` when running QA checks; `api/requirements.txt` is sufficient for the application. The canonical conventions remain [NEXTGENERATION.md](../NEXTGENERATION.md).
 
 ## ▶️ **Lifecycle and data safety**
 
@@ -14,7 +14,7 @@ Ctrl+C stops the API and releases in-memory provider/signing-key references; Pos
 
 ## 🧱 **Create a derived project**
 
-1. Copy only source/templates into a new folder/repository. Do not copy `.app.config`, `.secrets`, logs, reports, virtual environments, private Postman settings or data volumes.
+1. Copy only source/templates into a new folder/repository. Do not copy `api/config.json`, `.secrets`, logs, reports, virtual environments, private Postman settings or data volumes.
 2. Create a fresh virtual environment, install requirements and copy the example only if no local config exists.
 3. Choose a **unique lowercase infrastructure.project_name**, blank initial workspace, available distinct API/database host ports, and independent database/master names. Keep required timeouts/logging/auth settings. The [AcmeService example in the README](../README.md) is instructional, not an implemented application.
 4. Run start.py in that folder, choose its own master password and first API administrator. It gets fresh protected secrets and `<project_name>_postgres_data`.
@@ -25,7 +25,7 @@ Ctrl+C stops the API and releases in-memory provider/signing-key references; Pos
 Copy **X-Interaction-ID** from a response, then search that exact 24-digit string in the current execution's UTF-8 `logs/application_*.log`. The field order remains LEVEL | INTERACTION_ID | DATETIME | CATEGORY | METHOD PATH | COMPONENT | CLASS | SOURCE:LINE | MESSAGE | CONTEXT. Widths are minimums, never truncation. Application events have a blank ID. Console color affects only the level on compatible interactive terminals; NO_COLOR/redirection disables it, and files never contain ANSI.
 
 ```text
-INFO     | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | GET /test | ouroboros | - | app/main.py:145 | HTTP request finished | {"status": 200, "response_started": true, "outcome": "failed", "duration_ms": 12.4}
+INFO     | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | GET /test | ouroboros | - | api/app/main.py:145 | HTTP request finished | {"status": 200, "response_started": true, "outcome": "failed", "duration_ms": 12.4}
 ```
 
 This **illustrative failed streaming response** retains HTTP 200 because headers had already been sent. `outcome` describes execution: **completed** means normal handling including expected 4xx/5xx; **failed** means unexpected processing/send failure; **cancelled** means cancellation. If the ASGI send callback never accepted a status, it is **null**, with response_started false. The server can only report callback acceptance, not prove that a remote client received bytes. No second response is attempted after a send failure or accepted headers. The original safe category/frames are recorded once; the propagated server exception has a fixed safe message and suppressed private context.

@@ -1,4 +1,4 @@
-import { assistantGreeting, frontendConfig, loadFrontendConfig } from './frontend.config';
+import { assistantGreeting, frontendConfig, loadFrontendConfig } from './configuration';
 
 describe('Public runtime presentation configuration',()=>{
   const original=structuredClone(frontendConfig);

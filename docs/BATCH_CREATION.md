@@ -49,7 +49,7 @@ Classification arrays also hold the existing list lock and defer tier uniqueness
 
 ## Configuration and operations
 
-The ignored local .app.config accepts backward-compatible defaults under api. The sanitized example documents:
+The ignored local api/config.json accepts backward-compatible defaults under api. The sanitized example documents:
 
 ```json
 {

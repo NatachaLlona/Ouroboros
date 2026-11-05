@@ -3,6 +3,8 @@
 
 ## 🧭 **Read this first**
 
+Current deployment files are config.json at the repository root and in frontend/, api/, assistance/ and database/. Copy only the corresponding config.example.json when preparing a new installation. Retired dot-config files are not read. See [module ownership](MODULES.md) and [layout QA](LAYOUT_QA.md).
+
 ### Current four-module runtime
 
 Use `python start.py` to build/start PostgreSQL, Base/API, frontend and assistance. Application dependencies run in compatible container images, not the host venv. [Module setup](MODULES.md) documents first-use adoption, interactive existing credentials and unchanged ports. Host dependency installation below is for running development/QA tools. Run `python scripts/verify_modules.py` from the QA environment for disposable tmpfs integration checks; it publishes no ports by default. Never run destructive tests against the normal database. See [scoped execution evidence](MODULES_QA.md); normal authenticated startup, browser and physical microphone checks must be recorded separately.
@@ -27,7 +29,7 @@ An **API** accepts requests at URLs. **Swagger** is the interactive web page at 
 
 1. Ask the developer for the exact revision/source package being tested. Record that public revision with your evidence. Obtain access to the private repository if cloning it. Do not download another developer's configuration, secrets or database volume.
 2. Open PowerShell. A terminal is a window where you enter the commands shown below. Open Docker Desktop and wait until its Engine is running in **Linux containers** mode.
-3. Put the supplied source in a **new** folder, such as `C:\Dev\Ouroboros-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Ouroboros-QA`. Do not type that placeholder literally. Do not copy `.app.config`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
+3. Put the supplied source in a **new** folder, such as `C:\Dev\Ouroboros-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Ouroboros-QA`. Do not type that placeholder literally. Do not copy `api/config.json`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
 4. Enter these commands from the new folder. Stop and ask for help if any command shows an error; a missing program is **BLOCKED preparation**, not a successful test.
 
 ```powershell
@@ -37,12 +39,12 @@ docker version
 docker compose version
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-if (Test-Path -LiteralPath .app.config) { throw 'Use a fresh QA folder; existing configuration must not be overwritten' }
-Copy-Item -LiteralPath .app.config.example -Destination .app.config -ErrorAction Stop
-notepad .app.config
+if (Test-Path -LiteralPath api/config.json) { throw 'Use a fresh QA folder; existing configuration must not be overwritten' }
+Copy-Item -LiteralPath api/config.example.json -Destination api/config.json -ErrorAction Stop
+notepad api/config.json
 ```
 
-**Only copy the example when `.app.config` does not exist.** If the folder already contains one, do not overwrite it; use a new QA folder. In Notepad, retain all other JSON fields and change only these choices. Commas, quotes and braces must remain valid JSON. No password goes into this file.
+**Only copy the example when `api/config.json` does not exist.** If the folder already contains one, do not overwrite it; use a new QA folder. In Notepad, retain all other JSON fields and change only these choices. Commas, quotes and braces must remain valid JSON. No password goes into this file.
 
 If installing PyYAML on the local Python 3.15 reports a missing C++ compiler, its optional native extension is not needed for these checks. Use the supported pure-Python build (or use Python 3.12 as CI does):
 
@@ -117,7 +119,7 @@ Expected negatives are 403 for standard callers, 401 without authentication or a
 Press **Ctrl+C** in the application terminal to stop the API; PostgreSQL remains running. Restart using the same command and QA master password. To stop/start **only this QA database**, open a second PowerShell terminal in your QA folder:
 
 ```powershell
-$qaConfig = Get-Content -Raw -Encoding UTF8 .app.config | ConvertFrom-Json
+$qaConfig = Get-Content -Raw -Encoding UTF8 api/config.json | ConvertFrom-Json
 $qaProject = $qaConfig.infrastructure.project_name
 $env:OUROBOROS_DB_NAME = $qaConfig.database.name
 $env:OUROBOROS_DB_USER = $qaConfig.database.user
@@ -174,7 +176,7 @@ After a maintainer publishes the workflow to the repository's default branch, op
 | `python` not recognized | Install Python, enable PATH, reopen PowerShell; preparation remains BLOCKED |
 | Package installation fails | Confirm internet access and correct virtual-environment path; do not substitute a global Python installation |
 | Docker/Engine unavailable | Start Docker Desktop, wait for Linux Engine; follow its Windows/WSL2 instructions |
-| JSON configuration error / identity blank | Reopen only QA `.app.config`, repair JSON / choose unique project identity |
+| JSON configuration error / identity blank | Reopen only QA `api/config.json`, repair JSON / choose unique project identity |
 | Foreign workspace/volume ownership error | Stop; choose fresh QA configuration/secrets/identity. Never adopt or delete the other volume |
 | API port occupied | Choose another free API port; update Postman base_url |
 | Database authentication error | Reuse the master password originally chosen for this QA volume; initialization variables do not reset an existing role |
@@ -197,7 +199,7 @@ These are **public suggestions for a disposable local QA installation only**, ne
 | Administrator after own-password change | admin | AdminPassword-Updated-2026! |
 | Standard after own-password change | default | DefaultPassword-Updated-2026! |
 
-The main URLs are **http://localhost:6969/docs**, API port **6969**, PostgreSQL host **6669**, internal **5432**. Automated tests still choose random credentials and free ports. Never insert these examples into .app.config, source defaults, the initialization code or the versioned Postman JSON. These explicitly requested public examples are an exception to documentation's usual credential placeholders; real credentials remain prohibited everywhere versioned.
+The main URLs are **http://localhost:6969/docs**, API port **6969**, PostgreSQL host **6669**, internal **5432**. Automated tests still choose random credentials and free ports. Never insert these examples into api/config.json, source defaults, the initialization code or the versioned Postman JSON. These explicitly requested public examples are an exception to documentation's usual credential placeholders; real credentials remain prohibited everywhere versioned.
 
 After all role cases, use the **Own password changes** folder (40–60). Put admin_username/admin_password and standard_username/standard_password in your private environment using the examples above. Set admin_new_password and standard_new_password there too. Keep all captured password_*_token variables in collection scope, never shadowed by empty environment values. Run 40–57 in order; 42 deliberately uses the different administrator password as incorrect confirmation for default. If you chose different local passwords, ensure that incorrect confirmation is actually different.
 
@@ -4080,7 +4082,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 
 - `test_transcription.SpeechAssemblyTests.test_cancellation_and_processing_timeout_are_checked_between_segments`
 - `test_transcription.SpeechAssemblyTests.test_limits_and_failures_never_return_partial_text`
-- `test_transcription.SpeechAssemblyTests.test_separate_ai_configuration_overrides_legacy_limits_without_rewriting_them`
+- `test_transcription.SpeechAssemblyTests.test_module_configuration_preserves_limits_without_rewriting_other_files`
 - `test_transcription.SpeechAssemblyTests.test_ten_minute_defaults_and_no_silence_removed_before_native_windows`
 - `test_transcription.SpeechAssemblyTests.test_transcript_longer_than_old_character_limit_is_returned_in_full`
 - `test_transcription.SpeechEndpointTests.test_runtime_options_and_complete_response_omit_contents_from_audits`
@@ -4131,7 +4133,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 - `test_module_architecture.ModuleOrchestrationTests.test_assistance_failure_does_not_prevent_frontend_startup`
 - `test_module_architecture.ModuleOrchestrationTests.test_forwarded_client_address_is_accepted_only_from_resolved_frontend`
 - `test_module_architecture.ModuleOrchestrationTests.test_launcher_help_does_not_import_host_site_packages`
-- `test_module_architecture.ModuleOrchestrationTests.test_module_adoption_preserves_existing_configuration_and_user_customization`
+- `test_module_architecture.ModuleOrchestrationTests.test_five_configs_preserve_values_and_do_not_read_retired_paths`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |

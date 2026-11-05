@@ -6,10 +6,10 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from pydantic import ValidationError
-from app.login_throttle import LoginThrottle
-from app.schemas.users import UserCreate, PasswordChange, PasswordReset, UserQuery
-from app.schemas.catalogue import RESOURCES
-from app.datetimes import date_predicates
+from api.app.login_throttle import LoginThrottle
+from api.app.schemas.users import UserCreate, PasswordChange, PasswordReset, UserQuery
+from shared.schemas.catalogue import RESOURCES
+from shared.datetimes import date_predicates
 import test_api as api
 import test_catalogue_api as legacy
 
@@ -27,14 +27,14 @@ class BackendReviewUnitTests(unittest.TestCase):
                 body = {'username': 'qa'} if model is UserCreate else {'current_password': 'old'} if model is PasswordChange else {}
                 with self.assertRaises(ValidationError):
                     model.model_validate({**body, field: value})
-        from app.api_credentials import configure_api_credentials
-        from app.database import DatabaseError
+        from api.app.api_credentials import configure_api_credentials
+        from api.app.database import DatabaseError
         users = MagicMock()
         users.has_administrator.return_value = False
         users.count.return_value = 0
         users.get_by_username.return_value = None
-        with patch('builtins.input', return_value='new-admin'), patch('app.api_credentials.read_password', return_value='short'), \
-                patch('app.api_credentials.PASSWORD_HASHER') as hashing:
+        with patch('builtins.input', return_value='new-admin'), patch('api.app.api_credentials.read_password', return_value='short'), \
+                patch('api.app.api_credentials.PASSWORD_HASHER') as hashing:
             with self.assertRaises(DatabaseError):
                 configure_api_credentials({'auth': {}}, users)
             hashing.hash.assert_not_called()
@@ -61,7 +61,7 @@ class BackendReviewUnitTests(unittest.TestCase):
         self.assertIsNone(bounded.admit('c', 'd'))
 
     def test_platform_validation_and_shared_predicates(self):
-        from app.catalogue_repository import CatalogueRepository
+        from api.app.catalogue_repository import CatalogueRepository
         resource = RESOURCES['platforms']
         base = dict(platform_name='QA', platform_is_paid=False, platform_is_episodes=False, platform_is_duration_time=False)
         for values in ([], ['application', 'website', 'link']):
@@ -134,16 +134,16 @@ class BackendReviewIntegrationTests(unittest.TestCase):
         import tempfile
         import uuid
         from pathlib import Path
-        from app.database import connect, ensure_database
-        from app.migrate import migrate
+        from api.app.database import connect, ensure_database
+        from api.app.migrate import migrate
         database = {**self.db, 'name': 'upgrade_' + uuid.uuid4().hex}
         ensure_database(database, self.master)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'sql/migrations').mkdir(parents=True)
-            for path in (self.root / 'sql/migrations').glob('*.sql'):
+            (root / 'database/sql/migrations').mkdir(parents=True)
+            for path in (self.root / 'database/sql/migrations').glob('*.sql'):
                 if path.name < '011':
-                    shutil.copy(path, root / 'sql/migrations' / path.name)
+                    shutil.copy(path, root / 'database/sql/migrations' / path.name)
             with connect(database, self.master) as connection:
                 migrate(connection, root)
                 connection.execute("INSERT INTO public.platforms(platform_name,platform_is_paid,platform_is_episodes,platform_is_duration_time) VALUES ('Keep history',false,true,false)")
@@ -202,7 +202,7 @@ class BackendReviewIntegrationTests(unittest.TestCase):
         self.assertEqual(self.call('GET', '/users', role='administrator', params=ranged).json()['count'], 1)
         self.call('GET', '/users', expected=403)
         self.call('GET', '/users', role='administrator', params={'password_hash': 'x'}, expected=422)
-        from app.api_credentials import PASSWORD_HASHER
+        from api.app.api_credentials import PASSWORD_HASHER
         legacy_user = self.users.create('legacy-short', PASSWORD_HASHER.hash('x'))
         original = self.users.get_by_id(legacy_user.id)
         token = self.client.post('/token', data={'username': 'legacy-short', 'password': 'x'})

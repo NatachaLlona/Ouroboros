@@ -1,4 +1,5 @@
 """Credential, configuration, Docker failure, and migration unit checks."""
+from support_config import example_config, example_path, config_path, config_example_path
 import contextlib
 import io
 import json
@@ -8,10 +9,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from app.config import PROJECT_ROOT, ConfigurationError, load_config
-from app.credentials import _read_masked, prompt_credentials, write_secret
-from app.database import DatabaseError, check_docker, connect, start_postgres
-from app.migrate import migrate
+from api.app.config import PROJECT_ROOT, ConfigurationError, load_config
+from api.app.credentials import _read_masked, prompt_credentials, write_secret
+from api.app.database import DatabaseError, check_docker, connect, start_postgres
+from api.app.migrate import migrate
 from start import main
 
 
@@ -20,7 +21,7 @@ class DatabaseTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.config = json.loads((PROJECT_ROOT / ".app.config.example").read_text())
+        self.config = json.loads((example_path()).read_text())
         self.config["logging"]["directory"] = str(self.root / "logs")
         self.config["infrastructure"]["project_name"] = "unit-database"
 
@@ -35,16 +36,17 @@ class DatabaseTests(unittest.TestCase):
 
     def test_prompt_and_preserve_configuration(self):
         self.config["custom"] = "preserved"
-        with patch("app.credentials.sys.stdin.isatty", return_value=True), \
+        with patch("api.app.credentials.sys.stdin.isatty", return_value=True), \
              patch("builtins.input", side_effect=["test_database", "test_master"]), \
-             patch("app.credentials.read_password", return_value="unit-only"):
+             patch("api.app.credentials.read_password", return_value="unit-only"):
             self.assertEqual(prompt_credentials(self.config, self.root), "unit-only")
-        saved = json.loads((self.root / ".app.config").read_text())
-        self.assertEqual(saved["database"]["user"], "test_master")
+        saved = json.loads((config_path(self.root)).read_text())
+        self.assertEqual(load_config(self.root)["database"]["user"], "test_master")
+        self.assertNotIn("user",saved["database"])
         self.assertEqual(saved["custom"], "preserved")
-        self.assertNotIn("unit-only", (self.root / ".app.config").read_text())
-        with patch("app.credentials.sys.stdin.isatty", return_value=True), \
-             patch("builtins.input", side_effect=["n", "invalid user"]), patch("app.credentials.read_password"):
+        self.assertNotIn("unit-only", (config_path(self.root)).read_text())
+        with patch("api.app.credentials.sys.stdin.isatty", return_value=True), \
+             patch("builtins.input", side_effect=["n", "invalid user"]), patch("api.app.credentials.read_password"):
             with self.assertRaises(DatabaseError):
                 prompt_credentials(self.config, self.root)
 
@@ -66,16 +68,19 @@ class DatabaseTests(unittest.TestCase):
                              ("connect_timeout", "10"), ("statement_timeout", -1), ("name", "bad;name")):
             config = json.loads(json.dumps(self.config))
             config["database"][field] = value
-            (self.root / ".app.config").write_text(json.dumps(config))
+            (config_path(self.root)).write_text(json.dumps(config))
+            database_path=self.root/"database/config.json"
+            database_path.parent.mkdir(exist_ok=True)
+            database_path.write_text(json.dumps({key:config["database"][key] for key in ("name","user","port","startup_timeout")}))
             with self.assertRaises(ConfigurationError):
                 load_config(self.root)
 
     def test_unavailable_docker_logs_safe_failure(self):
-        from modules.orchestration import main
-        with patch("app.database.subprocess.run",side_effect=FileNotFoundError):
+        from orchestration import main
+        with patch("api.app.database.subprocess.run",side_effect=FileNotFoundError):
             with self.assertRaisesRegex(DatabaseError,"Docker CLI"):check_docker()
         output=io.StringIO()
-        with patch("modules.orchestration.prepare",return_value=(self.config,self.config['database'],{'project_name':'unit'})), patch("modules.orchestration.environment",return_value={}), patch("app.database.check_docker",side_effect=DatabaseError("Docker Engine is unavailable; open Docker Desktop")), patch("app.credentials.prompt_credentials") as prompt, contextlib.redirect_stderr(output):
+        with patch("orchestration.prepare",return_value=(self.config,self.config['database'],{'project_name':'unit'})), patch("orchestration.environment",return_value={}), patch("api.app.database.check_docker",side_effect=DatabaseError("Docker Engine is unavailable; open Docker Desktop")), patch("api.app.credentials.prompt_credentials") as prompt, contextlib.redirect_stderr(output):
             self.assertEqual(main(self.root,['--check']),1)
             prompt.assert_not_called()
         self.assertIn('open Docker Desktop',output.getvalue())
@@ -84,7 +89,7 @@ class DatabaseTests(unittest.TestCase):
     def test_container_initialization_is_preserved_when_selecting_another_database(self):
         database = {**self.config["database"], "name": "new_name", "user": "new_master"}
         existing = json.dumps([{"Config": {"Labels": {"com.docker.compose.project.working_dir": str(self.root)}, "Env": ["POSTGRES_DB=old_name", "POSTGRES_USER=old_master"]}}]).encode()
-        with patch("app.database.run_command", side_effect=[MagicMock(stdout=b"container"), MagicMock(stdout=existing), MagicMock()]) as run:
+        with patch("api.app.database.run_command", side_effect=[MagicMock(stdout=b"container"), MagicMock(stdout=existing), MagicMock()]) as run:
             start_postgres(database, self.root / "secret", self.root, "unit-database")
             self.assertEqual(run.call_args.args[2]["OUROBOROS_DB_NAME"], "old_name")
             self.assertEqual(run.call_args.args[2]["OUROBOROS_DB_USER"], "old_master")
@@ -97,8 +102,8 @@ class DatabaseTests(unittest.TestCase):
         self.assertNotIn("private-password", str(result.exception))
 
     def test_changed_migration_is_rejected(self):
-        (self.root / "sql/migrations").mkdir(parents=True)
-        (self.root / "sql/migrations/001_create_test.sql").write_text("SELECT 1")
+        (self.root / "database/sql/migrations").mkdir(parents=True)
+        (self.root / "database/sql/migrations/001_create_test.sql").write_text("SELECT 1")
         connection = MagicMock()
         cursor = connection.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = ("changed-checksum",)
@@ -107,7 +112,7 @@ class DatabaseTests(unittest.TestCase):
 
     def test_applied_migration_rejects_newline_and_bom_changes_before_sql_execution(self):
         import hashlib
-        directory = self.root / 'sql/migrations'
+        directory = self.root / 'database/sql/migrations'
         directory.mkdir(parents=True)
         original = b'SELECT 1;\r\n'
         checksum = hashlib.sha256(original).hexdigest()

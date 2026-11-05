@@ -1,3 +1,4 @@
--r requirements.txt
+-r api/requirements.txt
+-r assistance/requirements.txt
 jsonschema==4.26.0
 PyYAML==6.0.3

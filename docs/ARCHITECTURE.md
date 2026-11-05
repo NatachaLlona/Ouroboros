@@ -7,17 +7,17 @@ Ouroboros is an entertainment catalogue with an inherited **single-process Pytho
 | Component | Responsibility / ownership |
 | --- | --- |
 | `start.py` | Stage-based orchestration, master authentication, migrations, first-administrator recovery, serving and independent cleanup |
-| `app/config.py` | Root-relative JSON validation and atomic non-secret preference persistence |
-| `app/credentials.py`, `console.py` | Independent database/master selection, masked terminal input, protected initialization files and compatible console formatting |
-| `app/infrastructure.py`, `database.py` | Explicit workspace/project ownership, safe Compose subprocesses, database provisioning and bounded short-lived connections |
-| `app/migrate.py`, `sql/migrations/` | Advisory-locked, transactional, checksummed version tracking; applied SQL is immutable |
-| `app/main.py` | FastAPI factory/lifespan, request context, safe validation/errors and outcome logging |
-| `app/auth.py`, `api_credentials.py`, `api_users.py` | Argon2id login, signed database-bound JWTs, current-role authorization, explicit first-admin recovery and serialized role changes |
+| `api/app/config.py` | Root-relative JSON validation and atomic non-secret preference persistence |
+| `api/app/credentials.py`, `console.py` | Independent database/master selection, masked terminal input, protected initialization files and compatible console formatting |
+| `api/app/infrastructure.py`, `database.py` | Explicit workspace/project ownership, safe Compose subprocesses, database provisioning and bounded short-lived connections |
+| `api/app/migrate.py`, `database/sql/migrations/` | Advisory-locked, transactional, checksummed version tracking; applied SQL is immutable |
+| `api/app/main.py` | FastAPI factory/lifespan, request context, safe validation/errors and outcome logging |
+| `api/app/auth.py`, `api_credentials.py`, `api_users.py` | Argon2id login, signed database-bound JWTs, current-role authorization, explicit first-admin recovery and serialized role changes |
 | `app/endpoints/`, `schemas/`, `pagination.py` | Public/protected contracts, strict inputs, public user output and shared bounded collection pagination |
-| `app/database_test.py`, `sql/queries/` | Parameterized SQL; SQL LIMIT/OFFSET and count share one statement snapshot |
-| `app/schemas/catalogue.py`, `app/endpoints/catalogue.py` | Eleven fixed resource contracts, named schemas, explicit enum query models and seven route forms each |
-| `app/catalogue_repository.py`, `collection_queries.py`, `ordering.py` | Locked partial updates, transactional role/version revalidation, safe constraint errors, whitelisted SQL and consistent snapshots |
-| `app/logger.py`, `log_safety.py`, `request_context.py`, `cleanup.py` | UTF-8 per-execution logs, redaction/bounds, ContextVar isolation and independent resource closure |
+| `api/app/database_test.py`, `database/sql/queries/` | Parameterized SQL; SQL LIMIT/OFFSET and count share one statement snapshot |
+| `shared/schemas/catalogue.py`, `api/app/endpoints/catalogue.py` | Eleven fixed resource contracts, named schemas, explicit enum query models and seven route forms each |
+| `api/app/catalogue_repository.py`, `collection_queries.py`, `ordering.py` | Locked partial updates, transactional role/version revalidation, safe constraint errors, whitelisted SQL and consistent snapshots |
+| `api/app/logger.py`, `log_safety.py`, `request_context.py`, `cleanup.py` | UTF-8 per-execution logs, redaction/bounds, ContextVar isolation and independent resource closure |
 | `qa/scenarios.json`, `scripts/run_checks.py` | Single scenario identity source, mapped checks, prerequisites and sanitized local/CI reports |
 
 ```mermaid
@@ -58,7 +58,7 @@ Self-service password replacement takes an account row lock, revalidates the cal
 
 ## 🧾 Audit, UTC dates and filtered bulk operations
 
-`app/audit_middleware.py` owns entry/transport finalization; `audit_context.py` carries server facts across worker contexts; `audit_privacy.py` bounds/redacts capture; `audit_store.py` performs short independent transactions. Migration 008 triggers own transactional mutation evidence. `audit_repository.py` and the audit schemas/routes expose reads only. `app/errors.py` validates the versioned JSON error catalogue and centralizes safe envelopes. `app/datetimes.py` owns clocks, source context and display conversion. Bulk SQL uses materialized locked targets and count summaries, sharing GET predicates through `collection_queries.py`.
+`api/app/audit_middleware.py` owns entry/transport finalization; `audit_context.py` carries server facts across worker contexts; `audit_privacy.py` bounds/redacts capture; `audit_store.py` performs short independent transactions. Migration 008 triggers own transactional mutation evidence. `audit_repository.py` and the audit schemas/routes expose reads only. `shared/errors.py` validates the versioned JSON error catalogue and centralizes safe envelopes. `shared/datetimes.py` owns clocks, source context and display conversion. Bulk SQL uses materialized locked targets and count summaries, sharing GET predicates through `collection_queries.py`.
 
 See [the phase contract guide](AUDIT_DATETIME_BULK.md) for migrations 007–008, exact columns, central audit transaction guarantees and outage/crash gaps, versioned error envelopes, UTC/source/display timezone rules, immutable creation dates, and administrator previews/confirmed filtered mutations. The current catalogue has 77 route forms plus two read-only audit routes. Supervisor has individual CRUD and audit reads; standard has neither; administrator alone bulk mutates. Historical creation dates/context stay NULL. No automatic audit retention or durable replay is provided.
 
@@ -70,4 +70,4 @@ Migrations009–010 add independent classification tier positions and complete i
 
 ## First frontend and browser session boundary
 
-frontend/ contains the Angular 22 strict TypeScript application, feature components, Signal Forms, DI session/API services, preserved styles and original SVGs. The production build under frontend/dist/browser is the only client implementation served by FastAPI. Node is required only for build/test. See [Angular architecture and deployment](ANGULAR.md). FastAPI serves public home/assets and protects /cadastros through current browser account checks. app/browser_sessions.py holds bounded opaque process-local sessions; app/endpoints/browser.py exposes session/login/logout and page routes. Cookie mutations use the same require_scopes and existing catalogue repository/audit transactions as bearer requests. No domain tables or second CRUD layer are added. [Detailed contracts](FRONTEND.md) cover CSRF, privacy, explicit loopback HTTP and production HTTPS requirements.
+frontend/ contains the Angular 22 strict TypeScript application, feature components, Signal Forms, DI session/API services, preserved styles and original SVGs. The production build under frontend/dist/browser is the only client implementation served by FastAPI. Node is required only for build/test. See [Angular architecture and deployment](ANGULAR.md). FastAPI serves public home/assets and protects /cadastros through current browser account checks. api/app/browser_sessions.py holds bounded opaque process-local sessions; api/app/endpoints/browser.py exposes session/login/logout and page routes. Cookie mutations use the same require_scopes and existing catalogue repository/audit transactions as bearer requests. No domain tables or second CRUD layer are added. [Detailed contracts](FRONTEND.md) cover CSRF, privacy, explicit loopback HTTP and production HTTPS requirements.

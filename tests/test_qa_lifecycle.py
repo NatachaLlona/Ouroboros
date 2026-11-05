@@ -1,4 +1,5 @@
 """Ordered QA role lifecycle with real accounts, tokens and disposable storage."""
+from support_config import example_config, example_path, config_path, config_example_path
 import io
 import json
 import os
@@ -15,15 +16,15 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from app.api_credentials import configure_api_credentials
-from app.api_users import APIUserStore, UserManagementError
-from app.auth import AuthService
-from app.config import PROJECT_ROOT
-from app.credentials import write_secret
-from app.database import Database, check_docker, compose_command, compose_environment, connect, run_command, start_postgres
-from app.logger import ApplicationLogger
-from app.main import create_app
-from app.migrate import migrate
+from api.app.api_credentials import configure_api_credentials
+from api.app.api_users import APIUserStore, UserManagementError
+from api.app.auth import AuthService
+from api.app.config import PROJECT_ROOT
+from api.app.credentials import write_secret
+from api.app.database import Database, check_docker, compose_command, compose_environment, connect, run_command, start_postgres
+from api.app.logger import ApplicationLogger
+from api.app.main import create_app
+from api.app.migrate import migrate
 
 
 @unittest.skipUnless(os.environ.get("FOUNDATION_RUN_INTEGRATION") == "1", "QA lifecycle requires isolated Docker integration")
@@ -35,7 +36,7 @@ class QARoleLifecycleTests(unittest.TestCase):
         check_docker()
         cls.root = Path(tempfile.mkdtemp(prefix="foundation-qa-"))
         cls.project = "foundation-qa-"+uuid.uuid4().hex
-        cls.config = json.loads((PROJECT_ROOT/".app.config.example").read_text())
+        cls.config = json.loads((example_path()).read_text())
         shutil.copy(PROJECT_ROOT/"compose.yaml", cls.root)
         shutil.copytree(PROJECT_ROOT/"sql", cls.root/"sql")
         from support_ports import approved_port
@@ -103,7 +104,7 @@ class QARoleLifecycleTests(unittest.TestCase):
 
     def test_01_first_administrator(self):
         self.require_phase(0)
-        with patch("builtins.input", return_value="qa_administrator"), patch("app.api_credentials.read_password", return_value=self.admin_password):
+        with patch("builtins.input", return_value="qa_administrator"), patch("api.app.api_credentials.read_password", return_value=self.admin_password):
             configure_api_credentials(self.config, self.users, self.root)
         administrator = self.users.get_by_username("qa_administrator")
         self.assertEqual(administrator.role, "administrator")
@@ -230,7 +231,7 @@ class QARoleLifecycleTests(unittest.TestCase):
 
     def exercise_password_change(self, role):
         """Check self-service, revocation and secret-free logs for either profile."""
-        from app.api_credentials import PASSWORD_HASHER
+        from api.app.api_credentials import PASSWORD_HASHER
         password, new_password = secrets.token_urlsafe(24), secrets.token_urlsafe(24)+"🐍💻"
         user = self.users.create("password_"+uuid.uuid4().hex, PASSWORD_HASHER.hash(password), role=role)
         peer_password = secrets.token_urlsafe(24)
@@ -279,7 +280,7 @@ class QARoleLifecycleTests(unittest.TestCase):
         self.exercise_password_change("administrator")
 
     def test_13_concurrent_password_changes(self):
-        from app.api_credentials import PASSWORD_HASHER
+        from api.app.api_credentials import PASSWORD_HASHER
         original = secrets.token_urlsafe(24)
         user = self.users.create("race_"+uuid.uuid4().hex,PASSWORD_HASHER.hash(original))
         headers = self.login(user.username,original)
@@ -296,7 +297,7 @@ class QARoleLifecycleTests(unittest.TestCase):
 
     def test_15_administrator_password_reset(self):
         """Exercise real transactions, revocation, audit and locked authorization."""
-        from app.api_credentials import PASSWORD_HASHER
+        from api.app.api_credentials import PASSWORD_HASHER
         for level in ("INFO", "DEBUG"):
             self.logger.logger.setLevel(level)
             passwords = [secrets.token_urlsafe(24) for _ in range(4)]
@@ -347,7 +348,7 @@ class QARoleLifecycleTests(unittest.TestCase):
     def test_16_reset_collection_http_replay(self):
         """Replay public reset request definitions with random disposable accounts."""
         import re
-        from app.api_credentials import PASSWORD_HASHER
+        from api.app.api_credentials import PASSWORD_HASHER
         variables = {"base_url":"http://testserver", "admin_username":"reset_admin_"+uuid.uuid4().hex,
                      "reset_admin_password":secrets.token_urlsafe(24), "reset_peer_username":"reset_peer_"+uuid.uuid4().hex,
                      "reset_peer_password":secrets.token_urlsafe(24), "reset_target_username":"reset_target_"+uuid.uuid4().hex,
@@ -375,7 +376,7 @@ class QARoleLifecycleTests(unittest.TestCase):
 
     def test_17_concurrent_reset_and_self_service(self):
         """Competing resets/self-service serialize without lost version increments."""
-        from app.api_credentials import PASSWORD_HASHER
+        from api.app.api_credentials import PASSWORD_HASHER
         passwords=[secrets.token_urlsafe(24) for _ in range(4)]
         admin=self.users.create("reset_race_admin_"+uuid.uuid4().hex,PASSWORD_HASHER.hash(passwords[0]),role="administrator")
         target=self.users.create("reset_race_target_"+uuid.uuid4().hex,PASSWORD_HASHER.hash(passwords[1]))
@@ -397,7 +398,7 @@ class QARoleLifecycleTests(unittest.TestCase):
 
     def test_14_password_collection_http_replay(self):
         """Replay password definitions and an actual HTTP race, without JS claims."""
-        from app.api_credentials import PASSWORD_HASHER
+        from api.app.api_credentials import PASSWORD_HASHER
         import re
         variables = {"base_url":"http://testserver"}
         for who,role in (("admin","administrator"),("standard","standard")):

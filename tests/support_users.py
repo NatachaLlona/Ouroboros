@@ -1,6 +1,6 @@
 """In-memory account repository used only by unit tests."""
-from app.api_users import APIUser, TEST_SCOPES
-from app.database import DatabaseError
+from api.app.api_users import APIUser, TEST_SCOPES
+from api.app.database import DatabaseError
 from dataclasses import replace
 
 

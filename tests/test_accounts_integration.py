@@ -1,4 +1,5 @@
 """Real account migration, multiple databases, and definitive port checks."""
+from support_config import example_config, example_path, config_path, config_example_path
 import json
 import os
 import secrets
@@ -16,18 +17,18 @@ import uvicorn
 from fastapi.testclient import TestClient
 from psycopg import sql
 
-from app.api_credentials import (PASSWORD_HASHER, configure_api_credentials,
+from api.app.api_credentials import (PASSWORD_HASHER, configure_api_credentials,
                                  load_signing_secret, migrate_legacy_user)
-from app.api_users import APIUserStore
-from app.auth import AuthService
-from app.config import PROJECT_ROOT, save_config
-from app.credentials import write_secret
-from app.database import (Database, DatabaseError, check_docker, compose_command,
+from api.app.api_users import APIUserStore
+from api.app.auth import AuthService
+from api.app.config import PROJECT_ROOT, save_config
+from api.app.credentials import write_secret
+from api.app.database import (Database, DatabaseError, check_docker, compose_command,
                           compose_environment, connect, ensure_database, run_command, start_postgres)
-from app.database_test import insert_entry, read_entry
-from app.logger import ApplicationLogger
-from app.main import create_app
-from app.migrate import migrate
+from api.app.database_test import insert_entry, read_entry
+from api.app.logger import ApplicationLogger
+from api.app.main import create_app
+from api.app.migrate import migrate
 
 
 def available_port(preferred=0):
@@ -49,7 +50,7 @@ class AccountIntegrationTests(unittest.TestCase):
         cls.root=Path(tempfile.mkdtemp(prefix="foundation-accounts-"))
         shutil.copy(PROJECT_ROOT/"compose.yaml",cls.root)
         shutil.copytree(PROJECT_ROOT/"sql",cls.root/"sql")
-        cls.config=json.loads((PROJECT_ROOT/".app.config.example").read_text())
+        cls.config=json.loads((example_path()).read_text())
         port=available_port()
         cls.database={**cls.config["database"],"name":"original_database","user":"isolated_master","port":port,"startup_timeout":240}
         cls.config["database"]=cls.database
@@ -82,7 +83,7 @@ class AccountIntegrationTests(unittest.TestCase):
 
     def test_01_migration_users_scopes_and_multiple_databases(self):
         self.config["auth"].update(username="legacy_api_user",password_hash=self.first_hash)
-        (self.root/".app.config").write_text(json.dumps(self.config))
+        (config_path(self.root)).write_text(json.dumps(self.config))
         with connect(self.database,self.password) as connection:
             entry_id=insert_entry(connection,"preserved before account migration")
         migrate_legacy_user(self.config,self.users,self.root)
@@ -94,15 +95,15 @@ class AccountIntegrationTests(unittest.TestCase):
         migrate_legacy_user(self.config,self.users,self.root)
         self.assertEqual(self.users.count(),1)
         self.assertEqual(self.users.get_by_username("legacy_api_user").id,first.id)
-        text=(self.root/".app.config").read_text()
+        text=(config_path(self.root)).read_text()
         self.assertNotIn("password_hash",text)
         self.assertNotIn(self.first_hash,text)
         self.assertEqual(set(self.config["api_users"]),{"last_api_username"})
         second_password=secrets.token_urlsafe(24)
-        with patch("builtins.input",side_effect=["create","second_api_user"]), patch("app.api_credentials.read_password",return_value=second_password):
+        with patch("builtins.input",side_effect=["create","second_api_user"]), patch("api.app.api_credentials.read_password",return_value=second_password):
             configure_api_credentials(self.config,self.users,self.root)
         self.assertEqual(self.users.count(),2)
-        with patch("builtins.input",return_value="y"), patch("app.api_credentials.read_password") as prompt:
+        with patch("builtins.input",return_value="y"), patch("api.app.api_credentials.read_password") as prompt:
             configure_api_credentials(self.config,self.users,self.root)
             prompt.assert_not_called()
         with TestClient(self.application()) as client:
@@ -135,10 +136,10 @@ class AccountIntegrationTests(unittest.TestCase):
         # A conflicting legacy import must not overwrite password or privileges.
         original=self.users.get_by_id(first.id)
         conflict={**self.config,"auth":{**self.config["auth"],"username":original.username,"password_hash":PASSWORD_HASHER.hash("conflicting-test-password")}}
-        (self.root/".app.config").write_text(json.dumps(conflict))
-        before=(self.root/".app.config").read_bytes()
+        (config_path(self.root)).write_text(json.dumps(conflict))
+        before=(config_path(self.root)).read_bytes()
         with self.assertRaises(DatabaseError):migrate_legacy_user(conflict,self.users,self.root)
-        self.assertTrue((self.root/".app.config").read_bytes()==before)
+        self.assertTrue((config_path(self.root)).read_bytes()==before)
         self.assertTrue(self.users.get_by_id(first.id).password_hash==self.first_hash)
         save_config(self.config,self.root)
         other={**self.database,"name":"another_database"}
@@ -159,7 +160,7 @@ class AccountIntegrationTests(unittest.TestCase):
             ensure_database({**self.database,"name":"not_permitted","user":"limited_master"},limited_password)
         with connect(self.database,self.password) as connection:
             self.assertIsNotNone(read_entry(connection,entry_id))
-        self.assertNotIn("password_hash",(self.root/".app.config").read_text())
+        self.assertNotIn("password_hash",(config_path(self.root)).read_text())
 
     def test_02_definitive_ports_and_swagger(self):
         if self.database["port"]!=6669:
@@ -183,12 +184,12 @@ class AccountIntegrationTests(unittest.TestCase):
 
 
     def test_03_derived_project_has_its_own_volume_and_accounts(self):
-        from app.infrastructure import require_infrastructure
+        from api.app.infrastructure import require_infrastructure
         root=Path(tempfile.mkdtemp(prefix="foundation-derived-"))
         shutil.copy(PROJECT_ROOT/"compose.yaml",root)
         shutil.copytree(PROJECT_ROOT/"sql",root/"sql")
         project=self.project+"-derived"
-        config=json.loads((PROJECT_ROOT/".app.config.example").read_text())
+        config=json.loads((example_path()).read_text())
         config["infrastructure"]["project_name"]=project
         self.assertEqual(require_infrastructure(config,root),project)
         from support_ports import approved_port
@@ -219,13 +220,13 @@ class AccountIntegrationTests(unittest.TestCase):
 
 
     def test_04_real_startup_coordinator_reuses_owned_resources(self):
-        from modules.base.runtime import serve
+        from api.runtime import serve
         config=json.loads(json.dumps(self.config))
         observed=[]
         def server(application,settings):
             observed.append(application)
             self.assertIn('/token',application.openapi()['paths'])
-        with patch('modules.base.runtime.load_config',return_value=config), patch('modules.base.runtime.database_settings',return_value=self.database), patch('modules.base.runtime.runtime_password',return_value=self.password), patch('modules.base.runtime.load_signing_secret',return_value=load_signing_secret(self.root)), patch('modules.base.runtime.run_api',side_effect=server):
+        with patch('api.runtime.load_config',return_value=config), patch('api.runtime.database_settings',return_value=self.database), patch('api.runtime.runtime_password',return_value=self.password), patch('api.runtime.load_signing_secret',return_value=load_signing_secret(self.root)), patch('api.runtime.run_api',side_effect=server):
             serve()
         self.assertEqual(len(observed),1)
         self.assertIsNone(observed[0].state.database.password)
@@ -239,15 +240,15 @@ class AccountIntegrationTests(unittest.TestCase):
         ensure_database(database, self.password)
         with tempfile.TemporaryDirectory() as directory:
             legacy_root = Path(directory)
-            (legacy_root/"sql/migrations").mkdir(parents=True)
+            (legacy_root/"database/sql/migrations").mkdir(parents=True)
             for name in ("001_create_test.sql", "002_create_api_users.sql"):
-                shutil.copy(PROJECT_ROOT/"sql/migrations"/name, legacy_root/"sql/migrations")
+                shutil.copy(PROJECT_ROOT/"database/sql/migrations"/name, legacy_root/"database/sql/migrations")
             # The old runner expects the old shape; create and checksum the old
             # schema explicitly so the current runner executes only migration 003.
             import hashlib
             with connect(database, self.password) as connection, connection.cursor() as cursor:
                 cursor.execute("CREATE TABLE public.foundation_migrations (version TEXT PRIMARY KEY, checksum TEXT NOT NULL, applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)")
-                for file in sorted((legacy_root/"sql/migrations").glob("*.sql")):
+                for file in sorted((legacy_root/"database/sql/migrations").glob("*.sql")):
                     content = file.read_bytes()
                     cursor.execute(content.decode("utf-8"))
                     cursor.execute("INSERT INTO public.foundation_migrations(version,checksum) VALUES (%s,%s)", (file.name, hashlib.sha256(content).hexdigest()))
@@ -262,11 +263,11 @@ class AccountIntegrationTests(unittest.TestCase):
             self.assertEqual(user.role, "standard")
             self.assertEqual(user.password_hash, self.first_hash)
             config = json.loads(json.dumps(self.config))
-            with patch("builtins.input", side_effect=["promote", "explicit_selection"]), patch("app.api_credentials.read_password") as password_prompt:
+            with patch("builtins.input", side_effect=["promote", "explicit_selection"]), patch("api.app.api_credentials.read_password") as password_prompt:
                 configure_api_credentials(config, users, legacy_root)
                 password_prompt.assert_not_called()
             self.assertTrue(users.has_administrator())
-            with patch("builtins.input") as selection, patch("app.api_credentials.read_password") as password_prompt:
+            with patch("builtins.input") as selection, patch("api.app.api_credentials.read_password") as password_prompt:
                 configure_api_credentials(config, users, legacy_root)
                 selection.assert_not_called()
                 password_prompt.assert_not_called()
@@ -282,8 +283,8 @@ class AccountIntegrationTests(unittest.TestCase):
     def test_06_roles_pagination_concurrency_and_collection(self):
         """Exercise public contracts and competing demotions on real PostgreSQL."""
         from concurrent.futures import ThreadPoolExecutor
-        from app.api_users import UserManagementError
-        from app.database_test import page_entries
+        from api.app.api_users import UserManagementError
+        from api.app.database_test import page_entries
         import io
 
         database = {**self.database, "name": "administration_database"}
@@ -294,7 +295,7 @@ class AccountIntegrationTests(unittest.TestCase):
         users = APIUserStore(provider)
         config = json.loads(json.dumps(self.config))
         with tempfile.TemporaryDirectory() as directory:
-            with patch("builtins.input", return_value="first_admin"), patch("app.api_credentials.read_password", return_value=self.first_password):
+            with patch("builtins.input", return_value="first_admin"), patch("api.app.api_credentials.read_password", return_value=self.first_password):
                 configure_api_credentials(config, users, Path(directory))
         admin = users.get_by_username("first_admin")
         self.assertEqual(admin.role, "administrator")

@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const frontendConfig=JSON.parse(readFileSync(process.argv[2]||resolve(root,'public/runtime-config.json'),'utf8'));
+const frontendConfig=JSON.parse(readFileSync(process.argv[2]||resolve(root,'config.example.json'),'utf8'));
 const properties={text:'--assistant-text',highlighted_text:'--assistant-highlighted-text',primary:'--assistant-primary',accent:'--assistant-accent',user_text:'--assistant-user-text'};
 const lines=['/* Generated from public runtime configuration; do not edit manually. */'];
 const expected=['nome_assistente','nome_assistente_2','mensagem_boas_vindas_assistente','mensagem_boas_vindas_assistente_2','assistant_colors','assistant_2_colors','assistant_image','assistant_2_image','balloon_image'];
@@ -29,4 +29,5 @@ if(process.argv[3])writeFileSync(process.argv[3],css);
 else{
   writeFileSync(resolve(root,'styles/assistant-theme.generated.css'),css);
   writeFileSync(resolve(root,'public/assistant-theme.css'),css);
+  writeFileSync(resolve(root,'public/runtime-config.json'),JSON.stringify(frontendConfig));
 }

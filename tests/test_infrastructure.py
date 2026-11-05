@@ -1,4 +1,5 @@
 """Isolated infrastructure checks; no examples are written to project logs."""
+from support_config import example_config, example_path, config_path, config_example_path
 import contextlib
 import io
 import json
@@ -11,9 +12,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-from app.config import ConfigurationError, PROJECT_ROOT, load_config
-from app.logger import ApplicationLogger
-from app.request_context import request_context, RequestContext, create_interaction_id
+from api.app.config import ConfigurationError, PROJECT_ROOT, load_config
+from api.app.logger import ApplicationLogger
+from shared.request_context import request_context, RequestContext, create_interaction_id
 from start import main
 
 
@@ -22,14 +23,14 @@ class InfrastructureTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.example = (PROJECT_ROOT / ".app.config.example").read_text(encoding="utf-8")
-        (self.root / ".app.config.example").write_text(self.example, encoding="utf-8")
+        self.example = (example_path()).read_text(encoding="utf-8")
+        (config_example_path(self.root)).write_text(self.example, encoding="utf-8")
         self.config = json.loads(self.example)
         self.config["logging"]["level"] = "INFO"
         self.config["infrastructure"]["project_name"] = "unit-foundation"
 
     def save(self):
-        (self.root / ".app.config").write_text(json.dumps(self.config), encoding="utf-8")
+        (config_path(self.root)).write_text(json.dumps(self.config), encoding="utf-8")
 
     def logger(self):
         self.console = io.StringIO()
@@ -64,7 +65,7 @@ class InfrastructureTests(unittest.TestCase):
             self.save()
             with self.assertRaisesRegex(ConfigurationError, "logging.level"):
                 load_config(self.root)
-        (self.root / ".app.config").write_text("{invalid", encoding="utf-8")
+        (config_path(self.root)).write_text("{invalid", encoding="utf-8")
         with self.assertRaises(ConfigurationError):
             load_config(self.root)
 
@@ -118,12 +119,12 @@ class InfrastructureTests(unittest.TestCase):
         self.assertEqual(sorted(len(path.read_text().splitlines()) for path in paths), [1, 2])
 
     def test_bootstrap_failure_and_valid_run(self):
-        from modules.orchestration import main, StartupError
+        from orchestration import main, StartupError
         output=io.StringIO()
-        with patch("modules.orchestration.prepare",side_effect=StartupError("port is invalid")), contextlib.redirect_stderr(output):
+        with patch("orchestration.prepare",side_effect=StartupError("port is invalid")), contextlib.redirect_stderr(output):
             self.assertEqual(main(self.root,['--check']),1)
         self.assertIn('port',output.getvalue())
-        with patch("modules.orchestration.prepare",return_value=(self.config,self.config['database'],{'project_name':'unit'})), patch("modules.orchestration.environment",return_value={}), patch("app.database.check_docker"), patch("modules.orchestration.run"), contextlib.redirect_stdout(output):
+        with patch("orchestration.prepare",return_value=(self.config,self.config['database'],{'project_name':'unit'})), patch("orchestration.environment",return_value={}), patch("api.app.database.check_docker"), patch("orchestration.run"), contextlib.redirect_stdout(output):
             self.assertEqual(main(self.root,['--check']),0)
         self.assertIn('configuration and Compose validated',output.getvalue())
 
@@ -131,16 +132,18 @@ class InfrastructureTests(unittest.TestCase):
     def test_execution_from_another_directory(self):
         # Copy the real entry point and modules to avoid modifying local configuration.
         import shutil
-        shutil.copyfile(PROJECT_ROOT/'.ai.config.example',self.root/'.ai.config.example')
+        shutil.copytree(PROJECT_ROOT/'shared',self.root/'shared',ignore=shutil.ignore_patterns('__pycache__'))
+        (self.root/'database').mkdir(exist_ok=True)
+        shutil.copyfile(PROJECT_ROOT/'database/config.example.json',self.root/'database/config.example.json')
         (self.root / "check_config.py").write_text(
-            "from app.config import load_config\nfrom app.logger import ApplicationLogger\n"
+            "from api.app.config import load_config\nfrom api.app.logger import ApplicationLogger\n"
             "config = load_config()\nlogger = ApplicationLogger(config['logging'])\n"
             "logger.log({'message': 'Configuration verified'})\nlogger.close()\n", encoding="utf-8")
-        shutil.copytree(PROJECT_ROOT / "app", self.root / "app", ignore=shutil.ignore_patterns("__pycache__"))
+        shutil.copytree(PROJECT_ROOT / "api/app", self.root / "api/app", ignore=shutil.ignore_patterns("__pycache__"))
         with tempfile.TemporaryDirectory() as other:
             result = subprocess.run([sys.executable, str(self.root / "check_config.py")], cwd=other, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((self.root / ".app.config").exists())
+        self.assertTrue((config_path(self.root)).exists())
         self.assertTrue((self.root / "logs").exists())
         self.config["port"] = -1
         self.save()

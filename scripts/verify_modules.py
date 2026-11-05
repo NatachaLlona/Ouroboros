@@ -29,12 +29,12 @@ def command(arguments, env=None, input=None, timeout=180):
 BOOTSTRAP = '''import sys
 sys.path.insert(0,'/runtime')
 from pathlib import Path
-from app.config import load_config
-from modules.base.runtime import database_settings
-from app.database import Database, connect
-from app.migrate import migrate
-from app.api_users import APIUserStore
-from app.api_credentials import PASSWORD_HASHER, configure_api_credentials
+from api.app.config import load_config
+from api.runtime import database_settings
+from api.app.database import Database, connect
+from api.app.migrate import migrate
+from api.app.api_users import APIUserStore
+from api.app.api_credentials import PASSWORD_HASHER, configure_api_credentials
 config=load_config()
 password=Path('/run/secrets/postgres_password').read_text()
 settings=database_settings(config)
@@ -133,7 +133,7 @@ def main():
     started = False
     try:
         sys.path.insert(0,str(ROOT))
-        from app.credentials import write_secret
+        from api.app.credentials import write_secret
         password=secrets.token_urlsafe(36)
         secret=write_secret(password,directory)
         write_secret(secrets.token_urlsafe(64),directory,'assistance_service_key')
@@ -147,13 +147,16 @@ def main():
         document['secrets']['service_key']['file']=str(directory/'.secrets/assistance_service_key')
         def mount(source,target,readonly=True):
             return {'type':'bind','source':str(source),'target':target,'read_only':readonly}
-        config=json.loads((ROOT/'modules/base/config.example.json').read_text(encoding='utf-8'))
-        config['database'].update(name='module_qa',user='module_qa')
+        config=json.loads((ROOT/'api/config.example.json').read_text(encoding='utf-8'))
+        database_config=json.loads((ROOT/'database/config.example.json').read_text(encoding='utf-8'))
+        database_config.update(name='module_qa',user='module_qa')
+        database_folder=directory/'database';database_folder.mkdir()
+        (database_folder/'config.json').write_text(json.dumps(database_config),encoding='utf-8')
         config['browser']={'origin':'http://localhost:6969','allow_loopback_http':True}
         folder=directory/'base';folder.mkdir()
-        (folder/'.config.json').write_text(json.dumps(config),encoding='utf-8')
-        (directory/'public.json').write_bytes((ROOT/'frontend/public/runtime-config.json').read_bytes())
-        (directory/'ai.json').write_bytes((ROOT/'modules/assistance/config.example.json').read_bytes())
+        (folder/'config.json').write_text(json.dumps(config),encoding='utf-8')
+        (directory/'public.json').write_bytes((ROOT/'frontend/config.example.json').read_bytes())
+        (directory/'ai.json').write_bytes((ROOT/'assistance/config.example.json').read_bytes())
         (directory/'empty.env').touch()
         if args.live_assistant:
             (directory/'live-assistant').touch()
@@ -171,11 +174,11 @@ def main():
         for name in ('api','assistance','frontend'):
             services[name].pop('build',None)
             services[name]['image']='ouroboros-'+name+':latest'
-        services['api']['volumes']=[mount(folder,'/config/base',False),mount(directory/'.secrets','/runtime/.secrets',False),
+        services['api']['volumes']=[mount(folder,'/config/api',False),mount(database_folder,'/config/database',False),mount(directory/'.secrets','/runtime/.secrets',False),
             mount(directory/'logs','/runtime/logs',False),mount(directory,'/qa')]
-        services['assistance']['volumes']=[mount(directory/'ai.json','/config/assistance.json'),
-            mount(ROOT/'.env' if args.live_assistant else directory/'empty.env','/runtime/.env'),mount(ROOT/'.cache/speech','/models')]
-        services['frontend']['volumes']=[mount(directory/'public.json','/config/frontend.json'),
+        services['assistance']['volumes']=[mount(directory/'ai.json','/runtime/assistance/config.json'),
+            mount(ROOT/'assistance/.env' if args.live_assistant else directory/'empty.env','/runtime/assistance/.env'),mount(ROOT/'.cache/speech','/models')]
+        services['frontend']['volumes']=[mount(directory/'public.json','/config/frontend/config.json'),
             mount(ROOT/'frontend/public/images','/usr/share/nginx/html/frontend/images')]
         (directory/'compose.json').write_text(json.dumps(document),encoding='utf-8')
         started=True

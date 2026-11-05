@@ -1,6 +1,6 @@
 import { Component, DestroyRef, Directive, ElementRef, Injectable, Injector, afterNextRender, computed, effect, inject, input, signal, viewChild } from '@angular/core';
 import { AssistantBinding, AssistantMessage, AssistantSuggestion, FormAssistantBridge, classificationFields } from './form-assistant';
-import { assistantGreeting, frontendConfig } from '../frontend.config';
+import { assistantGreeting, frontendConfig } from '../configuration';
 import { Api, ApiError, safeMessage } from './api';
 import { Session } from '../auth/session';
 import { AudioLevelMeter } from './audio-level-meter';

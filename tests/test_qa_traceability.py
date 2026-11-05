@@ -16,7 +16,7 @@ class QATraceabilityTests(unittest.TestCase):
         self.assertEqual(validate_catalog(catalog), [])
         self.assertEqual((ROOT/"docs/QA_TEST_PLAN.md").read_text(encoding="utf-8"), render_plan(catalog))
         import ast
-        literals = {node.value for path in [ROOT/"start.py",*(ROOT/"app").rglob("*.py"),*(ROOT/"modules").rglob("*.py")]
+        literals = {node.value for path in [ROOT/"start.py",*(ROOT/"api").rglob("*.py"),*(ROOT/"shared").rglob("*.py")]
                     for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
                     if isinstance(node,ast.Constant) and isinstance(node.value,str)}
         for scenario in catalog["scenarios"]:

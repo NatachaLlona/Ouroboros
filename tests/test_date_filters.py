@@ -2,12 +2,12 @@
 from datetime import datetime, timedelta, timezone
 import unittest
 from pydantic import ValidationError
-from app.datetimes import date_predicates
-from app.schemas.catalogue import RESOURCES
-from app.schemas.test import TestQuery, TestBulkQuery
-from app.schemas.audit import AuditFilters
-from app.database_test import test_filters
-from app.catalogue_repository import CatalogueRepository, CatalogueError
+from shared.datetimes import date_predicates
+from shared.schemas.catalogue import RESOURCES
+from api.app.schemas.test import TestQuery, TestBulkQuery
+from api.app.schemas.audit import AuditFilters
+from api.app.database_test import test_filters
+from api.app.catalogue_repository import CatalogueRepository, CatalogueError
 
 
 class DateFilterTests(unittest.TestCase):

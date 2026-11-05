@@ -9,8 +9,8 @@ import unittest
 import uuid
 from unittest.mock import patch
 import test_catalogue_api as legacy
-from app.database import connect, ensure_database
-from app.migrate import migrate
+from api.app.database import connect, ensure_database
+from api.app.migrate import migrate
 
 
 @unittest.skipUnless(os.environ.get('FOUNDATION_RUN_INTEGRATION') == '1', 'Requires owned disposable Docker integration')
@@ -34,9 +34,9 @@ class RemainingPhaseTests(unittest.TestCase):
     def test_01_backfill_empty_nine_and_gaps_preserves_records(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'sql/migrations').mkdir(parents=True)
-            for source in (self.root / 'sql/migrations').glob('*.sql'):
-                if source.name[:3] <= '008': shutil.copy(source,root / 'sql/migrations')
+            (root / 'database/sql/migrations').mkdir(parents=True)
+            for source in (self.root / 'database/sql/migrations').glob('*.sql'):
+                if source.name[:3] <= '008': shutil.copy(source,root / 'database/sql/migrations')
             for sequences in ([],list(range(1,10)),[2,7,15]):
                 database = {**self.db,'name':'backfill_' + uuid.uuid4().hex}
                 ensure_database(database,self.master)
@@ -126,7 +126,7 @@ class RemainingPhaseTests(unittest.TestCase):
         self.assertEqual([r.status_code for r in responses],[201,200,204]*4)
         records = self.ordered()
         self.assertEqual([r['tier'] for r in records],list(range(1,len(records)+1)))
-        from app.audit_context import bounded_mutation_details
+        from shared.audit_context import bounded_mutation_details
         details = {'reordering':{'action':'move','moved':{'id':'WC0000001','old_tier':12,'new_tier':1},'affected_count':12,'shifted_count':11,'shifted_records':[{'id':'WC0000002','old_tier':2,'new_tier':3}]*20}}
         bounded = bounded_mutation_details(details,256)
         self.assertLessEqual(len(json.dumps(bounded).encode()),256)
@@ -178,7 +178,7 @@ class RemainingPhaseTests(unittest.TestCase):
         self.assertEqual(self.call('DELETE','/test',role='administrator',params={'confirm':True,'value':'missing'}).json()['deleted_count'],0)
         later = self.call('POST','/test',role='standard',expected=201,json={'value':'Later'}).json()
         self.assertGreater(later['id'],rows[-1]['id'])
-        from app.database_test import TestRepository
+        from api.app.database_test import TestRepository
         original = TestRepository.update
         def revoke(repository, entry_id, payload, claims):
             with self.provider.connection() as connection:

@@ -1,4 +1,5 @@
 """API authentication, validation, logging, and lifecycle without normal database writes."""
+from support_config import example_config, example_path, config_path, config_example_path
 import contextlib
 import io
 import json
@@ -12,13 +13,13 @@ from unittest.mock import MagicMock, patch
 import jwt
 from fastapi.testclient import TestClient
 
-from app.api_credentials import PASSWORD_HASHER, configure_api_credentials, load_signing_secret
-from app.auth import AuthService
+from api.app.api_credentials import PASSWORD_HASHER, configure_api_credentials, load_signing_secret
+from api.app.auth import AuthService
 from support_users import MemoryAPIUsers
-from app.config import PROJECT_ROOT, ConfigurationError, load_config
-from app.database import DatabaseError
-from app.logger import ApplicationLogger
-from app.main import create_app
+from api.app.config import PROJECT_ROOT, ConfigurationError, load_config
+from api.app.database import DatabaseError
+from api.app.logger import ApplicationLogger
+from api.app.main import create_app
 
 
 class APITests(unittest.TestCase):
@@ -31,7 +32,7 @@ class APITests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
-        self.config = json.loads((PROJECT_ROOT / ".app.config.example").read_text())
+        self.config = json.loads((example_path()).read_text())
         self.users = MemoryAPIUsers()
         self.user = self.users.create("unit_api_user", self.password_hash)
         self.secret = secrets.token_urlsafe(64)
@@ -114,7 +115,7 @@ class APITests(unittest.TestCase):
             self.assertEqual(response.status_code, 422)
             self.assertTrue(response.headers["X-Interaction-ID"])
         for value in ("", "  unchanged  ", "x" * 50001):
-            with patch("app.endpoints.test.TestRepository.create", return_value={'id':42,'value':value,'created_at':None,'created_at_timezone':None}) as insert:
+            with patch("api.app.endpoints.test.TestRepository.create", return_value={'id':42,'value':value,'created_at':None,'created_at_timezone':None}) as insert:
                 response = self.client.post("/test", json={"value": value}, headers=headers)
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual({key:response.json()[key] for key in ('id','value')}, {"id": 42, "value": value})
@@ -125,7 +126,7 @@ class APITests(unittest.TestCase):
     def test_request_ids_errors_and_secret_free_logs(self):
         token_headers = self.bearer()
         secret_value = "request-content-must-not-be-logged"
-        with patch("app.endpoints.test.page_entries", side_effect=RuntimeError(secret_value)):
+        with patch("api.app.endpoints.test.page_entries", side_effect=RuntimeError(secret_value)):
             failure = self.client.get("/test", params={"value": secret_value}, headers={**token_headers, "X-Interaction-ID": "untrusted"})
         self.assertEqual(failure.status_code, 500)
         interaction = failure.headers["X-Interaction-ID"]
@@ -161,7 +162,7 @@ class APITests(unittest.TestCase):
                              ("audience", " "), ("password_hash", "not-an-argon2-hash")):
             config = json.loads(json.dumps(self.config))
             config["auth"][field] = value
-            (self.root / ".app.config").write_text(json.dumps(config))
+            (config_path(self.root)).write_text(json.dumps(config))
             with self.assertRaises(ConfigurationError):
                 load_config(self.root)
         self.auth.config["token_ttl_seconds"] = 321
@@ -173,12 +174,12 @@ class APITests(unittest.TestCase):
     def test_credential_enrollment_and_cancellation(self):
         config = json.loads(json.dumps(self.config))
         with patch("builtins.input", side_effect=["create", "additional_user"]), \
-             patch("app.api_credentials.read_password", side_effect=KeyboardInterrupt):
+             patch("api.app.api_credentials.read_password", side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):
                 configure_api_credentials(config, self.users, self.root)
         self.assertEqual(self.users.count(), 1)
         with patch("builtins.input", side_effect=["create", "additional_user"]), \
-             patch("app.api_credentials.read_password", return_value=self.password):
+             patch("api.app.api_credentials.read_password", return_value=self.password):
             configure_api_credentials(config, self.users, self.root)
         self.assertEqual(self.users.count(), 2)
         self.assertEqual(config["api_users"]["last_api_username"], "additional_user")
@@ -224,15 +225,15 @@ class APITests(unittest.TestCase):
         self.assertNotIn("private-cleanup-detail",self.output.getvalue())
 
     def test_credentials_and_signing_key_persistence(self):
-        config = json.loads((PROJECT_ROOT / ".app.config.example").read_text())
+        config = json.loads((example_path()).read_text())
         users = MemoryAPIUsers()
-        with patch("builtins.input", return_value="local_api_user"), patch("app.api_credentials.read_password", return_value=self.password):
+        with patch("builtins.input", return_value="local_api_user"), patch("api.app.api_credentials.read_password", return_value=self.password):
             configure_api_credentials(config, users, self.root)
         self.assertTrue(users.get_by_username("local_api_user").password_hash.startswith("$argon2id$"))
-        content = (self.root / ".app.config").read_text()
+        content = (config_path(self.root)).read_text()
         self.assertNotIn(self.password, content)
         self.assertNotIn("password_hash", content)
-        with patch("builtins.input", return_value="y"), patch("app.api_credentials.read_password") as prompt:
+        with patch("builtins.input", return_value="y"), patch("api.app.api_credentials.read_password") as prompt:
             configure_api_credentials(config, users, self.root)
             prompt.assert_not_called()
         self.assertEqual(users.count(), 1)
@@ -242,9 +243,9 @@ class APITests(unittest.TestCase):
 
     def test_shared_pagination_validation_and_envelope(self):
         headers = self.bearer()
-        from app.datetimes import present
+        from shared.datetimes import present
         expected = {"count": 17, "page": 2, "page_size": 10, "items": [present({"id": 42, "value": "entry",'created_at':None,'created_at_timezone':None})]}
-        with patch("app.endpoints.test.page_entries", return_value=expected) as listing:
+        with patch("api.app.endpoints.test.page_entries", return_value=expected) as listing:
             response = self.client.get("/test?page=2&page_size=10&id=42&value=%25entry%25", headers=headers)
             self.assertEqual(response.json(), expected)
             self.assertEqual({key:listing.call_args.kwargs[key] for key in ('page','page_size','order_by','order_direction')}, {"page": 2, "page_size": 10, "order_by": "id", "order_direction": "asc"})
@@ -262,7 +263,7 @@ class APITests(unittest.TestCase):
     def test_current_role_authorization_and_future_scope(self):
         from dataclasses import replace
         from fastapi import Security
-        from app.auth import require_scopes
+        from api.app.auth import require_scopes
 
         @self.app.get("/future", dependencies=[Security(require_scopes, scopes=["future:operation"])])
         def future():
@@ -327,7 +328,7 @@ class APITests(unittest.TestCase):
 
     def test_reset_password_validation_authorization_and_log_exclusion(self):
         from dataclasses import replace
-        from app.api_users import UserManagementError
+        from api.app.api_users import UserManagementError
         self.users.reset_password = MagicMock()
         standard = self.bearer()
         body = {"new_password": "reset-secret-value"}
@@ -361,8 +362,8 @@ class APITests(unittest.TestCase):
 
     def test_swagger_explicit_query_parameters(self):
         schema = self.app.openapi()
-        from app.creation import CREATION_EXAMPLES
-        from app.schemas.catalogue import RESOURCES
+        from api.app.creation import CREATION_EXAMPLES
+        from shared.schemas.catalogue import RESOURCES
         for name, resource in RESOURCES.items():
             operation = schema['paths']['/' + name]['post']
             examples = operation['requestBody']['content']['application/json']['examples']

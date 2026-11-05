@@ -1,5 +1,7 @@
 # Four-module QA record
 
+This record covers the previous four-service separation. The subsequent folder/configuration standardization is recorded independently in [Layout QA](LAYOUT_QA.md).
+
 Recorded on 2026-11-04. Normal database records, credentials and applied SQL files were not changed by the automated QA. This is scoped evidence, not blanket QA approval.
 
 ## Executed

@@ -78,7 +78,7 @@ npm.cmd --prefix frontend run build
 
 Use existing private interactive startup credentials. Open **http://localhost:6969/cadastrar**, **http://localhost:6969/cadastros** and **http://localhost:6969/docs**. Never use normal records for demo/test writes. The owned preview remains 2469 with PostgreSQL 2424; the separate concurrent-isolation database uses the already approved 4242. Container PostgreSQL stays 5432. No other ports are selected automatically.
 
-For disposable backend QA set OUROBOROS_QA_DB_PORT=2424, OUROBOROS_QA_API_PORT=2469 and OUROBOROS_QA_DERIVED_DB_PORT=4242, then run `.\.venv\Scripts\python.exe scripts/run_checks.py`. Release these ports before starting `scripts/preview_angular.py --port 2469` with FOUNDATION_RUN_INTEGRATION=1. An optional ignored fixture file under .tmp supplies only the generated disposable credentials to local QA; never print or version them.
+For disposable backend QA set OUROBOROS_QA_DB_PORT=2424, OUROBOROS_QA_API_PORT=2469 and OUROBOROS_QA_DERIVED_DB_PORT=4242, then run `.\.venv\Scripts\python.exe scripts/run_checks.py`. Release these ports before starting `frontend/scripts/preview_angular.py --port 2469` with FOUNDATION_RUN_INTEGRATION=1. An optional ignored fixture file under .tmp supplies only the generated disposable credentials to local QA; never print or version them.
 
 Manual sequence on disposable data:
 
