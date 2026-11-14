@@ -1,4 +1,10 @@
 """Exercise owned disposable containers; never authenticate against the normal database."""
+
+import sys as _sys
+from pathlib import Path as _Path
+_repository = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_repository))
+_sys.path.insert(0, str(_repository / "modules"))
 import argparse
 import json
 import os
@@ -22,6 +28,13 @@ def command(arguments, env=None, input=None, timeout=180):
         categories=re.findall(r'^([A-Za-z]+Error|[A-Za-z]+Exception)(?::|$)',diagnostic,re.MULTILINE)
         locations=re.findall(r'File "([^"\n]+)", line (\d+)',diagnostic)
         print('Disposable failure categories:',categories,'locations:',locations[-4:],file=sys.stderr)
+        # Only an explicitly bounded status/code marker is allowed out of the probe.
+        for marker in re.findall(r'^QA assistant status: [0-9]{3} (?:ASSISTANT_[A-Z_]+|UNKNOWN)$', diagnostic, re.MULTILINE):
+            print(marker, file=sys.stderr)
+        for marker in re.findall(r'^QA assistant flags: name_match=[01] tier_match=[01]$', diagnostic, re.MULTILINE):
+            print(marker, file=sys.stderr)
+        for marker in re.findall(r'^QA assistant tier: (?:missing|null|integer-[0-9]{1,3}) count=[0-9]{1,3}$', diagnostic, re.MULTILINE):
+            print(marker, file=sys.stderr)
         raise RuntimeError('Disposable verification command failed: '+arguments[-1])
     return result.stdout
 
@@ -63,7 +76,7 @@ with httpx.Client(base_url=base,headers=headers,timeout=1500,trust_env=False) as
     schema=client.get('/openapi.json').json()
     assert '/tags' in schema['paths'] and '/tag_categories' in schema['paths']
     if not degraded:
-        guest=client.get('/cadastros')
+        guest=client.get('/registrations')
         assert guest.status_code==303 and 'destino=cadastros' in guest.headers['location']
         assert client.get('/frontend/runtime-config.json').status_code==200
         assert '--assistant-text' in client.get('/frontend/assistant-theme.css').text
@@ -80,9 +93,9 @@ with httpx.Client(base_url=base,headers=headers,timeout=1500,trust_env=False) as
             'values':{'display_name_work_classifications':'','work_classification_name':'','description_work_classifications':'','tier':''}}
         assert client.post('/browser/assistant/work-classifications',json=payload).status_code==503
         assert client.get('/tags').status_code==200
-        print('PASS: API, Swagger, login and catalogue work without frontend/assistance; assistant fails safely.')
+        print('PASS: API, Swagger, login and catalogue work without modules/frontend/assistance; assistant fails safely.')
     else:
-        protected=client.get('/cadastros')
+        protected=client.get('/registrations')
         assert protected.status_code==200
         assert "style-src 'self'" in protected.headers['content-security-policy']
         created=client.post('/work_classifications',json={'work_classification_name':'module_qa','display_name_work_classifications':'Module QA'})
@@ -100,9 +113,40 @@ with httpx.Client(base_url=base,headers=headers,timeout=1500,trust_env=False) as
             payload={'mode':'create','message':'Use o Nome Fantasia Classificação QA. Mantenha a posição automática.','history':[],
                 'values':{'display_name_work_classifications':'','work_classification_name':'','description_work_classifications':'','tier':''}}
             response=client.post('/browser/assistant/work-classifications',json=payload)
+            if response.status_code!=200:
+                code=response.json().get('error',{}).get('code','UNKNOWN')
+                allowed={'ASSISTANT_UNAVAILABLE','ASSISTANT_BUSY','ASSISTANT_RATE_LIMITED','ASSISTANT_UPSTREAM_REJECTED','ASSISTANT_INVALID_OUTPUT'}
+                print('QA assistant status:',response.status_code,code if code in allowed else 'UNKNOWN',file=sys.stderr)
             assert response.status_code==200, ('assistant',response.status_code)
             assert response.json()['reply'] and isinstance(response.json()['proposals'],list)
             print('PASS: one live GPT-5.4 structured suggestion through the isolated API; response content omitted; no save.')
+            fixtures=[{'work_classification_name':'assistant_qa_'+str(index),
+                'display_name_work_classifications':name} for index,name in enumerate(['Amei QA first','AMEI QA second','Other QA'])]
+            assert client.post('/work_classifications',json=fixtures).status_code==201
+            payload['message']='Chama "QA multi", coloca na posi\u00e7\u00e3o 2.'
+            multi=client.post('/browser/assistant/work-classifications',json=payload)
+            assert multi.status_code==200
+            proposals={item['field']:item['value'] for item in multi.json()['proposals']}
+            if proposals.get('display_name_work_classifications')!='QA multi' or proposals.get('tier')!=2:
+                print('QA assistant flags: name_match='+str(int(proposals.get('display_name_work_classifications')=='QA multi'))+' tier_match='+str(int(proposals.get('tier')==2)),file=sys.stderr)
+                tier=proposals.get('tier')
+                kind='missing' if 'tier' not in proposals else 'null' if tier is None else 'integer-'+str(tier) if type(tier) is int and 0<=tier<1000 else 'missing'
+                print('QA assistant tier:',kind,'count='+str(client.get('/work_classifications').json()['count']),file=sys.stderr)
+            assert proposals.get('display_name_work_classifications')=='QA multi' and proposals.get('tier')==2
+            assert 'work_classification_name' not in proposals
+            payload['values']['display_name_work_classifications']='QA relative'
+            payload['message']='Quero que esta classifica\u00e7\u00e3o seja o primeiro dos amei.'
+            relative=client.post('/browser/assistant/work-classifications',json=payload)
+            assert relative.status_code==200
+            confirmation=relative.json()['position_confirmation']
+            assert confirmation and 'Amei QA first' in confirmation['message']
+            assert not any(item['field']=='tier' for item in relative.json()['proposals'])
+            payload['confirmation']=confirmation['token']
+            confirmed=client.post('/browser/assistant/work-classifications',json=payload)
+            assert confirmed.status_code==200
+            assert confirmed.json()['proposals']==[{'field':'tier','value':1}]
+            assert client.get('/work_classifications').json()['count']==3
+            print('PASS: live GPT-5.4 multi-field extraction and real case-insensitive relative lookup/confirmation; no assistant business writes.')
         audio=Path('/qa/audio.wav')
         if audio.exists():
             response=client.post('/browser/transcription',content=audio.read_bytes(),headers={'Content-Type':'audio/wav'})
@@ -117,7 +161,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--audio', type=Path)
     parser.add_argument('--publish', action='store_true', help='Publish QA frontend only on the approved port, when free')
-    parser.add_argument('--live-assistant', action='store_true', help='Make one live GPT-5.4 call with the configured provider file mounted only into disposable assistance')
+    parser.add_argument('--live-assistant', action='store_true', help='Check basic, multi-field and relative-position GPT-5.4 behavior with the provider file mounted only into disposable assistance')
     args = parser.parse_args()
     if args.publish:
         with socket.socket() as probe:
@@ -147,16 +191,16 @@ def main():
         document['secrets']['service_key']['file']=str(directory/'.secrets/assistance_service_key')
         def mount(source,target,readonly=True):
             return {'type':'bind','source':str(source),'target':target,'read_only':readonly}
-        config=json.loads((ROOT/'api/config.example.json').read_text(encoding='utf-8'))
-        database_config=json.loads((ROOT/'database/config.example.json').read_text(encoding='utf-8'))
+        config=json.loads((ROOT/'modules/api/config.example.json').read_text(encoding='utf-8'))
+        database_config=json.loads((ROOT/'modules/database/config.example.json').read_text(encoding='utf-8'))
         database_config.update(name='module_qa',user='module_qa')
-        database_folder=directory/'database';database_folder.mkdir()
+        database_folder=directory/'modules/database';database_folder.mkdir()
         (database_folder/'config.json').write_text(json.dumps(database_config),encoding='utf-8')
         config['browser']={'origin':'http://localhost:6969','allow_loopback_http':True}
         folder=directory/'base';folder.mkdir()
         (folder/'config.json').write_text(json.dumps(config),encoding='utf-8')
-        (directory/'public.json').write_bytes((ROOT/'frontend/config.example.json').read_bytes())
-        (directory/'ai.json').write_bytes((ROOT/'assistance/config.example.json').read_bytes())
+        (directory/'public.json').write_bytes((ROOT/'modules/frontend/config.example.json').read_bytes())
+        (directory/'ai.json').write_bytes((ROOT/'modules/assistance/config.example.json').read_bytes())
         (directory/'empty.env').touch()
         if args.live_assistant:
             (directory/'live-assistant').touch()
@@ -177,9 +221,9 @@ def main():
         services['api']['volumes']=[mount(folder,'/config/api',False),mount(database_folder,'/config/database',False),mount(directory/'.secrets','/runtime/.secrets',False),
             mount(directory/'logs','/runtime/logs',False),mount(directory,'/qa')]
         services['assistance']['volumes']=[mount(directory/'ai.json','/runtime/assistance/config.json'),
-            mount(ROOT/'assistance/.env' if args.live_assistant else directory/'empty.env','/runtime/assistance/.env'),mount(ROOT/'.cache/speech','/models')]
+            mount(ROOT/'modules/assistance/.env' if args.live_assistant else directory/'empty.env','/runtime/assistance/.env'),mount(ROOT/'.cache/speech','/models')]
         services['frontend']['volumes']=[mount(directory/'public.json','/config/frontend/config.json'),
-            mount(ROOT/'frontend/public/images','/usr/share/nginx/html/frontend/images')]
+            mount(ROOT/'modules/frontend/public/images','/usr/share/nginx/html/frontend/images')]
         (directory/'compose.json').write_text(json.dumps(document),encoding='utf-8')
         started=True
         command(qa+['up','--detach','--wait','postgres'],env)
@@ -188,13 +232,13 @@ def main():
         output=command(qa+['exec','-T','api','python','/qa/probe.py'],env,timeout=1800)
         print(output.decode(),end='')
         public=json.loads((directory/'public.json').read_text(encoding='utf-8'))
-        public['nome_assistente_2']='Disposable runtime assistant'
+        public['assistant_2_name']='Disposable runtime assistant'
         public['assistant_2_colors']['primary']='#EFEFEF'
         (directory/'public.json').write_text(json.dumps(public),encoding='utf-8')
         runtime_probe="import httpx; c=httpx.Client(trust_env=False); before=c.get('http://frontend:8080/frontend/build-info.json').json()['build_id']; print(before)"
         before=command(qa+['exec','-T','api','python','-c',runtime_probe],env).strip()
         command(qa+['restart','frontend'],env)
-        runtime_check="import httpx; c=httpx.Client(trust_env=False); assert c.get('http://frontend:8080/frontend/runtime-config.json').json()['nome_assistente_2']=='Disposable runtime assistant'; assert '#EFEFEF' in c.get('http://frontend:8080/frontend/assistant-theme.css').text; print(c.get('http://frontend:8080/frontend/build-info.json').json()['build_id'])"
+        runtime_check="import httpx; c=httpx.Client(trust_env=False); assert c.get('http://frontend:8080/frontend/runtime-config.json').json()['assistant_2_name']=='Disposable runtime assistant'; assert '#EFEFEF' in c.get('http://frontend:8080/frontend/assistant-theme.css').text; print(c.get('http://frontend:8080/frontend/build-info.json').json()['build_id'])"
         after=command(qa+['exec','-T','api','python','-c',runtime_check],env).strip()
         assert before==after
         print('PASS: public name/color changed after frontend restart without Angular rebuild; compiled build identity unchanged.')

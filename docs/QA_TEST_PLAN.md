@@ -3,11 +3,41 @@
 
 ## 🧭 **Read this first**
 
-Current deployment files are config.json at the repository root and in frontend/, api/, assistance/ and database/. Copy only the corresponding config.example.json when preparing a new installation. Retired dot-config files are not read. See [module ownership](MODULES.md) and [layout QA](LAYOUT_QA.md).
+The Basic deployment uses root provisioning.jsonc, modules/database/config.jsonc
+and modules/api/config.jsonc, with their versioned examples. Each module's code,
+dependencies and resources live under modules/. See API.md for trusted HTTPS
+certificate preparation and the existing-credential startup flow.
 
-### Current four-module runtime
+### Current Basic runtime and independent suites
 
-Use `python start.py` to build/start PostgreSQL, Base/API, frontend and assistance. Application dependencies run in compatible container images, not the host venv. [Module setup](MODULES.md) documents first-use adoption, interactive existing credentials and unchanged ports. Host dependency installation below is for running development/QA tools. Run `python scripts/verify_modules.py` from the QA environment for disposable tmpfs integration checks; it publishes no ports by default. Never run destructive tests against the normal database. See [scoped execution evidence](MODULES_QA.md); normal authenticated startup, browser and physical microphone checks must be recorded separately.
+`python start.py --with-api` starts PostgreSQL and HTTPS API in Compose project
+ouroboros. Swagger is https://localhost:6969/docs. `--database-only` starts only
+PostgreSQL. The shared persistent database volume, credentials and Basic plan
+survive restarts. Frontend and Assistance are outside this runtime profile.
+
+Run the central suite or one module from PowerShell at the repository root.
+
+```powershell
+.\.venv\Scripts\python.exe qa/run.py --suite central
+.\.venv\Scripts\python.exe modules/database/qa/run.py
+.\.venv\Scripts\python.exe modules/api/qa/run.py
+.\.venv-speech\Scripts\python.exe modules/assistance/qa/run.py
+.\.venv\Scripts\python.exe modules/frontend/qa/run.py
+```
+
+Install each module's declared requirements into the selected interpreter.
+Assistance QA requires its native speech dependencies. Frontend QA uses the
+module's npm dependencies and compatible Node toolchain. With all verification
+dependencies installed in one environment, `python qa/run.py --suite all` runs
+the suites sequentially and writes sanitized summary, JSON and JUnit reports.
+Historical Docker integration scenarios require their explicit disposable-data
+opt-in. Every reported skip remains visible.
+
+### Historical integer-ID catalogue scenarios
+
+The following catalogue scenarios describe the historical API and its disposable
+fixtures. Their authentication, resource names and configuration differ from
+the current registered Database v1 Basic API documented in API.md.
 
 For catalogue CRUD scenarios **14.1–14.7**, use the [resource/filter/permission matrix](CATALOGUE_API.md) and new canonical Postman folders. Administrator creates supervisor explicitly; standard still has no catalogue access. All collection GETs now show ordering enums. DELETE examples are skipped by default: only in disposable data, explicitly select the request, set the private local catalogue_destructive_opt_in=isolated, and for DELETE all change confirm=false to true. Never run that flow against normal records. POST/PUT/GET expose the same complete record; copy a GET body to PUT with unchanged metadata and server-controlled added_at. Troubleshooting and exact status expectations are in the CRUD guide.
 
@@ -29,7 +59,7 @@ An **API** accepts requests at URLs. **Swagger** is the interactive web page at 
 
 1. Ask the developer for the exact revision/source package being tested. Record that public revision with your evidence. Obtain access to the private repository if cloning it. Do not download another developer's configuration, secrets or database volume.
 2. Open PowerShell. A terminal is a window where you enter the commands shown below. Open Docker Desktop and wait until its Engine is running in **Linux containers** mode.
-3. Put the supplied source in a **new** folder, such as `C:\Dev\Ouroboros-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Ouroboros-QA`. Do not type that placeholder literally. Do not copy `api/config.json`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
+3. Put the supplied source in a **new** folder, such as `C:\Dev\Ouroboros-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Ouroboros-QA`. Do not type that placeholder literally. Do not copy `modules/api/config.json`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
 4. Enter these commands from the new folder. Stop and ask for help if any command shows an error; a missing program is **BLOCKED preparation**, not a successful test.
 
 ```powershell
@@ -39,12 +69,12 @@ docker version
 docker compose version
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-if (Test-Path -LiteralPath api/config.json) { throw 'Use a fresh QA folder; existing configuration must not be overwritten' }
-Copy-Item -LiteralPath api/config.example.json -Destination api/config.json -ErrorAction Stop
-notepad api/config.json
+if (Test-Path -LiteralPath modules/api/config.json) { throw 'Use a fresh QA folder; existing configuration must not be overwritten' }
+Copy-Item -LiteralPath modules/api/config.example.json -Destination modules/api/config.json -ErrorAction Stop
+notepad modules/api/config.json
 ```
 
-**Only copy the example when `api/config.json` does not exist.** If the folder already contains one, do not overwrite it; use a new QA folder. In Notepad, retain all other JSON fields and change only these choices. Commas, quotes and braces must remain valid JSON. No password goes into this file.
+**Only copy the example when `modules/api/config.json` does not exist.** If the folder already contains one, do not overwrite it; use a new QA folder. In Notepad, retain all other JSON fields and change only these choices. Commas, quotes and braces must remain valid JSON. No password goes into this file.
 
 If installing PyYAML on the local Python 3.15 reports a missing C++ compiler, its optional native extension is not needed for these checks. Use the supported pure-Python build (or use Python 3.12 as CI does):
 
@@ -97,7 +127,7 @@ If instead you see **promote/create**, this database already contains API users 
 
 ### 📮 **Import Postman once and configure local values**
 
-1. Postman Desktop → **Import → Files** → select **postman/Ouroboros.postman_collection.json** from this QA folder. This is the sole canonical **Collection v2.1**. Do not import the YAML directory; three historical List all entries YAML copies contain old assertions. Do not delete personal YAML/customizations.
+1. Postman Desktop → **Import → Files** → select **modules/api/postman/Ouroboros.postman_collection.json** from this QA folder. This is the sole canonical **Collection v2.1**. Do not import the YAML directory; three historical List all entries YAML copies contain old assertions. Do not delete personal YAML/customizations.
 2. To update an older import, retain your private environment/custom requests first, then choose replacement if offered. Otherwise archive/remove only the identified old imported collection and import this JSON once. Avoid two same-named active imports.
 3. Create a **private local environment**, select it, and set `base_url=http://localhost:6969`. Set credentials only locally and mark passwords sensitive. A placeholder such as `{{admin_username}}` must resolve before sending. Do not share/sync/export secrets.
 4. Basic requests 01–08 use `api_username`/`api_password`, captured `access_token` and `test_id`. Run 02 then 03 before filters. Request 04 has **Params** `id` and `value` unchecked: neither = unfiltered page, one = that filter, both = AND. Keep `%Ouroboros%` raw in Params; the transmitted URL must have `%25Ouroboros%25`, not `%2525`.
@@ -119,7 +149,7 @@ Expected negatives are 403 for standard callers, 401 without authentication or a
 Press **Ctrl+C** in the application terminal to stop the API; PostgreSQL remains running. Restart using the same command and QA master password. To stop/start **only this QA database**, open a second PowerShell terminal in your QA folder:
 
 ```powershell
-$qaConfig = Get-Content -Raw -Encoding UTF8 api/config.json | ConvertFrom-Json
+$qaConfig = Get-Content -Raw -Encoding UTF8 modules/api/config.json | ConvertFrom-Json
 $qaProject = $qaConfig.infrastructure.project_name
 $env:OUROBOROS_DB_NAME = $qaConfig.database.name
 $env:OUROBOROS_DB_USER = $qaConfig.database.user
@@ -176,7 +206,7 @@ After a maintainer publishes the workflow to the repository's default branch, op
 | `python` not recognized | Install Python, enable PATH, reopen PowerShell; preparation remains BLOCKED |
 | Package installation fails | Confirm internet access and correct virtual-environment path; do not substitute a global Python installation |
 | Docker/Engine unavailable | Start Docker Desktop, wait for Linux Engine; follow its Windows/WSL2 instructions |
-| JSON configuration error / identity blank | Reopen only QA `api/config.json`, repair JSON / choose unique project identity |
+| JSON configuration error / identity blank | Reopen only QA `modules/api/config.json`, repair JSON / choose unique project identity |
 | Foreign workspace/volume ownership error | Stop; choose fresh QA configuration/secrets/identity. Never adopt or delete the other volume |
 | API port occupied | Choose another free API port; update Postman base_url |
 | Database authentication error | Reuse the master password originally chosen for this QA volume; initialization variables do not reset an existing role |
@@ -199,7 +229,7 @@ These are **public suggestions for a disposable local QA installation only**, ne
 | Administrator after own-password change | admin | AdminPassword-Updated-2026! |
 | Standard after own-password change | default | DefaultPassword-Updated-2026! |
 
-The main URLs are **http://localhost:6969/docs**, API port **6969**, PostgreSQL host **6669**, internal **5432**. Automated tests still choose random credentials and free ports. Never insert these examples into api/config.json, source defaults, the initialization code or the versioned Postman JSON. These explicitly requested public examples are an exception to documentation's usual credential placeholders; real credentials remain prohibited everywhere versioned.
+The main URLs are **http://localhost:6969/docs**, API port **6969**, PostgreSQL host **6669**, internal **5432**. Automated tests still choose random credentials and free ports. Never insert these examples into modules/api/config.json, source defaults, the initialization code or the versioned Postman JSON. These explicitly requested public examples are an exception to documentation's usual credential placeholders; real credentials remain prohibited everywhere versioned.
 
 After all role cases, use the **Own password changes** folder (40–60). Put admin_username/admin_password and standard_username/standard_password in your private environment using the examples above. Set admin_new_password and standard_new_password there too. Keep all captured password_*_token variables in collection scope, never shadowed by empty environment values. Run 40–57 in order; 42 deliberately uses the different administrator password as incorrect confirmation for default. If you chose different local passwords, ensure that incorrect confirmation is actually different.
 
@@ -233,7 +263,7 @@ Use fresh disposable credentials of 15?1024 Unicode characters for every newly c
 
 ## First frontend QA
 
-Follow [the explicit browser configuration and setup](FRONTEND.md) and scenarios 19.1?19.5. Use owned disposable QA for all example writes; never create demo records in normal data. Add only non-secret browser origin/development fields to an existing QA configuration; do not overwrite private settings. Build/test Angular first using npm ci, npm run build and npm test under frontend/. Open the public home, test the modal and create one platform, Unicode tag and work classification with omitted/explicit tier using disposable API accounts. Verify persisted backend ordering. See [Angular commands and isolated browser preview](ANGULAR.md). Record actual keyboard/mobile/UI screenshots separately from automation. Never screenshot a visible password, cookie, CSRF value or private temporary preview fixture.
+Follow [the explicit browser configuration and setup](FRONTEND.md) and scenarios 19.1?19.5. Use owned disposable QA for all example writes; never create demo records in normal data. Add only non-secret browser origin/development fields to an existing QA configuration; do not overwrite private settings. Build/test Angular first using npm ci, npm run build and npm test under modules/frontend/. Open the public home, test the modal and create one platform, Unicode tag and work classification with omitted/explicit tier using disposable API accounts. Verify persisted backend ordering. See [Angular commands and isolated browser preview](ANGULAR.md). Record actual keyboard/mobile/UI screenshots separately from automation. Never screenshot a visible password, cookie, CSRF value or private temporary preview fixture.
 
 ## Operator-selected refinement QA ports
 
@@ -331,6 +361,7 @@ The owner additionally selected **4242** for the second disposable PostgreSQL cl
 | 20.1 | [Structured classification assistance](#scenario-20-1) | automated |
 | 20.2 | [Complete local speech lifecycle](#scenario-20-2) | automated |
 | 20.3 | [Four-module trust and availability boundaries](#scenario-20-3) | automated |
+| 21.1 | [Independent module QA and Basic runtime](#scenario-21-1) | automated |
 
 <a id="scenario-1-1"></a>
 ## 1.1 - Configuration and independent credential prompts
@@ -3770,16 +3801,16 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 
 **User:** Supervisor or administrator as specified; standard for negative checks
 
-**Prerequisites and data:** Owned disposable QA instance and fresh private API credentials; never create demo records in normal data; Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development; Build Angular 22 with npm ci and npm run build under frontend/; npm test verifies client behavior separately from Python checks
+**Prerequisites and data:** Owned disposable QA instance and fresh private API credentials; never create demo records in normal data; Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development; Build Angular 22 with npm ci and npm run build under modules/frontend/; npm test verifies client behavior separately from Python checks
 
 **Type:** both. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
 
 **Exact manual actions:**
 
-1. Open the public home. Verify Cadastrar and Consultar, the circular mark and single Ouroboros wordmark. Open both shared selection pages; Watched and Watchlist remain disabled as Em breve, while isolated items work. Check back/home navigation.
+1. Open the public home. Verify Create and Browse, the circular mark and single Ouroboros wordmark. Open both shared selection pages; Watched and Watchlist remain disabled as Em breve, while isolated items work. Check back/home navigation.
 2. Open a protected isolated-item action while logged out. Inspect the accessible Portuguese login modal, eye/crossed-eye button, required asterisks, Tab/Shift+Tab, Enter, Escape and focus restoration.
 3. Use disposable supervisor/admin credentials, verify the requested destination after login and reload both protected routes. Standard receives a permission explanation. API/static misses stay 404; docs/OpenAPI remain available.
-4. Inspect Cadastrar selection: Cadastrar item retains /cadastros; no decorative Comece por aqui or duplicate Em breve badges. Only Voltar ao início is enlarged; other controls retain their size and the required-field legend stays in place.
+4. Inspect Create selection: Create item retains /cadastros; no decorative Comece por aqui or duplicate Em breve badges. Only Back ao início is enlarged; other controls retain their size and the required-field legend stays in place.
 
 **Approval criterion:** The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.
 
@@ -3818,7 +3849,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 
 1. Authenticate on owned disposable QA, reload /cadastros and verify the session persists. Verify the cookie is HttpOnly, SameSite=Strict, host-only and Secure under HTTPS. Browser storage and URLs contain no credentials, bearer/refresh tokens or CSRF secrets.
 2. Keep a draft, expire its session or log out in another tab, then submit. Login is requested again and the draft is retained. Reauthenticate without automatic resubmission. Review and deliberately submit once.
-3. Click Sair: verify the server session is invalidated and cookie cleared. Replaying the old cookie fails. Inactivation or credential-version changes revoke access; demotion updates catalogue permissions.
+3. Click Sign out: verify the server session is invalidated and cookie cleared. Replaying the old cookie fails. Inactivation or credential-version changes revoke access; demotion updates catalogue permissions.
 4. Exercise shared /token and /browser/login account/client limits in disposable QA. Verify 429/Retry-After and the countdown, then automatic retry availability. Whole browser login/session/logout bodies, cookies and CSRF values are absent from logs/audits.
 5. Remove browser configuration only in disposable QA and reproduce HTTP session/login rejection before password verification. Expect BROWSER_ORIGIN_REJECTED, not an account-permission explanation. Distinguish it from invalid credentials, CSRF, expired sessions, malformed service responses and network/server failures.
 6. Verify the Angular HttpClient sends the existing in-memory synchronizer X-CSRF-Token header on mutations/logout. Passwords are cleared after login attempts, never retained for retries. Reauthentication retains non-secret drafts without automatically submitting them.
@@ -3904,20 +3935,20 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 
 **Exact manual actions:**
 
-1. Main registration keeps Platform, Tag and Work Classification. Main Tag immediately selects/displays Tag and shows only a smaller secondary Tag-left/Category-right group. Test switching, submenu hiding elsewhere, selected/accessibility state, keyboard/mobile layout and cancel/confirm unsaved changes in both directions. Create Tag Category using only technical/display names and optional description, shared generated limit/counter, no editable metadata, no lookup-to-edit/consultation expansion, no relationships or popup. Verify one POST /tag_categories through the real frontend API boundary with existing CSRF, error draft retention, success reset and centered Cadastrar outro. Only owned disposable infrastructure may receive QA writes. Home and intermediate image links must match existing button routes/login checks exactly; unavailable Watchlist/Watched images remain inert without interactive affordance. No nested interactive controls or duplicate navigation. Record real-browser evidence separately; see docs/TAG_CATEGORY_UI.md.
-2. On the owned disposable instance inspect Cadastrar item, Nome fantasia first, Classificação da Obra capitalization, required-field legend placement and scoped Voltar ao início enlargement. Future workflows remain disabled and no decorative card badges remain.
+1. Main registration keeps Platform, Tag and Work Classification. Main Tag immediately selects/displays Tag and shows only a smaller secondary Tag-left/Category-right group. Test switching, submenu hiding elsewhere, selected/accessibility state, keyboard/mobile layout and cancel/confirm unsaved changes in both directions. Create Tag Category using only technical/display names and optional description, shared generated limit/counter, no editable metadata, no lookup-to-edit/consultation expansion, no relationships or popup. Verify one POST /tag_categories through the real frontend API boundary with existing CSRF, error draft retention, success reset and centered Create outro. Only owned disposable infrastructure may receive QA writes. Home and intermediate image links must match existing button routes/login checks exactly; unavailable Watchlist/Watched images remain inert without interactive affordance. No nested interactive controls or duplicate navigation. Record real-browser evidence separately; see docs/TAG_CATEGORY_UI.md.
+2. On the owned disposable instance inspect Create item, Display name first, Work Classification capitalization, required-field legend placement and scoped Back ao início enlargement. Future workflows remain disabled and no decorative card badges remain.
 3. For all three required platform booleans, verify initial indeterminate/unanswered state, explicit true/false via mouse/Space, readable state labels and reset to unanswered. Unanswered blocks submission with field-level guidance; explicit false persists and loads correctly in edit mode.
 4. Verify empty price and placeholder 00,00, explicit zero, comma parsing, blur display 23→23,00 / 23,5→23,50 / 23,50 unchanged, and exact focus restoration without caret rewriting. Reject grouping/symbol ambiguity. Inspect two-place presentation versus exact extra-precision API decimal. An empty creation price must be omitted, not null/zero/placeholder; PUT omission preserves and explicit clearing sends null. Currency starts empty and offers only EUR/USD/BRL code-first choices; no locale inference.
-5. Access starts empty and offers only Aplicativo/application and Site/website. Site reveals URL; toggling away/back retains its unsaved draft. Non-Site creation omits hidden URL; Site→Aplicativo PUT clears old URL with null. Existing multi/link types and unknown currency codes are preserved on unrelated edits until explicit replacement.
+5. Access starts empty and offers only Application/application and Website/website. Website reveals URL; toggling away/back retains its unsaved draft. Non-Site creation omits hidden URL; Website→Application PUT clears old URL with null. Existing multi/link types and unknown currency codes are preserved on unrelated edits until explicit replacement.
 6. Keep tag description/technical-name behavior unchanged. Typing does not reveal technical input; blur/Tab/Enter completes fantasy name without accidental POST. Test ghost suggestion/custom name preservation and empty/invalid suggestion guidance.
-7. Search beginning/middle/end names and literal wildcard text. Inspect anchored dropdown with no form displacement, no more than twenty display names, muted Continue digitando para refinar a busca at the cap, no pagination/load more, no no-match block, recoverable failure, stale-response protection, scrolling/arrows/Enter/Escape and existing edit confirmation.
+7. Search beginning/middle/end names and literal wildcard text. Inspect anchored dropdown with no form displacement, no more than twenty display names, muted Keep typing to refine your search at the cap, no pagination/load more, no no-match block, recoverable failure, stale-response protection, scrolling/arrows/Enter/Escape and existing edit confirmation.
 8. Use more than fifty owned disposable classifications. Verify all bounded pages load, actual numeric tier plus human-friendly name, implicit Adicionar ao final with no tier in POST, insertion at occupied positions, current edit tier preselection and valid 1..N moves. Failed/inconsistent page reads must not present partial order as complete and block saving until deliberate retry. Only backend transactions shift rows.
 9. Create once, prevent duplicate clicks and inspect separate returned ID/name confirmation with immediately cleared fields, retained URL draft, touched/dirty state and autocomplete. Failure preserves non-secret data. Navigating away/back never restores submitted values. Confirm current role, CSRF and session-deadline behavior remains.
 10. Retain consultation filters, ten-item paging, ordering, edit and confirmed individual delete regression checks from the prior refinement. No bulk frontend actions, Watchlist/Watched workflows or advanced work search.
-11. Run npm test and production build under frontend/. The registration-controls, registration-navigation, autocomplete, tier-position and registration specs exercise the new DOM/payload cases. Record actual desktop/mobile/browser execution separately from Angular unit/DOM and Python HTTP results.
-12. Verify exact shared primary labels Cadastrar and Salvar edição plus Cancelar. Test dirty cancel, route departure, resource switch, browser unload and logout. Keep editing retains values/session; discard permits departure. Clean/restored-original and successful-save cases never prompt. Ordinary saves receive no redundant confirmation.
-13. For delete, existing-suggestion edit and discard dialogs, verify Cancelar is most prominent and initially focused, affirmative action is secondary/type=button, and Enter cannot implicitly choose a destructive affirmative action. Confirm explicit mouse/keyboard activation and safe Escape/in-flight behavior.
-14. On all three consultation resources verify initial page 1/page_size 10, direct list, no Cadastrar action, a stationary Search below Filtros avançados, always-visible Clear, compact adjacent desktop values and mobile stacking. Checkbox picker reveals only chosen public fields; remove one and prove its predicate leaves the next query.
+11. Run npm test and production build under modules/frontend/. The registration-controls, registration-navigation, autocomplete, tier-position and registration specs exercise the new DOM/payload cases. Record actual desktop/mobile/browser execution separately from Angular unit/DOM and Python HTTP results.
+12. Verify exact shared primary labels Create and Save changes plus Cancel. Test dirty cancel, route departure, resource switch, browser unload and logout. Keep editing retains values/session; discard permits departure. Clean/restored-original and successful-save cases never prompt. Ordinary saves receive no redundant confirmation.
+13. For delete, existing-suggestion edit and discard dialogs, verify Cancel is most prominent and initially focused, affirmative action is secondary/type=button, and Enter cannot implicitly choose a destructive affirmative action. Confirm explicit mouse/keyboard activation and safe Escape/in-flight behavior.
+14. On all three consultation resources verify initial page 1/page_size 10, direct list, no Create action, a stationary Search below Advanced filters, always-visible Clear, compact adjacent desktop values and mobile stacking. Checkbox picker reveals only chosen public fields; remove one and prove its predicate leaves the next query.
 15. Apply six distinct successful searches, a failed search and paging. Keep at most the five successful applied criteria per resource, not results or credentials. Reapply at page 1; clear history; logout/expire/new login must clear session-only history and contexts.
 16. Open an edit from a filtered, ordered non-first page. Save or cancel and verify restored resource, page, successful applied filters, ordering and scroll after rows render. Deleting the last item on the last page refreshes count and corrects the page.
 17. Description policy: all three description fields accept at most the configured Unicode 16 extended grapheme count, default 4000, with live counters and no tooltip. Verify plain text/spaces, combining accents, family/profession/flag emojis, paste and IME composition without splitting; direct POST/PUT/arrays/bulk reject overflow with standard 422; historical oversized reads and unrelated edits preserve original text. Synopsis and observations remain unchanged. Tier shares the searchable dropdown: implicit append first, numeric-only positions across all pages, edit preselection; current-order list pages ten tier-sorted rows with total. See docs/DESCRIPTION_AND_TIERS.md.
@@ -3970,8 +4001,8 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 6. Verify 390px and 360px layouts, dialog keyboard/Escape/focus restoration, no horizontal clipping and reduced-motion CSS. Save screenshots containing no secrets. Never claim an unexecuted browser or hosted CI check passed.
 7. Verify exact #E6BD68 decorative markers, unchanged legend placement and palette. Record 1.731:1 paper / 1.602:1 cream accent contrast and dark accompanying label/legend contrast; semantic required status cannot depend on the gold alone. Browser geometry/focus checks remain separate from CSS/DOM tests.
 8. Before visual acceptance, inspect listener ownership and current directory; compare the loaded footer/meta build ID, public build-info.json source/index/asset hashes and real HTTP graph on 6969. Inspect cache headers and existing worker registrations without deleting cookies or drafts. Follow docs/FRONTEND_DELIVERY_DIAGNOSIS.md; record unavailable browser checks separately.
-9. Focused Platform acceptance supersedes earlier tri-state instructions: verify three unchecked native booleans submit false untouched; only name/access red #DC3545 markers plus legend; exact name/price help and no currency help; both empty prompts Selecione uma opção; one outlined back-to-registration link and logo home. Inspect omitted blank price and conditional URL on disposable writes. See docs/REGISTRATION_UI.md.
-10. Change 01 supersedes permanent field-help wording: in all three resource create/edit forms and search, verify centralized Nome Fantasia label and exact approved emoji tooltip; shared red #DC3545 required markers with spacing; no redundant optional wording. Hover, keyboard-focus and tap help, close with Escape/outside click, retain field associations and visible errors. Escape must not close a parent dialog or submit. Repeat desktop/mobile and screen reader manually; see docs/REGISTRATION_UI.md.
+9. Focused Platform acceptance supersedes earlier tri-state instructions: verify three unchecked native booleans submit false untouched; only name/access red #DC3545 markers plus legend; exact name/price help and no currency help; both empty prompts Select an option; one outlined back-to-registration link and logo home. Inspect omitted blank price and conditional URL on disposable writes. See docs/REGISTRATION_UI.md.
+10. Change 01 supersedes permanent field-help wording: in all three resource create/edit forms and search, verify centralized Display Name label and exact approved emoji tooltip; shared red #DC3545 required markers with spacing; no redundant optional wording. Hover, keyboard-focus and tap help, close with Escape/outside click, retain field associations and visible errors. Escape must not close a parent dialog or submit. Repeat desktop/mobile and screen reader manually; see docs/REGISTRATION_UI.md.
 11. Tooltip/currency visual correction supersedes earlier Description help: check small raised borderless help glyph beside label text with hover/focus/touch and Escape/outside closure; no Description tooltip; exact approved money help. Verify CSP-compatible external shared-fields.css in the built stylesheet, no injected component styles or unsafe-inline relaxation. Check normal currency trigger, anchored search-first panel, plain scrollable rows without markers/button options/duplicate placeholder, code/name filtering, click/arrows/Enter/Escape/outside selection behavior. Preserve conditional price/currency rules. Record physical browser/mobile/screen-reader checks separately; see docs/REGISTRATION_UI.md.
 12. Focused Soft Amber revision: verify shared --soft-amber #D99A45 only changes information glyph color, preserving exact glyph size/position and required red #DC3545. Tooltip box sits above/right with rightward offset, not centered; interactions and box appearance remain unchanged. Price error now ends with centavos, with unchanged parsing/negative validation and formatting. Record physical visual review separately from automated tests; see docs/REGISTRATION_UI.md.
 
@@ -4001,7 +4032,7 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 <a id="scenario-20-1"></a>
 ## 20.1 - Structured classification assistance
 
-**Objective:** Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes.
+**Objective:** Verify the shared active-form policy, truthful application receipts, authorized paginated GETs and revalidated relative positions without business writes.
 
 **User:** Authorized QA operator
 
@@ -4014,6 +4045,8 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 1. Run the mapped unit checks using the declared test environment.
 2. For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.
 3. Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests.
+4. Run the scoped Angular form-assistant tests for application receipts, required field order, optional refusal, manual protection and relative-position confirmation; record real-model behavior separately.
+5. Verify separate assistant identity policies, disabled Assistant 1 execution/tools, rejection of cross-assistant form history and cancellation/isolation when switching to general presentation.
 
 **Approval criterion:** Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes. All mapped assertions pass; private audio, transcript and credentials never enter reports.
 
@@ -4042,6 +4075,24 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 - `test_form_assistant.AssistantValidationTests.test_key_is_loaded_from_backend_env_without_export`
 - `test_form_assistant.AssistantValidationTests.test_missing_required_information_produces_question`
 - `test_form_assistant.AssistantValidationTests.test_real_types_ranges_description_and_optional_clear`
+- `test_form_assistant_behavior.FormBehaviorTests.test_ambiguity_missing_and_incompatible_anchors_do_not_fill_position`
+- `test_form_assistant_behavior.FormBehaviorTests.test_controlled_model_can_extract_multiple_fields_without_writes`
+- `test_form_assistant_behavior.FormBehaviorTests.test_disabled_general_identity_cannot_execute_form_provider`
+- `test_form_assistant_behavior.FormBehaviorTests.test_edit_position_accounts_for_removal_of_current_row`
+- `test_form_assistant_behavior.FormBehaviorTests.test_first_relative_match_needs_confirmation_and_only_fills_after_reread`
+- `test_form_assistant_behavior.FormBehaviorTests.test_get_failure_and_permission_denied_never_invoke_model_or_bypass`
+- `test_form_assistant_behavior.FormBehaviorTests.test_order_change_requires_new_confirmation_and_token_is_account_bound`
+- `test_form_assistant_behavior.FormBehaviorTests.test_read_observations_reach_model_as_data_and_similarities_do_not_block`
+- `test_form_assistant_behavior.FormBehaviorTests.test_relative_tier_without_real_reference_is_not_applied`
+- `test_form_assistant_behavior.FormPolicyTests.test_form_request_and_history_reject_other_assistant_identity`
+- `test_form_assistant_behavior.FormPolicyTests.test_identity_policies_share_safety_but_never_form_responsibilities`
+- `test_form_assistant_behavior.FormPolicyTests.test_only_existing_enabled_adapter_and_real_schema_order`
+- `test_form_assistant_behavior.FormPolicyTests.test_strict_schema_includes_every_nullable_property`
+- `test_form_assistant_behavior.FormPolicyTests.test_technical_and_existing_description_need_explicit_requests`
+- `test_form_assistant_behavior.FormReadTests.test_arbitrary_resources_and_paths_are_rejected_before_transport`
+- `test_form_assistant_behavior.FormReadTests.test_changing_or_incomplete_pages_fail_instead_of_guessing`
+- `test_form_assistant_behavior.FormReadTests.test_existing_get_route_receives_original_identity_and_denial_is_final`
+- `test_form_assistant_behavior.FormReadTests.test_paginated_literal_search_uses_existing_filter_and_tier_order`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |
@@ -4134,6 +4185,97 @@ Use only this disposable run’s logs/application_*.log. Match the response X-In
 - `test_module_architecture.ModuleOrchestrationTests.test_forwarded_client_address_is_accepted_only_from_resolved_frontend`
 - `test_module_architecture.ModuleOrchestrationTests.test_launcher_help_does_not_import_host_site_packages`
 - `test_module_architecture.ModuleOrchestrationTests.test_five_configs_preserve_values_and_do_not_read_retired_paths`
+
+| QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
+| --- | --- | --- |
+| Not run | | |
+
+<a id="scenario-21-1"></a>
+## 21.1 - Independent module QA and Basic runtime
+
+**Objective:** Verify module-owned suites, Basic provisioning and HTTPS API boundaries through the central QA orchestrator.
+
+**User:** Developer
+
+**Prerequisites and data:** Use owned disposable Docker infrastructure for mutations.
+
+**Type:** automated. Automated PASS describes only the mapped checks; visual/manual execution requires separate QA evidence.
+
+**Exact manual actions:**
+
+1. Run python qa/run.py --suite central.
+2. Run each modules/<module>/qa/run.py with its documented dependencies.
+
+**Approval criterion:** Module-owned tests run once in their selected suite and preserve the registered installation.
+
+
+**Exact log evidence:**
+
+Use the selected suite output and sanitized QA reports.
+
+| Level / visibility | Category | Method / endpoint | Exact message / presence | Context fields / values |
+| --- | --- | --- | --- | --- |
+
+**Forbidden evidence data:** passwords; hashes; tokens; keys; connection strings
+
+**Automated correspondence:**
+
+- `test_basic_runtime.BasicRuntimeTests.test_api_check_does_not_read_secrets_or_mutate`
+- `test_basic_runtime.BasicRuntimeTests.test_database_only_routes_to_original_launcher`
+- `test_basic_runtime.BasicRuntimeTests.test_default_routes_to_combined_launcher`
+- `test_basic_runtime.BasicRuntimeTests.test_fresh_check_creates_all_configuration_from_examples`
+- `test_config.ConfigurationTests.test_persisted_values_require_operator_bounds`
+- `test_basic_runtime.BasicRuntimeTests.test_startup_missing_tls_precedes_database_and_docker`
+- `test_config.ConfigurationTests.test_tls_configuration_is_strict_and_required`
+- `test_config.ConfigurationTests.test_types_duplicates_and_unknown_fields`
+- `test_password_input.PasswordInputTests.test_all_bootstrap_labels_and_confirmations_use_shared_reader`
+- `test_password_input.PasswordInputTests.test_asterisks_backspace_and_enter`
+- `test_password_input.PasswordInputTests.test_empty_enter_and_cancellation`
+- `test_password_input.PasswordInputTests.test_powershell_and_vscode_use_same_windows_console_path`
+- `test_password_input.PasswordInputTests.test_redirected_input_is_rejected_without_reading`
+- `test_password_input.PasswordInputTests.test_unsupported_masking_uses_hidden_input`
+- `test_password_input.PasswordInputTests.test_validation_and_confirmation_are_preserved`
+- `test_password_input.PasswordInputTests.test_visible_getpass_fallback_is_rejected`
+- `test_postgres.AlternateVocabularyTests.test_02_sql_authentication_and_privileges`
+- `test_postgres.AlternateVocabularyTests.test_06_plan_change_reserved_holder`
+- `test_postgres.PostgreSQLTests.test_01_second_start_reuses_baseline_and_operator`
+- `test_postgres.PostgreSQLTests.test_02_sql_authentication_and_privileges`
+- `test_postgres.PostgreSQLTests.test_03_generated_ids_and_atomic_audit`
+- `test_postgres.PostgreSQLTests.test_04_personal_links_and_availability`
+- `test_postgres.PostgreSQLTests.test_05_structural_changes_fail_and_all_tables_have_identity`
+- `test_postgres.PostgreSQLTests.test_06_plan_change_reserved_holder`
+- `test_postgres.PostgreSQLTests.test_07_startup_rejects_structure_before_recreating_container`
+- `test_postgres.PostgreSQLTests.test_08_membership_history_and_effective_health`
+- `test_service.APITests.test_01_restricted_runtime_and_authentication_revocation`
+- `test_service.APITests.test_02_manager_creation_ceiling_and_self_promotion`
+- `test_service.APITests.test_03_ownership_before_count_and_personal_catalogue_separation`
+- `test_service.APITests.test_04_put_replacement_patch_and_extra_fields`
+- `test_service.APITests.test_05_reserved_plan_and_audit_version_linkage`
+- `test_service.APITests.test_06_deny_precedes_allow_and_allow_does_not_grant`
+- `test_service.APITests.test_07_settings_limits_batches_and_openapi`
+- `test_service.APITests.test_08_real_container_runtime_on_approved_api_port`
+- `test_service.APITests.test_09_atomic_rollback_ordering_and_account_deactivation`
+- `test_service.APITests.test_10_permission_assignment_and_privilege_hardening`
+- `test_service.APITests.test_11_combined_compose_start_and_restart`
+- `test_service.APITests.test_12_human_aliases_and_nonbasic_errors`
+- `test_service.APITests.test_13_swagger_authorization_assets_and_labels`
+- `test_service.APITests.test_14_human_alias_collision_and_expired_links_deny`
+- `test_service.APITests.test_15_legacy_human_alias_backfill_preserves_credentials`
+- `test_service.APITests.test_16_human_aliases_share_the_account_rate_limit`
+- `test_swagger_ui.SwaggerUITests.test_authorize_flows_and_repeated_protected_requests`
+- `test_settings.SettingsTests.test_comments_do_not_change_identity_and_repair_preserves_them`
+- `test_settings.SettingsTests.test_human_password_policy`
+- `test_settings.SettingsTests.test_interactive_conflict_repair_and_noninteractive_rejection`
+- `test_settings.SettingsTests.test_jsonc_and_duplicate_keys`
+- `test_settings.SettingsTests.test_operational_strictness`
+- `test_settings.SettingsTests.test_provisioning_types_unknown_names_and_prefixes`
+- `test_settings.SettingsTests.test_vocabulary_collision_and_alternate`
+- `test_tls.TLSTests.test_mismatched_private_key_fails`
+- `test_tls.TLSTests.test_missing_invalid_key_and_wrong_hostname_fail_closed`
+- `test_tls.TLSTests.test_trusted_certificate_and_both_names`
+- `test_transcription.SpeechAssemblyTests.test_accuracy_settings_and_explicit_allowed_language_are_forwarded`
+- `test_transcription.SpeechAssemblyTests.test_large_model_load_never_falls_back_and_checks_numeric_support`
+- `test_transcription.SpeechAssemblyTests.test_stereo_resampling_preserves_duration_and_tail`
 
 | QA result (not run / PASS / FAIL / BLOCKED) | Evidence (sanitized) | Notes / tester / date |
 | --- | --- | --- |

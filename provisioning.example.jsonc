@@ -1,0 +1,69 @@
+{
+  // Structural values are frozen after provisioning; comments are ignored.
+  "format_version": 1,
+  "naming_rules_version": 1,
+  "database_name": "ouroboros",
+  "schema": "ouroboros",
+  // Singular vocabulary only; activity has no table or prefix.
+  "vocabulary": {
+    "work": {
+      "name": "work"
+    },
+    "platform": {
+      "name": "platform"
+    },
+    "tag": {
+      "name": "tag"
+    },
+    "activity": {
+      "name": "watch"
+    }
+  },
+  "base_quantity_digits": 7,
+  // Unique immutable uppercase prefixes indexed by logical table key.
+  "prefixes": {
+    "test": "QA",
+    "foundation_migration": "FM",
+    "provisioning_registry": "PR",
+    "api_user": "AU",
+    "api_user_credential": "AC",
+    "app_user": "US",
+    "app_user_api": "UA",
+    "app_user_external_reference": "UR",
+    "role": "RO",
+    "permission": "PE",
+    "api_user_role": "AR",
+    "role_permission": "RP",
+    "super_administrator": "SA",
+    "plan": "PN",
+    "module": "MD",
+    "plan_module": "PM",
+    "installation_plan": "IP",
+    "operator_setting": "OS",
+    "access_rule": "AX",
+    "work": "WK",
+    "platform": "PL",
+    "work_availability": "AV",
+    "work_classification": "WC",
+    "work_title_alias": "TA",
+    "work_external_reference": "WR",
+    "user_work": "UW",
+    "user_platform": "UP",
+    "watch_list_entry": "WL",
+    "watch_history": "WH",
+    "work_submission": "SB",
+    "work_match_review": "MR",
+    "tag": "TG",
+    "tag_category": "TC",
+    "tag_category_relationship": "CR",
+    "tag_relationship": "TR",
+    "work_tag": "WT",
+    "platform_plan": "PP",
+    "platform_subscription": "PS",
+    "subscription_charge": "SC",
+    "platform_promotion": "PX",
+    "subscription_reminder": "SR",
+    "api_audit_log": "AL",
+    "record_version": "RV"
+  }
+}

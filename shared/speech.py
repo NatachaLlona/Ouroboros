@@ -22,6 +22,7 @@ def transcription_settings(config):
     for key, maximum in (('max_audio_bytes', 268435456), ('max_duration_seconds', 3600), ('max_concurrency', 4), ('cpu_threads', 16),
             ('duration_tolerance_ms', 2000), ('upload_timeout_seconds', 600), ('processing_timeout_seconds', 7200),
             ('request_timeout_seconds', 8400), ('max_transcript_chars', 1000000), ('segment_seconds', 30),
+            ('beam_size', 10), ('language_detection_segments', 10),
             ('recording_chunk_ms', 2000), ('audio_bits_per_second', 256000)):
         if type(settings[key]) is not int or not 1 <= settings[key] <= maximum:
             raise ConfigurationError('transcription limits must be positive bounded integers')
@@ -32,20 +33,30 @@ def transcription_settings(config):
         raise ConfigurationError('transcription.idiomas_transcricao must contain lowercase language codes')
     if type(settings['local_files_only']) is not bool:
         raise ConfigurationError('transcription.local_files_only must be boolean')
+    language = settings['language']
+    if language != 'auto' and language not in languages:
+        raise ConfigurationError('transcription.language must be auto or one of idiomas_transcricao')
+    for key in ('vad_filter', 'condition_on_previous_text'):
+        if type(settings[key]) is not bool:
+            raise ConfigurationError('transcription decoding switches must be boolean')
     return settings
 
 
 class SpeechError(Exception):
-    def __init__(self, code, stage='', cause=None):
+    def __init__(self, code, stage='', cause=None, detected_language=None):
         super().__init__('Local transcription could not be completed')
         self.code = code
         self.stage = stage
         self.cause_type = type(cause).__name__ if cause is not None else ''
         self.missing_module = cause.name if isinstance(cause, ModuleNotFoundError) else None
+        self.detected_language = detected_language if isinstance(detected_language, str) and detected_language.isascii() and detected_language.isalpha() and 2 <= len(detected_language) <= 3 else None
 
     def diagnostic(self):
         """Only structural failure metadata, never exception messages or media content."""
-        return {'error_code': self.code, 'stage': self.stage, 'exception_type': self.cause_type,
+        result = {'error_code': self.code, 'stage': self.stage, 'exception_type': self.cause_type,
                 'missing_module': self.missing_module}
+        if self.detected_language:
+            result['detected_language'] = self.detected_language
+        return result
 
 

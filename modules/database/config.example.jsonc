@@ -1,0 +1,17 @@
+{
+  // PostgreSQL Master Username identifies the SQL administrator.
+  "master_user": "ouroboros_master",
+  // Protected file reference only. Never put a password in JSONC.
+  "secret_file": ".secrets/database_sql_password",
+  // Empty means 127.0.0.1. Only loopback addresses are accepted.
+  "published_address": "",
+  "published_port": 6669,
+  "startup_timeout_seconds": 120,
+  // Effective Docker health check; internal PostgreSQL port is always 5432.
+  "healthcheck": {
+    "interval_seconds": 2,
+    "timeout_seconds": 3,
+    "retries": 30,
+    "start_period_seconds": 5
+  }
+}

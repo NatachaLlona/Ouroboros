@@ -7528,14 +7528,14 @@
       "prerequisites": [
         "Owned disposable QA instance and fresh private API credentials; never create demo records in normal data",
         "Read docs/FRONTEND.md; configure exact browser.origin and explicit loopback HTTP for development",
-        "Build Angular 22 with npm ci and npm run build under frontend/; npm test verifies client behavior separately from Python checks"
+        "Build Angular 22 with npm ci and npm run build under modules/frontend/; npm test verifies client behavior separately from Python checks"
       ],
       "actor": "Supervisor or administrator as specified; standard for negative checks",
       "steps": [
-        "Open the public home. Verify Cadastrar and Consultar, the circular mark and single Ouroboros wordmark. Open both shared selection pages; Watched and Watchlist remain disabled as Em breve, while isolated items work. Check back/home navigation.",
+        "Open the public home. Verify Create and Browse, the circular mark and single Ouroboros wordmark. Open both shared selection pages; Watched and Watchlist remain disabled as Em breve, while isolated items work. Check back/home navigation.",
         "Open a protected isolated-item action while logged out. Inspect the accessible Portuguese login modal, eye/crossed-eye button, required asterisks, Tab/Shift+Tab, Enter, Escape and focus restoration.",
         "Use disposable supervisor/admin credentials, verify the requested destination after login and reload both protected routes. Standard receives a permission explanation. API/static misses stay 404; docs/OpenAPI remain available.",
-        "Inspect Cadastrar selection: Cadastrar item retains /cadastros; no decorative Comece por aqui or duplicate Em breve badges. Only Voltar ao início is enlarged; other controls retain their size and the required-field legend stays in place."
+        "Inspect Create selection: Create item retains /cadastros; no decorative Comece por aqui or duplicate Em breve badges. Only Back ao início is enlarged; other controls retain their size and the required-field legend stays in place."
       ],
       "requests": [],
       "expected": "The stated browser behavior and security boundaries hold. Automated PASS covers mapped HTTP/schema checks only; record actual UI evidence separately.",
@@ -7601,7 +7601,7 @@
       "steps": [
         "Authenticate on owned disposable QA, reload /cadastros and verify the session persists. Verify the cookie is HttpOnly, SameSite=Strict, host-only and Secure under HTTPS. Browser storage and URLs contain no credentials, bearer/refresh tokens or CSRF secrets.",
         "Keep a draft, expire its session or log out in another tab, then submit. Login is requested again and the draft is retained. Reauthenticate without automatic resubmission. Review and deliberately submit once.",
-        "Click Sair: verify the server session is invalidated and cookie cleared. Replaying the old cookie fails. Inactivation or credential-version changes revoke access; demotion updates catalogue permissions.",
+        "Click Sign out: verify the server session is invalidated and cookie cleared. Replaying the old cookie fails. Inactivation or credential-version changes revoke access; demotion updates catalogue permissions.",
         "Exercise shared /token and /browser/login account/client limits in disposable QA. Verify 429/Retry-After and the countdown, then automatic retry availability. Whole browser login/session/logout bodies, cookies and CSRF values are absent from logs/audits.",
         "Remove browser configuration only in disposable QA and reproduce HTTP session/login rejection before password verification. Expect BROWSER_ORIGIN_REJECTED, not an account-permission explanation. Distinguish it from invalid credentials, CSRF, expired sessions, malformed service responses and network/server failures.",
         "Verify the Angular HttpClient sends the existing in-memory synchronizer X-CSRF-Token header on mutations/logout. Passwords are cleared after login attempts, never retained for retries. Reauthentication retains non-secret drafts without automatically submitting them.",
@@ -7741,20 +7741,20 @@
       ],
       "actor": "Supervisor or administrator as specified; standard for negative checks",
       "steps": [
-        "Main registration keeps Platform, Tag and Work Classification. Main Tag immediately selects/displays Tag and shows only a smaller secondary Tag-left/Category-right group. Test switching, submenu hiding elsewhere, selected/accessibility state, keyboard/mobile layout and cancel/confirm unsaved changes in both directions. Create Tag Category using only technical/display names and optional description, shared generated limit/counter, no editable metadata, no lookup-to-edit/consultation expansion, no relationships or popup. Verify one POST /tag_categories through the real frontend API boundary with existing CSRF, error draft retention, success reset and centered Cadastrar outro. Only owned disposable infrastructure may receive QA writes. Home and intermediate image links must match existing button routes/login checks exactly; unavailable Watchlist/Watched images remain inert without interactive affordance. No nested interactive controls or duplicate navigation. Record real-browser evidence separately; see docs/TAG_CATEGORY_UI.md.",
-        "On the owned disposable instance inspect Cadastrar item, Nome fantasia first, Classificação da Obra capitalization, required-field legend placement and scoped Voltar ao início enlargement. Future workflows remain disabled and no decorative card badges remain.",
+        "Main registration keeps Platform, Tag and Work Classification. Main Tag immediately selects/displays Tag and shows only a smaller secondary Tag-left/Category-right group. Test switching, submenu hiding elsewhere, selected/accessibility state, keyboard/mobile layout and cancel/confirm unsaved changes in both directions. Create Tag Category using only technical/display names and optional description, shared generated limit/counter, no editable metadata, no lookup-to-edit/consultation expansion, no relationships or popup. Verify one POST /tag_categories through the real frontend API boundary with existing CSRF, error draft retention, success reset and centered Create outro. Only owned disposable infrastructure may receive QA writes. Home and intermediate image links must match existing button routes/login checks exactly; unavailable Watchlist/Watched images remain inert without interactive affordance. No nested interactive controls or duplicate navigation. Record real-browser evidence separately; see docs/TAG_CATEGORY_UI.md.",
+        "On the owned disposable instance inspect Create item, Display name first, Work Classification capitalization, required-field legend placement and scoped Back ao início enlargement. Future workflows remain disabled and no decorative card badges remain.",
         "For all three required platform booleans, verify initial indeterminate/unanswered state, explicit true/false via mouse/Space, readable state labels and reset to unanswered. Unanswered blocks submission with field-level guidance; explicit false persists and loads correctly in edit mode.",
         "Verify empty price and placeholder 00,00, explicit zero, comma parsing, blur display 23→23,00 / 23,5→23,50 / 23,50 unchanged, and exact focus restoration without caret rewriting. Reject grouping/symbol ambiguity. Inspect two-place presentation versus exact extra-precision API decimal. An empty creation price must be omitted, not null/zero/placeholder; PUT omission preserves and explicit clearing sends null. Currency starts empty and offers only EUR/USD/BRL code-first choices; no locale inference.",
-        "Access starts empty and offers only Aplicativo/application and Site/website. Site reveals URL; toggling away/back retains its unsaved draft. Non-Site creation omits hidden URL; Site→Aplicativo PUT clears old URL with null. Existing multi/link types and unknown currency codes are preserved on unrelated edits until explicit replacement.",
+        "Access starts empty and offers only Application/application and Website/website. Website reveals URL; toggling away/back retains its unsaved draft. Non-Site creation omits hidden URL; Website→Application PUT clears old URL with null. Existing multi/link types and unknown currency codes are preserved on unrelated edits until explicit replacement.",
         "Keep tag description/technical-name behavior unchanged. Typing does not reveal technical input; blur/Tab/Enter completes fantasy name without accidental POST. Test ghost suggestion/custom name preservation and empty/invalid suggestion guidance.",
-        "Search beginning/middle/end names and literal wildcard text. Inspect anchored dropdown with no form displacement, no more than twenty display names, muted Continue digitando para refinar a busca at the cap, no pagination/load more, no no-match block, recoverable failure, stale-response protection, scrolling/arrows/Enter/Escape and existing edit confirmation.",
+        "Search beginning/middle/end names and literal wildcard text. Inspect anchored dropdown with no form displacement, no more than twenty display names, muted Keep typing to refine your search at the cap, no pagination/load more, no no-match block, recoverable failure, stale-response protection, scrolling/arrows/Enter/Escape and existing edit confirmation.",
         "Use more than fifty owned disposable classifications. Verify all bounded pages load, actual numeric tier plus human-friendly name, implicit Adicionar ao final with no tier in POST, insertion at occupied positions, current edit tier preselection and valid 1..N moves. Failed/inconsistent page reads must not present partial order as complete and block saving until deliberate retry. Only backend transactions shift rows.",
         "Create once, prevent duplicate clicks and inspect separate returned ID/name confirmation with immediately cleared fields, retained URL draft, touched/dirty state and autocomplete. Failure preserves non-secret data. Navigating away/back never restores submitted values. Confirm current role, CSRF and session-deadline behavior remains.",
         "Retain consultation filters, ten-item paging, ordering, edit and confirmed individual delete regression checks from the prior refinement. No bulk frontend actions, Watchlist/Watched workflows or advanced work search.",
-        "Run npm test and production build under frontend/. The registration-controls, registration-navigation, autocomplete, tier-position and registration specs exercise the new DOM/payload cases. Record actual desktop/mobile/browser execution separately from Angular unit/DOM and Python HTTP results.",
-        "Verify exact shared primary labels Cadastrar and Salvar edição plus Cancelar. Test dirty cancel, route departure, resource switch, browser unload and logout. Keep editing retains values/session; discard permits departure. Clean/restored-original and successful-save cases never prompt. Ordinary saves receive no redundant confirmation.",
-        "For delete, existing-suggestion edit and discard dialogs, verify Cancelar is most prominent and initially focused, affirmative action is secondary/type=button, and Enter cannot implicitly choose a destructive affirmative action. Confirm explicit mouse/keyboard activation and safe Escape/in-flight behavior.",
-        "On all three consultation resources verify initial page 1/page_size 10, direct list, no Cadastrar action, a stationary Search below Filtros avançados, always-visible Clear, compact adjacent desktop values and mobile stacking. Checkbox picker reveals only chosen public fields; remove one and prove its predicate leaves the next query.",
+        "Run npm test and production build under modules/frontend/. The registration-controls, registration-navigation, autocomplete, tier-position and registration specs exercise the new DOM/payload cases. Record actual desktop/mobile/browser execution separately from Angular unit/DOM and Python HTTP results.",
+        "Verify exact shared primary labels Create and Save changes plus Cancel. Test dirty cancel, route departure, resource switch, browser unload and logout. Keep editing retains values/session; discard permits departure. Clean/restored-original and successful-save cases never prompt. Ordinary saves receive no redundant confirmation.",
+        "For delete, existing-suggestion edit and discard dialogs, verify Cancel is most prominent and initially focused, affirmative action is secondary/type=button, and Enter cannot implicitly choose a destructive affirmative action. Confirm explicit mouse/keyboard activation and safe Escape/in-flight behavior.",
+        "On all three consultation resources verify initial page 1/page_size 10, direct list, no Create action, a stationary Search below Advanced filters, always-visible Clear, compact adjacent desktop values and mobile stacking. Checkbox picker reveals only chosen public fields; remove one and prove its predicate leaves the next query.",
         "Apply six distinct successful searches, a failed search and paging. Keep at most the five successful applied criteria per resource, not results or credentials. Reapply at page 1; clear history; logout/expire/new login must clear session-only history and contexts.",
         "Open an edit from a filtered, ordered non-first page. Save or cancel and verify restored resource, page, successful applied filters, ordering and scroll after rows render. Deleting the last item on the last page refreshes count and corrects the page.",
         "Description policy: all three description fields accept at most the configured Unicode 16 extended grapheme count, default 4000, with live counters and no tooltip. Verify plain text/spaces, combining accents, family/profession/flag emojis, paste and IME composition without splitting; direct POST/PUT/arrays/bulk reject overflow with standard 422; historical oversized reads and unrelated edits preserve original text. Synopsis and observations remain unchanged. Tier shares the searchable dropdown: implicit append first, numeric-only positions across all pages, edit preselection; current-order list pages ten tier-sorted rows with total. See docs/DESCRIPTION_AND_TIERS.md."
@@ -7834,8 +7834,8 @@
         "Verify 390px and 360px layouts, dialog keyboard/Escape/focus restoration, no horizontal clipping and reduced-motion CSS. Save screenshots containing no secrets. Never claim an unexecuted browser or hosted CI check passed.",
         "Verify exact #E6BD68 decorative markers, unchanged legend placement and palette. Record 1.731:1 paper / 1.602:1 cream accent contrast and dark accompanying label/legend contrast; semantic required status cannot depend on the gold alone. Browser geometry/focus checks remain separate from CSS/DOM tests.",
         "Before visual acceptance, inspect listener ownership and current directory; compare the loaded footer/meta build ID, public build-info.json source/index/asset hashes and real HTTP graph on 6969. Inspect cache headers and existing worker registrations without deleting cookies or drafts. Follow docs/FRONTEND_DELIVERY_DIAGNOSIS.md; record unavailable browser checks separately.",
-        "Focused Platform acceptance supersedes earlier tri-state instructions: verify three unchecked native booleans submit false untouched; only name/access red #DC3545 markers plus legend; exact name/price help and no currency help; both empty prompts Selecione uma opção; one outlined back-to-registration link and logo home. Inspect omitted blank price and conditional URL on disposable writes. See docs/REGISTRATION_UI.md.",
-        "Change 01 supersedes permanent field-help wording: in all three resource create/edit forms and search, verify centralized Nome Fantasia label and exact approved emoji tooltip; shared red #DC3545 required markers with spacing; no redundant optional wording. Hover, keyboard-focus and tap help, close with Escape/outside click, retain field associations and visible errors. Escape must not close a parent dialog or submit. Repeat desktop/mobile and screen reader manually; see docs/REGISTRATION_UI.md.",
+        "Focused Platform acceptance supersedes earlier tri-state instructions: verify three unchecked native booleans submit false untouched; only name/access red #DC3545 markers plus legend; exact name/price help and no currency help; both empty prompts Select an option; one outlined back-to-registration link and logo home. Inspect omitted blank price and conditional URL on disposable writes. See docs/REGISTRATION_UI.md.",
+        "Change 01 supersedes permanent field-help wording: in all three resource create/edit forms and search, verify centralized Display Name label and exact approved emoji tooltip; shared red #DC3545 required markers with spacing; no redundant optional wording. Hover, keyboard-focus and tap help, close with Escape/outside click, retain field associations and visible errors. Escape must not close a parent dialog or submit. Repeat desktop/mobile and screen reader manually; see docs/REGISTRATION_UI.md.",
         "Tooltip/currency visual correction supersedes earlier Description help: check small raised borderless help glyph beside label text with hover/focus/touch and Escape/outside closure; no Description tooltip; exact approved money help. Verify CSP-compatible external shared-fields.css in the built stylesheet, no injected component styles or unsafe-inline relaxation. Check normal currency trigger, anchored search-first panel, plain scrollable rows without markers/button options/duplicate placeholder, code/name filtering, click/arrows/Enter/Escape/outside selection behavior. Preserve conditional price/currency rules. Record physical browser/mobile/screen-reader checks separately; see docs/REGISTRATION_UI.md.",
         "Focused Soft Amber revision: verify shared --soft-amber #D99A45 only changes information glyph color, preserving exact glyph size/position and required red #DC3545. Tooltip box sits above/right with rightward offset, not centered; interactions and box appearance remain unchanged. Price error now ends with centavos, with unchanged parsing/negative validation and formatting. Record physical visual review separately from automated tests; see docs/REGISTRATION_UI.md."
       ],
@@ -7895,7 +7895,7 @@
     {
       "id": "20.1",
       "name": "Structured classification assistance",
-      "objective": "Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes.",
+      "objective": "Verify the shared active-form policy, truthful application receipts, authorized paginated GETs and revalidated relative positions without business writes.",
       "prerequisites": [
         "Installed declared QA dependencies; owned disposable fixtures only."
       ],
@@ -7903,7 +7903,9 @@
       "steps": [
         "Run the mapped unit checks using the declared test environment.",
         "For container integration run python scripts/verify_modules.py with built module images; this uses a separate tmpfs database and publishes no ports by default.",
-        "Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests."
+        "Record normal interactive startup and physical browser/microphone checks separately; never infer their success from unit tests.",
+        "Run the scoped Angular form-assistant tests for application receipts, required field order, optional refusal, manual protection and relative-position confirmation; record real-model behavior separately.",
+        "Verify separate assistant identity policies, disabled Assistant 1 execution/tools, rejection of cross-assistant form history and cancellation/isolation when switching to general presentation."
       ],
       "requests": [],
       "expected": "Preserve exclusive GPT-5.4 structured suggestions, current authorization and no automatic business writes. All mapped assertions pass; private audio, transcript and credentials never enter reports.",
@@ -7918,7 +7920,25 @@
         "test_form_assistant.AssistantValidationTests.test_duplicate_extra_and_unknown_fields_are_rejected",
         "test_form_assistant.AssistantValidationTests.test_key_is_loaded_from_backend_env_without_export",
         "test_form_assistant.AssistantValidationTests.test_missing_required_information_produces_question",
-        "test_form_assistant.AssistantValidationTests.test_real_types_ranges_description_and_optional_clear"
+        "test_form_assistant.AssistantValidationTests.test_real_types_ranges_description_and_optional_clear",
+        "test_form_assistant_behavior.FormBehaviorTests.test_ambiguity_missing_and_incompatible_anchors_do_not_fill_position",
+        "test_form_assistant_behavior.FormBehaviorTests.test_controlled_model_can_extract_multiple_fields_without_writes",
+        "test_form_assistant_behavior.FormBehaviorTests.test_disabled_general_identity_cannot_execute_form_provider",
+        "test_form_assistant_behavior.FormBehaviorTests.test_edit_position_accounts_for_removal_of_current_row",
+        "test_form_assistant_behavior.FormBehaviorTests.test_first_relative_match_needs_confirmation_and_only_fills_after_reread",
+        "test_form_assistant_behavior.FormBehaviorTests.test_get_failure_and_permission_denied_never_invoke_model_or_bypass",
+        "test_form_assistant_behavior.FormBehaviorTests.test_order_change_requires_new_confirmation_and_token_is_account_bound",
+        "test_form_assistant_behavior.FormBehaviorTests.test_read_observations_reach_model_as_data_and_similarities_do_not_block",
+        "test_form_assistant_behavior.FormBehaviorTests.test_relative_tier_without_real_reference_is_not_applied",
+        "test_form_assistant_behavior.FormPolicyTests.test_form_request_and_history_reject_other_assistant_identity",
+        "test_form_assistant_behavior.FormPolicyTests.test_identity_policies_share_safety_but_never_form_responsibilities",
+        "test_form_assistant_behavior.FormPolicyTests.test_only_existing_enabled_adapter_and_real_schema_order",
+        "test_form_assistant_behavior.FormPolicyTests.test_strict_schema_includes_every_nullable_property",
+        "test_form_assistant_behavior.FormPolicyTests.test_technical_and_existing_description_need_explicit_requests",
+        "test_form_assistant_behavior.FormReadTests.test_arbitrary_resources_and_paths_are_rejected_before_transport",
+        "test_form_assistant_behavior.FormReadTests.test_changing_or_incomplete_pages_fail_instead_of_guessing",
+        "test_form_assistant_behavior.FormReadTests.test_existing_get_route_receives_original_identity_and_denial_is_final",
+        "test_form_assistant_behavior.FormReadTests.test_paginated_literal_search_uses_existing_filter_and_tier_order"
       ],
       "type": "automated",
       "integration": false,
@@ -8109,6 +8129,92 @@
           "Connection strings"
         ],
         "file_regex": "^application_\\d{4}-\\d{2}-\\d{2}_\\d{6}_[0-9a-f]{8}\\.log$"
+      }
+    },
+    {
+      "id": "21.1",
+      "name": "Independent module QA and Basic runtime",
+      "objective": "Verify module-owned suites, Basic provisioning and HTTPS API boundaries through the central QA orchestrator.",
+      "prerequisites": [
+        "Use owned disposable Docker infrastructure for mutations."
+      ],
+      "actor": "Developer",
+      "steps": [
+        "Run python qa/run.py --suite central.",
+        "Run each modules/<module>/qa/run.py with its documented dependencies."
+      ],
+      "expected": "Module-owned tests run once in their selected suite and preserve the registered installation.",
+      "tests": [
+        "test_basic_runtime.BasicRuntimeTests.test_api_check_does_not_read_secrets_or_mutate",
+        "test_basic_runtime.BasicRuntimeTests.test_database_only_routes_to_original_launcher",
+        "test_basic_runtime.BasicRuntimeTests.test_default_routes_to_combined_launcher",
+        "test_basic_runtime.BasicRuntimeTests.test_fresh_check_creates_all_configuration_from_examples",
+        "test_config.ConfigurationTests.test_persisted_values_require_operator_bounds",
+        "test_basic_runtime.BasicRuntimeTests.test_startup_missing_tls_precedes_database_and_docker",
+        "test_config.ConfigurationTests.test_tls_configuration_is_strict_and_required",
+        "test_config.ConfigurationTests.test_types_duplicates_and_unknown_fields",
+        "test_password_input.PasswordInputTests.test_all_bootstrap_labels_and_confirmations_use_shared_reader",
+        "test_password_input.PasswordInputTests.test_asterisks_backspace_and_enter",
+        "test_password_input.PasswordInputTests.test_empty_enter_and_cancellation",
+        "test_password_input.PasswordInputTests.test_powershell_and_vscode_use_same_windows_console_path",
+        "test_password_input.PasswordInputTests.test_redirected_input_is_rejected_without_reading",
+        "test_password_input.PasswordInputTests.test_unsupported_masking_uses_hidden_input",
+        "test_password_input.PasswordInputTests.test_validation_and_confirmation_are_preserved",
+        "test_password_input.PasswordInputTests.test_visible_getpass_fallback_is_rejected",
+        "test_postgres.AlternateVocabularyTests.test_02_sql_authentication_and_privileges",
+        "test_postgres.AlternateVocabularyTests.test_06_plan_change_reserved_holder",
+        "test_postgres.PostgreSQLTests.test_01_second_start_reuses_baseline_and_operator",
+        "test_postgres.PostgreSQLTests.test_02_sql_authentication_and_privileges",
+        "test_postgres.PostgreSQLTests.test_03_generated_ids_and_atomic_audit",
+        "test_postgres.PostgreSQLTests.test_04_personal_links_and_availability",
+        "test_postgres.PostgreSQLTests.test_05_structural_changes_fail_and_all_tables_have_identity",
+        "test_postgres.PostgreSQLTests.test_06_plan_change_reserved_holder",
+        "test_postgres.PostgreSQLTests.test_07_startup_rejects_structure_before_recreating_container",
+        "test_postgres.PostgreSQLTests.test_08_membership_history_and_effective_health",
+        "test_service.APITests.test_01_restricted_runtime_and_authentication_revocation",
+        "test_service.APITests.test_02_manager_creation_ceiling_and_self_promotion",
+        "test_service.APITests.test_03_ownership_before_count_and_personal_catalogue_separation",
+        "test_service.APITests.test_04_put_replacement_patch_and_extra_fields",
+        "test_service.APITests.test_05_reserved_plan_and_audit_version_linkage",
+        "test_service.APITests.test_06_deny_precedes_allow_and_allow_does_not_grant",
+        "test_service.APITests.test_07_settings_limits_batches_and_openapi",
+        "test_service.APITests.test_08_real_container_runtime_on_approved_api_port",
+        "test_service.APITests.test_09_atomic_rollback_ordering_and_account_deactivation",
+        "test_service.APITests.test_10_permission_assignment_and_privilege_hardening",
+        "test_service.APITests.test_11_combined_compose_start_and_restart",
+        "test_service.APITests.test_12_human_aliases_and_nonbasic_errors",
+        "test_service.APITests.test_13_swagger_authorization_assets_and_labels",
+        "test_service.APITests.test_14_human_alias_collision_and_expired_links_deny",
+        "test_service.APITests.test_15_legacy_human_alias_backfill_preserves_credentials",
+        "test_service.APITests.test_16_human_aliases_share_the_account_rate_limit",
+        "test_swagger_ui.SwaggerUITests.test_authorize_flows_and_repeated_protected_requests",
+        "test_settings.SettingsTests.test_comments_do_not_change_identity_and_repair_preserves_them",
+        "test_settings.SettingsTests.test_human_password_policy",
+        "test_settings.SettingsTests.test_interactive_conflict_repair_and_noninteractive_rejection",
+        "test_settings.SettingsTests.test_jsonc_and_duplicate_keys",
+        "test_settings.SettingsTests.test_operational_strictness",
+        "test_settings.SettingsTests.test_provisioning_types_unknown_names_and_prefixes",
+        "test_settings.SettingsTests.test_vocabulary_collision_and_alternate",
+        "test_tls.TLSTests.test_mismatched_private_key_fails",
+        "test_tls.TLSTests.test_missing_invalid_key_and_wrong_hostname_fail_closed",
+        "test_tls.TLSTests.test_trusted_certificate_and_both_names",
+        "test_transcription.SpeechAssemblyTests.test_accuracy_settings_and_explicit_allowed_language_are_forwarded",
+        "test_transcription.SpeechAssemblyTests.test_large_model_load_never_falls_back_and_checks_numeric_support",
+        "test_transcription.SpeechAssemblyTests.test_stereo_resampling_preserves_duration_and_tail"
+      ],
+      "type": "automated",
+      "requests": [],
+      "postman_requests": [],
+      "log_evidence": {
+        "locate": "Use the selected suite output and sanitized QA reports.",
+        "events": [],
+        "forbidden_data": [
+          "passwords",
+          "hashes",
+          "tokens",
+          "keys",
+          "connection strings"
+        ]
       }
     }
   ]

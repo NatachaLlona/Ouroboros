@@ -1,4 +1,10 @@
 """Load the single QA catalogue and render its generated manual test plan."""
+
+import sys as _sys
+from pathlib import Path as _Path
+_repository = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_repository))
+_sys.path.insert(0, str(_repository / "modules"))
 import ast
 import json
 from pathlib import Path
@@ -15,7 +21,7 @@ def load_catalog(root=ROOT):
 def test_inventory(root=ROOT):
     """Discover stable unittest selectors statically without executing tests."""
     result = set()
-    for file in (root/"tests").glob("test_*.py"):
+    for file in [*(root/"qa").glob("test_*.py"), *root.glob("modules/*/qa/test_*.py")]:
         tree = ast.parse(file.read_text(encoding="utf-8"))
         for node in tree.body:
             if isinstance(node, ast.ClassDef):

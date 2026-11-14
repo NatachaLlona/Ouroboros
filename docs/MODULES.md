@@ -1,4 +1,34 @@
-# Four-module container runtime
+# Modules and Basic container runtime
+
+The current Basic deployment starts PostgreSQL and HTTPS API in Compose project
+`ouroboros` through root `compose.basic.yaml`. Service code, configuration,
+dependencies and resources live in `modules/api`, `modules/assistance`,
+`modules/database` and `modules/frontend`. Postman assets live inside the API
+module at `modules/api/postman`.
+
+Root `start.py`, `provisioning.jsonc` and general orchestration stay at the
+repository root. The active operational files are `modules/database/config.jsonc`
+and `modules/api/config.jsonc`. SQL references, protected credentials and the
+existing `ouroboros_installation_v1` volume retain their registered identities.
+API internal port is 8000. PostgreSQL internal/published ports are 5432/6669.
+The published API and Swagger use trusted HTTPS at https://localhost:6969/docs.
+
+```powershell
+.\.venv\Scripts\python.exe start.py --with-api
+.\.venv\Scripts\python.exe start.py --database-only
+.\.venv\Scripts\python.exe qa/run.py --suite central
+.\.venv\Scripts\python.exe modules/api/qa/run.py
+.\.venv\Scripts\python.exe modules/database/qa/run.py
+.\.venv-speech\Scripts\python.exe modules/assistance/qa/run.py
+.\.venv\Scripts\python.exe modules/frontend/qa/run.py
+```
+
+Central startup, general configuration and integration tests belong to `qa/`.
+Each service owns `modules/<module>/qa/`. With all module verification
+dependencies installed, `python qa/run.py --suite all` runs them sequentially.
+See API.md and QA_SETUP.md for the current startup and QA contracts.
+
+## Historical four-module runtime
 
 This guide supersedes the former host-venv application startup instructions. Business contracts, account permissions, migrations and existing data are unchanged.
 
@@ -6,20 +36,20 @@ This guide supersedes the former host-venv application startup instructions. Bus
 
 | Module | Runtime | Private/local configuration | Versioned example |
 | --- | --- | --- | --- |
-| Database | Existing `postgres` service, PostgreSQL 17.11 | `database/config.json` | `database/config.example.json` |
-| Base/API | `api/`, Python 3.12, FastAPI | `api/config.json` | `api/config.example.json` |
-| Frontend | Existing `frontend/`, `frontend/` Nginx image | `frontend/config.json` | `frontend/config.example.json` |
-| Assistance | `assistance/`, Python 3.12, faster-whisper and existing GPT-5.4 provider | `assistance/config.json` | `assistance/config.example.json` |
+| Database | Existing `postgres` service, PostgreSQL 17.11 | `modules/database/config.json` | `modules/database/config.example.json` |
+| Base/API | `modules/api/`, Python 3.12, FastAPI | `modules/api/config.json` | `modules/api/config.example.json` |
+| Frontend | Existing `modules/frontend/`, `modules/frontend/` Nginx image | `modules/frontend/config.json` | `modules/frontend/config.example.json` |
+| Assistance | `modules/assistance/`, Python 3.12, faster-whisper and existing GPT-5.4 provider | `modules/assistance/config.json` | `modules/assistance/config.example.json` |
 
 `start.py` delegates to the standard-library-only `orchestration.py`. `config.json` holds the Compose project, existing public address/port, startup deadline, configurable internal API/assistance/database addresses ; `config.example.json` documents its shape. The approved defaults remain HTTP 6969 and loopback PostgreSQL 6669. No assistance or separate API port is published in the four-service mode.
 
 There are exactly five deployment configuration sources: root `config.json`, plus one `config.json` in each module. Each has a sanitized `config.example.json`. Startup initializes only missing canonical files from their corresponding examples; it never reads retired dot-config files or the removed modules/ package. Existing canonical files are never overwritten by initialization.
 
-Root configuration owns Compose identity/workspace, public HTTP binding, startup deadlines and existing internal service addresses. `database/config.json` is the single source for selected PostgreSQL database/master, original published port and database startup timeout. API receives those needed database settings separately; `api/config.json` owns connection/query budgets, authentication, browser origin, logging, timezones and business/API limits. Interactive changes to database/master selection persist only in the database file. The container substitutes the internal connection address (`postgres:5432`); host ports are not used between containers. Changing preferences never rotates roles/passwords in an existing volume.
+Root configuration owns Compose identity/workspace, public HTTP binding, startup deadlines and existing internal service addresses. `modules/database/config.json` is the single source for selected PostgreSQL database/master, original published port and database startup timeout. API receives those needed database settings separately; `modules/api/config.json` owns connection/query budgets, authentication, browser origin, logging, timezones and business/API limits. Interactive changes to database/master selection persist only in the database file. The container substitutes the internal connection address (`postgres:5432`); host ports are not used between containers. Changing preferences never rotates roles/passwords in an existing volume.
 
-Assistance configuration owns transcription model/device/compute type, languages, native-window size, audio/text budgets, recording duration, concurrency and timeouts. The `form_assistant` block owns the existing provider processing budgets; its model must remain exactly `gpt-5.4`. Defaults preserve the previous prompts, model and inference parameters. The existing host cache location is owned only by `assistance/config.json` under transcription.cache_directory; relative paths resolve from the identified repository root. Its physical files were preserved, and the assistance process still sees the bind mount as `/models`.
+Assistance configuration owns transcription model/device/compute type, languages, native-window size, audio/text budgets, recording duration, concurrency and timeouts. The `form_assistant` block owns the existing provider processing budgets; its model must remain exactly `gpt-5.4`. Separate role policies live in `modules/assistance/assistant_1_instructions.py` and `modules/assistance/assistant_2_instructions.py`; `modules/assistance/instructions.py` composes the selected role with common security rules, with explicit schema-based adapters and API-owned authorized GET orchestration; see [form assistant behavior](FORM_ASSISTANT.md). Existing model and inference parameters remain unchanged. The existing host cache location is owned only by `modules/assistance/config.json` under transcription.cache_directory; relative paths resolve from the identified repository root. Its physical files were preserved, and the assistance process still sees the bind mount as `/models`.
 
-The public frontend JSON controls both names, greetings, image paths and independent color groups. Angular loads `/frontend/runtime-config.json` before bootstrap. The frontend entrypoint validates this JSON and generates external `/frontend/assistant-theme.css`, preserving strict CSP. Edit `frontend/config.json`, then restart the frontend through `python start.py`; no Angular rebuild is needed for those presentation changes. Images are mounted from `frontend/public/images`. Public configuration accepts only presentation keys and same-origin `/frontend/` image paths, never credentials or service addresses. Node builds Angular and runs a short CSS-generation command at container startup; Nginx is the serving process.
+The public frontend JSON controls both names, greetings, image paths and independent color groups. Angular loads `/frontend/runtime-config.json` before bootstrap. The frontend entrypoint validates this JSON and generates external `/frontend/assistant-theme.css`, preserving strict CSP. Edit `modules/frontend/config.json`, then restart the frontend through `python start.py`; no Angular rebuild is needed for those presentation changes. Images are mounted from `modules/frontend/public/images`. Public configuration accepts only presentation keys and same-origin `/frontend/` image paths, never credentials or service addresses. Node builds Angular and runs a short CSS-generation command at container startup; Nginx is the serving process.
 
 ## Startup and credentials
 
@@ -51,11 +81,11 @@ flowchart LR
     Assistance --> OpenAI[Existing Responses API]
 ```
 
-There are exactly four production services. The database network is internal and shared only by API/PostgreSQL. PostgreSQL also attaches alone to a separate `database_host` bridge so Docker can retain the original loopback port 6669; an internal-only attachment suppresses effective port publication. No other module joins that host-access bridge. The assistance network contains only API/assistance; the frontend network contains only frontend/API. Assistance has no PostgreSQL network attachment, driver requirement, database password, JWT signing secret or administrative credentials. Its root filesystem is read-only, with ephemeral `/tmp` and a persistent model-cache mount.
+There are exactly four production services. The database network is internal and shared only by API/PostgreSQL. PostgreSQL also attaches alone to a separate `database_host` bridge so Docker can retain the original loopback port 6669; an internal-only attachment suppresses effective port publication. No other module joins that host-access bridge. The assistance network contains only API/assistance; the frontend network contains only modules/frontend/API. Assistance has no PostgreSQL network attachment, driver requirement, database password, JWT signing secret or administrative credentials. Its root filesystem is read-only, with ephemeral `/tmp` and a persistent model-cache mount.
 
 Frontend proxying preserves Host, cookies, Origin and CSRF headers. Client-address forwarding is trusted only when the immediate source matches the configured frontend service's resolved address; arbitrary browser forwarding headers are not trusted. Protected page navigation uses the existing account/role rule through a private Nginx auth subrequest. HTTPS installations must retain their approved HTTPS origin/termination; this stage adds no TLS endpoint or new published port.
 
-Every assistance call first passes the existing API account, current-role and CSRF/bearer checks. The API issues an HMAC delegation bound to the operation, body digest, authorized subject, lifetime and nonce. Assistance verifies it and rejects replay; user-supplied IDs/roles are never sufficient. The signing key is a separate protected `.secrets/assistance_service_key`, unrelated to user JWTs. The provider file `assistance/.env` is mounted only into assistance for `OPENAI_API_KEY`, never copied into images or public assets. The existing `.secrets` directory remains API-private. Runtime processes consume these protected files without bypassing the interactive normal migration/bootstrap authentication.
+Every assistance call first passes the existing API account, current-role and CSRF/bearer checks. The API issues an HMAC delegation bound to the operation, body digest, authorized subject, lifetime and nonce. Assistance verifies it and rejects replay; user-supplied IDs/roles are never sufficient. The signing key is a separate protected `.secrets/assistance_service_key`, unrelated to user JWTs. The provider file `modules/assistance/.env` is mounted only into assistance for `OPENAI_API_KEY`, never copied into images or public assets. The existing `.secrets` directory remains API-private. Runtime processes consume these protected files without bypassing the interactive normal migration/bootstrap authentication.
 
 Audio, transcripts and conversation bodies remain omitted from API execution logs and audit bodies. Assistance has no business-write endpoints or database audit credentials; business operations still use the existing API. Audio remains in bounded memory, is cleared after requests and is never written to persistent storage.
 
@@ -63,17 +93,17 @@ This design follows the separation and per-request authorization guidance in the
 
 ## Dependencies and persistent storage
 
-- Base/API installs `api/requirements.txt`; it does not install or execute faster-whisper/CTranslate2/PyAV models.
-- Assistance installs `assistance/requirements.txt`; shared Pydantic form contracts are reused without account/database implementations.
+- Base/API installs `modules/api/requirements.txt`; it does not install or execute faster-whisper/CTranslate2/PyAV models.
+- Assistance installs `modules/assistance/requirements.txt`; shared Pydantic form contracts are reused without account/database implementations.
 - Frontend uses `npm ci` with the existing lockfile in a Node build stage and serves static assets through Nginx.
 - PostgreSQL retains the exact existing Compose identity and `<project>_postgres_data` volume. Model files reuse the configured existing host directory; restarts do not redownload a cached model.
-- Configuration, original protected secrets, provider `assistance/.env`, frontend images and API logs remain external to images. `.dockerignore` excludes private files, local environments, node_modules, build caches and QA scratch files.
+- Configuration, original protected secrets, provider `modules/assistance/.env`, frontend images and API logs remain external to images. `.dockerignore` excludes private files, local environments, node_modules, build caches and QA scratch files.
 
 API browser sessions and assistance replay/capacity state remain process-local, as before. Separate service sizing is possible; multiple API replicas/shared sessions or distributed replay coordination are future work, not implemented here.
 
 ## Verification
 
-Use built images with `python scripts/verify_modules.py` from a declared QA environment. It creates a randomly named owned project with PostgreSQL in tmpfs, disposable accounts/secrets, no published ports, and removes only its own containers/network afterward. It never queries the normal database or deletes any named volume. `--audio <disposable.wav>` also exercises real transcription; `--live-assistant` makes one live GPT-5.4 request using the configured provider file mounted only into disposable assistance (with normal provider usage cost); `--publish` optionally uses only approved port 6969 when free. Never supply personal recordings.
+Use built images with `python scripts/verify_modules.py` from a declared QA environment. It creates a randomly named owned project with PostgreSQL in tmpfs, disposable accounts/secrets, no published ports, and removes only its own containers/network afterward. It never queries the normal database or deletes any named volume. `--audio <disposable.wav>` also exercises real transcription; `--live-assistant` checks basic, multi-field and relative-position behavior with bounded live GPT-5.4 requests using the configured provider file mounted only into disposable assistance (with normal provider usage cost); `--publish` optionally uses only approved port 6969 when free. Never supply personal recordings.
 
 See [the module QA record](MODULES_QA.md) for actual executed checks and remaining manual/normal-installation steps. Unit checks and internal HTTP checks do not establish browser rendering, physical microphone behavior or normal-database authentication.
 
@@ -85,29 +115,29 @@ Ouroboros/
   orchestration.py
   config.json / config.example.json
   compose.yaml
-  frontend/
+  modules/frontend/
     config.json / config.example.json
     Dockerfile, nginx.conf, entrypoint.sh
     src/, assets/, public/, scripts/, package.json
-  api/
+  modules/api/
     config.json / config.example.json
     Dockerfile, requirements.txt, runtime.py, assistance_client.py
     app/, scripts/
-  assistance/
+  modules/assistance/
     config.json / config.example.json
     .env
     Dockerfile, requirements.txt, main.py
     transcription.py, form_assistant.py, scripts/
-  database/
+  modules/database/
     config.json / config.example.json
     sql/migrations/, sql/queries/
   shared/
     paths.py, configfiles.py, service_auth.py
     form_contracts.py, speech.py, assistance_settings.py
     schemas/, error catalogue, UTC/audit/privacy/text-policy contracts
-  scripts/, tests/, qa/, docs/, postman/
+  scripts/, qa/, qa/support/, docs/, modules/api/postman/
 ```
 
 `shared/` contains real cross-module contracts/utilities, not duplicate runtime implementations. Fixed versioned schema/text-policy resources remain code assets, not competing installation profiles. Python service imports use api.*, assistance.* and shared.*; there are no root app/ or modules/ compatibility packages. Module-specific diagnostic/build utilities live in their module's scripts/; common QA/review orchestration remains in root scripts/. Root requirements-dev/review describe cross-module verification tools.
 
-Private deployment values were migrated once from `.orchestration.json`, `modules/base/config/.config.json`, `modules/database/.config.json`, `modules/assistance/.config.json` and `modules/frontend/.config.json`. Unused `.app.config`, `.ai.config` and `modules/base/.config.json` variants were retired as well. Their original private JSON files are preserved only in the protected `.secrets/layout-config-before-standardization.zip` rollback archive; no startup path reads it. The provider `.env` was moved to assistance/.env without printing, parsing or duplicating its token. All applied SQL files moved by filesystem rename; exact SHA-256 bytes were compared before/after. Existing named volumes, model-cache files, protected shared secrets and runtime logs were not relocated or reset.
+Private deployment values were migrated once from `.orchestration.json`, `modules/base/config/.config.json`, `modules/database/.config.json`, `modules/assistance/.config.json` and `modules/frontend/.config.json`. Unused `.app.config`, `.ai.config` and `modules/base/.config.json` variants were retired as well. Their original private JSON files are preserved only in the protected `.secrets/layout-config-before-standardization.zip` rollback archive; no startup path reads it. The provider `.env` was moved to modules/assistance/.env without printing, parsing or duplicating its token. All applied SQL files moved by filesystem rename; exact SHA-256 bytes were compared before/after. Existing named volumes, model-cache files, protected shared secrets and runtime logs were not relocated or reset.

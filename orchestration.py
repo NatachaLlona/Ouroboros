@@ -1,4 +1,10 @@
 """Standard-library-only launcher for the four containerized modules."""
+
+import sys as _sys
+from pathlib import Path as _Path
+_repository = _Path(__file__).resolve().parents[0]
+_sys.path.insert(0, str(_repository))
+_sys.path.insert(0, str(_repository / "modules"))
 import argparse
 import json
 import os
@@ -40,10 +46,10 @@ def prepare(root):
     from api.app.infrastructure import require_infrastructure
     root = Path(root).resolve()
     settings = initialize(root/'config.json', read_document(root/'config.example.json'))
-    api = initialize(root/'api/config.json', read_document(root/'api/config.example.json'))
-    database = initialize(root/'database/config.json', read_document(root/'database/config.example.json'))
-    initialize(root/'assistance/config.json', read_document(root/'assistance/config.example.json'))
-    initialize(root/'frontend/config.json', read_document(root/'frontend/config.example.json'))
+    api = initialize(root/'modules/api/config.json', read_document(root/'modules/api/config.example.json'))
+    database = initialize(root/'modules/database/config.json', read_document(root/'modules/database/config.example.json'))
+    initialize(root/'modules/assistance/config.json', read_document(root/'modules/assistance/config.example.json'))
+    initialize(root/'modules/frontend/config.json', read_document(root/'modules/frontend/config.example.json'))
     identity = {'infrastructure': {'project_name': settings['project_name'], 'workspace': settings.get('workspace', '')}}
     project = require_infrastructure(identity, root)
     if type(settings['public_port']) is not int or not 1 <= settings['public_port'] <= 65535:
@@ -52,7 +58,7 @@ def prepare(root):
         raise StartupError('Invalid or conflicting database port')
     if type(settings['startup_timeout_seconds']) is not int or not 10 <= settings['startup_timeout_seconds'] <= 3600:
         raise StartupError('Invalid orchestration startup timeout')
-    provider_file = root/'assistance/.env'
+    provider_file = root/'modules/assistance/.env'
     if not provider_file.exists():
         provider_file.touch(mode=0o600)
     from api.app.credentials import write_secret
@@ -67,7 +73,7 @@ def environment(root, database, settings):
     env = os.environ.copy()
     for name in ('PGPASSWORD', 'POSTGRES_PASSWORD', 'OPENAI_API_KEY'):
         env.pop(name, None)
-    cache = Path(read_document(root/'assistance/config.json')['transcription']['cache_directory'])
+    cache = Path(read_document(root/'modules/assistance/config.json')['transcription']['cache_directory'])
     cache = (cache if cache.is_absolute() else root/cache).resolve()
     cache.mkdir(parents=True, exist_ok=True)
     env.update(OUROBOROS_DB_NAME=database['name'], OUROBOROS_DB_USER=database['user'],
@@ -126,7 +132,7 @@ def main(root=ROOT, argv=None):
             finally:
                 password = None
             # Interactive selection persists in the database module; use that canonical result.
-            database = read_document(root/'database/config.json')
+            database = read_document(root/'modules/database/config.json')
             base['database'] = {**base['database'], **database}
             env = environment(root, database, settings)
         start_postgres({**base['database'], **database}, secret, root, settings['project_name'])

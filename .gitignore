@@ -61,8 +61,8 @@ Thumbs.db
 .secrets/
 
 # Private Postman settings and credential exports
-postman/globals/
-postman/local/
+modules/api/postman/globals/
+modules/api/postman/local/
 *.postman_environment.json
 *.postman_globals.json
 
@@ -77,15 +77,18 @@ reports/
 .tools/
 node_modules/
 .angular/
-frontend/dist/
+modules/frontend/dist/
 .cache/speech/
 .venv-speech/
-frontend/public/assistant-theme.css
+modules/frontend/public/assistant-theme.css
 
 # Canonical per-installation module configuration
 /config.json
-/frontend/config.json
-/api/config.json
-/assistance/config.json
-/database/config.json
-frontend/public/runtime-config.json
+/modules/frontend/config.json
+/modules/api/config.json
+/modules/assistance/config.json
+/modules/database/config.json
+/provisioning.jsonc
+/modules/database/config.jsonc
+/modules/api/config.jsonc
+modules/frontend/public/runtime-config.json

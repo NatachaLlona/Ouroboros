@@ -99,9 +99,9 @@ Swagger: **http://localhost:6969/docs**. PostgreSQL: **127.0.0.1:6669**, interna
 
 ## 🧪 **Verification and review**
 
-Run `.\.venv\Scripts\python.exe scripts/run_checks.py`. It uses disposable UUID Compose projects, random credentials and ephemeral ports; it never reads normal configuration/secrets. Catalogue scenarios **13.1–13.7** in the [QA plan](QA_TEST_PLAN.md#scenario-13-1) map to `tests/test_catalogue.py`. They exercise real PostgreSQL, boundary IDs, metadata, fields, FKs, repetitions, provenance, migration replay and stop/start persistence. All inherited authentication, roles, password-change/reset, health/test and logging regression checks remain in the same runner. Schema/HTTP checks do not establish Swagger clicks, Postman import/sandbox, terminal appearance or hosted CI execution.
+Run `.\.venv\Scripts\python.exe scripts/run_checks.py`. It uses disposable UUID Compose projects, random credentials and ephemeral ports; it never reads normal configuration/secrets. Catalogue scenarios **13.1–13.7** in the [QA plan](QA_TEST_PLAN.md#scenario-13-1) map to `modules/api/qa/test_catalogue.py`. They exercise real PostgreSQL, boundary IDs, metadata, fields, FKs, repetitions, provenance, migration replay and stop/start persistence. All inherited authentication, roles, password-change/reset, health/test and logging regression checks remain in the same runner. Schema/HTTP checks do not establish Swagger clicks, Postman import/sandbox, terminal appearance or hosted CI execution.
 
-Review `feat/initial-tables` before any merge into `main`. No commit, push or merge is part of this phase request. The canonical collection is `postman/Ouroboros.postman_collection.json`; its complete README JSON must stay synchronized. Historical private Postman YAML/metadata remain untouched. [FINAL_REVIEW.md](FINAL_REVIEW.md) contains historical Foundation evidence, not current phase approval.
+Review `feat/initial-tables` before any merge into `main`. No commit, push or merge is part of this phase request. The canonical collection is `modules/api/postman/Ouroboros.postman_collection.json`; its complete README JSON must stay synchronized. Historical private Postman YAML/metadata remain untouched. [FINAL_REVIEW.md](FINAL_REVIEW.md) contains historical Foundation evidence, not current phase approval.
 
 ## 🔮 **Pending design and future capabilities**
 

@@ -1,0 +1,28 @@
+# Independent new-installation track. Never attach the historical postgres_data volume.
+services:
+  postgresql:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:?Run start.py}
+      POSTGRES_USER: ${DATABASE_MASTER:?Run start.py}
+      POSTGRES_PASSWORD_FILE: /run/secrets/sql_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "${DATABASE_ADDRESS:-127.0.0.1}:${DATABASE_PORT:-6669}:5432"
+    volumes:
+      - installation_v1:/var/lib/postgresql/data
+    secrets: [sql_password]
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -h 127.0.0.1 -p 5432 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: ${DATABASE_HEALTH_INTERVAL:-2}s
+      timeout: ${DATABASE_HEALTH_TIMEOUT:-3}s
+      retries: ${DATABASE_HEALTH_RETRIES:-30}
+      start_period: ${DATABASE_HEALTH_START_PERIOD:-5}s
+secrets:
+  sql_password:
+    file: ${DATABASE_SECRET_FILE:?Run start.py}
+volumes:
+  installation_v1:
+    labels:
+      org.ouroboros.workspace: ${DATABASE_WORKSPACE:?Run start.py}
+      org.ouroboros.baseline: database-v1

@@ -1,0 +1,10 @@
+.swagger-ui .ouroboros-auth .modal-ux { max-height: 90vh; overflow-y: auto; }
+.swagger-ui .ouroboros-auth section { padding: 0 0 24px; }
+.swagger-ui .ouroboros-auth section + section { border-top: 1px solid #d3d3d3; padding-top: 16px; }
+.swagger-ui .ouroboros-auth h4 { font-size: 19px; margin: 8px 0 16px; }
+.swagger-ui .ouroboros-auth form { margin: 12px 0 18px; }
+.swagger-ui .ouroboros-auth .ouroboros-auth-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.swagger-ui .ouroboros-auth label { font-weight: 600; }
+.swagger-ui .ouroboros-auth input { width: 100%; box-sizing: border-box; padding: 9px; }
+.swagger-ui .ouroboros-auth [role="status"] { min-height: 1.5em; overflow-wrap: anywhere; }
+.swagger-ui .ouroboros-auth button { margin-right: 8px; }

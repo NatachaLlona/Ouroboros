@@ -2,10 +2,10 @@
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-API_ROOT = PROJECT_ROOT / 'api'
-ASSISTANCE_ROOT = PROJECT_ROOT / 'assistance'
-DATABASE_ROOT = PROJECT_ROOT / 'database'
-FRONTEND_ROOT = PROJECT_ROOT / 'frontend'
+API_ROOT = PROJECT_ROOT / 'modules/api'
+ASSISTANCE_ROOT = PROJECT_ROOT / 'modules/assistance'
+DATABASE_ROOT = PROJECT_ROOT / 'modules/database'
+FRONTEND_ROOT = PROJECT_ROOT / 'modules/frontend'
 
 
 class ConfigurationError(ValueError):

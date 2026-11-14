@@ -1,9 +1,9 @@
-"""Validated classification suggestions through GPT-5.4; no catalogue writes or tools."""
+"""Validated form suggestions and bounded read intents; no catalogue writes."""
 import re
 import unicodedata
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, TypeAdapter, ValidationError
 from shared.schemas.catalogue import RESOURCES
 from shared.text_limits import DESCRIPTION_MAX_LENGTH
 
@@ -17,6 +17,7 @@ class StrictObject(BaseModel):
 
 
 class ConversationMessage(StrictObject):
+    assistant_id: Literal['assistant_2'] = 'assistant_2'
     role: Literal['user', 'assistant']
     content: Annotated[StrictStr, Field(min_length=1, max_length=4000)]
 
@@ -29,10 +30,31 @@ class ClassificationState(StrictObject):
 
 
 class SuggestionRequest(StrictObject):
+    assistant_id: Literal['assistant_2'] = 'assistant_2'
     mode: Literal['create', 'edit']
     message: Annotated[StrictStr, Field(min_length=1, max_length=4000)]
     history: Annotated[list[ConversationMessage], Field(max_length=20)]
     values: ClassificationState
+    record_id: Annotated[StrictStr, Field(max_length=100)] | None = None
+    optional_status: Literal['unoffered', 'offered', 'declined'] = 'unoffered'
+    confirmation: Annotated[StrictStr, Field(max_length=100)] | None = None
+    technical_visible: StrictBool = False
+
+
+class ReadQuery(StrictObject):
+    resource: Literal['work_classifications']
+    search: Annotated[StrictStr, Field(min_length=1, max_length=200)]
+
+
+class PositionReference(StrictObject):
+    search: Annotated[StrictStr, Field(min_length=1, max_length=200)]
+    match: Literal['unique', 'first']
+
+
+class RelativePosition(StrictObject):
+    placement: Literal['before', 'after', 'between']
+    reference: PositionReference
+    second: PositionReference | None
 
 
 class Proposal(StrictObject):
@@ -43,10 +65,20 @@ class Proposal(StrictObject):
 class ModelSuggestion(StrictObject):
     reply: StrictStr
     proposals: list[Proposal]
+    queries: Annotated[list[ReadQuery], Field(max_length=3)] = []
+    relative_position: RelativePosition | None = None
+    optional_declined: StrictBool = False
+
+
+class PositionConfirmation(StrictObject):
+    token: StrictStr
+    message: StrictStr
 
 
 class SuggestionResult(ModelSuggestion):
     missing_fields: list[FieldName]
+    position_confirmation: PositionConfirmation | None = None
+    notice: StrictStr | None = None
 
 
 class AssistantError(Exception):
@@ -96,9 +128,10 @@ def validate_suggestion(suggestion, state, mode, maximum_tier):
     if not re.fullmatch('[a-z][a-z0-9]*(_[a-z0-9]+)*', technical):
         missing.append('work_classification_name')
     reply = suggestion.reply
-    if missing:
-        labels = {'display_name_work_classifications': 'Nome Fantasia', 'work_classification_name': 'Nome Técnico válido'}
-        reply += '\nPara concluir o preenchimento, qual é o ' + ' e o '.join(labels[field] for field in missing) + '?'
-    return SuggestionResult(reply=reply, proposals=proposals, missing_fields=missing)
+    if 'display_name_work_classifications' in missing:
+        reply += '\nWhat is the Display Name?'
+    return SuggestionResult(reply=reply, proposals=proposals, missing_fields=missing,
+        queries=suggestion.queries, relative_position=suggestion.relative_position,
+        optional_declined=suggestion.optional_declined)
 
 

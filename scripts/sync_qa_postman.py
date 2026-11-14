@@ -1,4 +1,10 @@
 """Synchronize Postman scenario labels from the authoritative QA catalogue."""
+
+import sys as _sys
+from pathlib import Path as _Path
+_repository = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_repository))
+_sys.path.insert(0, str(_repository / "modules"))
 import json
 import re
 from qa_catalog import ROOT, load_catalog
@@ -7,7 +13,7 @@ from qa_catalog import ROOT, load_catalog
 def main():
     """Update only public request descriptions/assertion labels, never secrets."""
     catalog = load_catalog()
-    path = ROOT/"postman/Ouroboros.postman_collection.json"
+    path = ROOT/"modules/api/postman/Ouroboros.postman_collection.json"
     collection = json.loads(path.read_text(encoding="utf-8"))
     def visit(items):
         for item in items:

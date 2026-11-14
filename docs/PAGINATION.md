@@ -1,6 +1,6 @@
 # 🔢 Shared Angular numerical pagination
 
-`Pagination` in `frontend/src/app/shared/pagination.ts` is the **mandatory component for every current and future paginated frontend list and CRUD**. Autocomplete and searchable dropdowns are excluded. Do not duplicate numerical-window calculations or styles per screen.
+`Pagination` in `modules/frontend/src/app/shared/pagination.ts` is the **mandatory component for every current and future paginated frontend list and CRUD**. Autocomplete and searchable dropdowns are excluded. Do not duplicate numerical-window calculations or styles per screen.
 
 ## Contract
 
@@ -23,7 +23,7 @@ The component never requests data or changes filters, ordering or page size. Cur
 The exported pure `paginationItems(page,totalPages)` builds only the first two pages, the current page with up to two neighbors on each side, and the last two pages. Invalid positions are discarded, duplicates removed and numbers sorted. Insert a single missing page directly; use `…` only for two or more hidden pages. Time, memory and output are bounded independently of the total; never generate all pages and slice afterward. `clampPaginationPage` centralizes valid-page normalization. Invalid/noninteger/unsafe totals produce no items.
 
 ```text
-‹ Anterior  1 2 … 13 14 [15] 16 17 … 99 100  Seguinte ›
+‹ Previous  1 2 … 13 14 [15] 16 17 … 99 100  Next ›
 ```
 
 Invalid, current-page and busy navigation emits nothing. Buttons use `type="button"`; the current page is disabled and marked `aria-current="page"`. Previous/next disable at their boundaries. Ellipses are noninteractive spans. A labelled navigation landmark and Portuguese button names identify controls. Existing focus-visible outlines apply. Shared external CSS supplies subtle current-page emphasis, at least 44-pixel targets and wrapping on narrow containers. No component style injection or CSP change is needed.
