@@ -9,7 +9,7 @@ from database.settings import ConfigurationError
 
 TLS_ERROR = ('Valid TLS certificate and matching unencrypted PEM key are required. '
              'Configure tls.certificate_file, tls.private_key_file and tls.server_name '
-             'in modules/api/config.jsonc. Follow docs/API.md to prepare and trust the certificate.')
+             'in modules/api/config.jsonc. Follow modules/api/API.md to prepare and trust the certificate.')
 
 
 def validate(certificate, private_key, server_name):

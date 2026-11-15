@@ -134,7 +134,9 @@ class InfrastructureTests(unittest.TestCase):
         import shutil
         shutil.copytree(PROJECT_ROOT/'shared',self.root/'shared',ignore=shutil.ignore_patterns('__pycache__'))
         (self.root/'modules/database').mkdir(parents=True,exist_ok=True)
-        shutil.copyfile(PROJECT_ROOT/'modules/database/config.example.json',self.root/'modules/database/config.example.json')
+        (self.root/'qa/support/legacy').mkdir(parents=True,exist_ok=True)
+        for module in ('api','database'):
+            shutil.copyfile(PROJECT_ROOT/f'qa/support/legacy/{module}.fixture.jsonc',self.root/f'qa/support/legacy/{module}.fixture.jsonc')
         (self.root / "check_config.py").write_text(
             "from api.app.config import load_config\nfrom api.app.logger import ApplicationLogger\n"
             "config = load_config()\nlogger = ApplicationLogger(config['logging'])\n"

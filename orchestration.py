@@ -45,9 +45,11 @@ def prepare(root):
     """Read exactly five canonical configs; obsolete names are never fallback sources."""
     from api.app.infrastructure import require_infrastructure
     root = Path(root).resolve()
+    if root == ROOT:
+        raise StartupError('Historical four-module startup is retired. Use start.py --with-api or --database-only; see modules/api/API.md')
     settings = initialize(root/'config.json', read_document(root/'config.example.json'))
-    api = initialize(root/'modules/api/config.json', read_document(root/'modules/api/config.example.json'))
-    database = initialize(root/'modules/database/config.json', read_document(root/'modules/database/config.example.json'))
+    api = initialize(root/'modules/api/config.json', read_document(root/'qa/support/legacy/api.fixture.jsonc'))
+    database = initialize(root/'modules/database/config.json', read_document(root/'qa/support/legacy/database.fixture.jsonc'))
     initialize(root/'modules/assistance/config.json', read_document(root/'modules/assistance/config.example.json'))
     initialize(root/'modules/frontend/config.json', read_document(root/'modules/frontend/config.example.json'))
     identity = {'infrastructure': {'project_name': settings['project_name'], 'workspace': settings.get('workspace', '')}}

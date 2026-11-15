@@ -9,7 +9,6 @@
 !modules/database/
 !modules/database/sql/
 !modules/database/sql/**
-!modules/database/config.example.json
 !modules/database/__init__.py
 !modules/database/settings.py
 !modules/database/model.py
@@ -30,3 +29,9 @@
 modules/frontend/.angular/**
 modules/frontend/.tmp/**
 modules/frontend/dist/**
+
+# Historical configuration fixtures are test data, never deployment settings.
+!qa/
+!qa/support/
+!qa/support/legacy/
+!qa/support/legacy/**

@@ -1,30 +1,50 @@
 {
   // Database structure comes exclusively from provisioning.jsonc and its registry.
+  // Fixed API loopback address 127.0.0.1; restart to apply configuration edits.
   "host": "127.0.0.1",
+  // Fixed HTTPS publication port 6969; container TLS port is 8000.
   "port": 6969,
   // PEM files are mounted read-only. Keep the key outside Git and build contexts.
-  // Create and trust the local certificate as documented in docs/API.md.
+  // Create and trust the local certificate as documented in modules/api/API.md.
+  // Required direct TLS; paths resolve from repository root. Restart after renewal.
   "tls": {
+    // Nonblank PEM certificate/chain path; must be valid for server_name.
     "certificate_file": ".secrets/api-local.pem",
+    // Nonblank protected matching unencrypted PEM private-key path; never embed key contents.
     "private_key_file": ".secrets/api-local-key.pem",
+    // Certificate SAN hostname or IPv4; also defines the HTTPS Swagger/OpenAPI origin.
     "server_name": "localhost"
   },
+  // Readiness wait in seconds, 10-3600; applied on next startup.
   "startup_timeout_seconds": 120,
+  // SQL connection establishment timeout in seconds, 1-60; API restart required.
   "connect_timeout_seconds": 5,
+  // SQL statement timeout in milliseconds, 100-60000; API restart required.
   "statement_timeout_ms": 10000,
+  // Wait for SQL concurrency capacity in seconds, 1-60; API restart required.
   "connection_acquire_timeout_seconds": 5,
+  // Maximum concurrent SQL connections, 1-32, in one API worker; restart required.
   "max_connections": 8,
+  // JWT validation/issuance configuration; API restart required after edits.
   "token": {
+    // Required JWT issuer string, 1-128 characters.
     "issuer": "ouroboros-api",
+    // Required JWT audience string, 1-128 characters.
     "audience": "ouroboros-integrations",
+    // JWT clock tolerance in seconds, 0-30.
     "clock_skew_seconds": 0
   },
   // Operator bounds are authoritative. Persisted installation adjustments must
   // remain inside these bounds, including their persisted minimum and maximum.
+  // Each limit has integer minimum, maximum and default value, with minimum <= value <= maximum.
   "limits": {
+    // Complete request-body bytes; absolute ceiling 1048576. Effective persisted value is loaded at API startup.
     "request_bytes": {"minimum": 1024, "maximum": 1048576, "value": 1048576},
+    // Atomic POST array item limit; absolute ceiling 300. Persisted adjustments affect subsequent requests.
     "batch_items": {"minimum": 1, "maximum": 300, "value": 100},
+    // Maximum requested page length; absolute ceiling 100. Persisted adjustments affect subsequent requests.
     "page_size": {"minimum": 1, "maximum": 100, "value": 50},
+    // New token lifetime in seconds; absolute ceiling 86400. Existing token expiration does not change.
     "token_ttl_seconds": {"minimum": 60, "maximum": 3600, "value": 900}
   }
 }

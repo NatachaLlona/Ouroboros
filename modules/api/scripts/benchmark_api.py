@@ -129,7 +129,7 @@ def isolated_cluster():
     try:
         shutil.copy(PROJECT_ROOT / 'compose.yaml', root)
         shutil.copytree(PROJECT_ROOT / 'sql', root / 'sql')
-        config = json.loads((PROJECT_ROOT / 'modules/api/config.example.json').read_text(encoding='utf-8'))
+        config = json.loads((PROJECT_ROOT / 'qa/support/legacy/api.fixture.jsonc').read_text(encoding='utf-8'))
         with socket.socket() as available:
             available.bind(('127.0.0.1', 0))
             database_port = available.getsockname()[1]

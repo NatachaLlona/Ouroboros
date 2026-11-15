@@ -297,7 +297,7 @@ execution results and limitations. The real normal terminal password prompts and
 SQL-client GUI connection require the operator; automated SQL authentication
 does not establish DBeaver/pgAdmin GUI behavior.
 ''')
-    (root/'docs/DATABASE.md').write_text(''.join(sections),encoding='utf-8')
+    (root/'modules/database/SCHEMA.generated.md').write_text(''.join(sections),encoding='utf-8')
 
 
 if __name__ == '__main__':

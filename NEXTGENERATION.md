@@ -1,3 +1,15 @@
+## Database/API module configuration and guides
+
+For the Basic runtime, each module has exactly one active operational configuration:
+`modules/api/config.jsonc` and `modules/database/config.jsonc`. Keep structural
+`provisioning.jsonc` beside `start.py`. Each module has one sanitized JSONC example.
+Historical JSON schemas are test fixtures in `qa/support/legacy`, never normal
+deployment fallbacks. The historical launcher refuses the normal workspace.
+Keep module guides in `modules/api/API.md` and `modules/database/DATABASE.md`;
+old docs URLs remain forwarding pages. Do not regenerate the curated Database
+guide from the baseline-only schema generator. Existing historical rules below
+apply only to the runtime and revision they describe.
+
 # 🧬 Developer README — Next Generation
 
 ## API over the registered Database v1 contract
@@ -22,7 +34,7 @@ key correspondence, certificate dates and SAN before service startup and
 again inside the container. Keep keys protected and outside Git/build contexts.
 Disable forwarded-header trust for direct TLS. Health probes verify TLS and
 hostname. OpenAPI and Swagger OAuth use the configured HTTPS origin. Follow
-the Windows mkcert preparation in docs/API.md. Certificate failure stops startup
+the Windows mkcert preparation in modules/api/API.md. Certificate failure stops startup
 with remediation. Database-only remains independent of TLS.
 
 Use `start.py --with-api` (also the default startup) for Database plus API in the
@@ -59,7 +71,7 @@ New API PUT replaces the entire editable representation; PATCH preserves omitted
 fields. This intentionally supersedes historical partial PUT only for API v1.
 Reject extra owner/role/plan/ID/evidence fields. Complete SQL commit and deferred
 constraints before sending successful headers. Preserve mandatory transactional
-audit/version triggers and classification lock ordering. See [API.md](docs/API.md)
+audit/version triggers and classification lock ordering. See [API.md](modules/api/API.md)
 for routes, exact startup commands, profile/ownership matrix and compatibility,
 and [API_QA.md](docs/API_QA.md) for measured verification.
 
@@ -124,7 +136,7 @@ mutation/audit/version triggers. Reserve plan changes to the installation's
 unique super administrator, separate from common roles and SQL administration.
 Keep owner/migration and runtime SQL capabilities separate; the future API is a
 trusted broker, while tenants never receive SQL credentials. See
-[Database schema and startup](docs/DATABASE.md) and
+[Database schema and startup](modules/database/DATABASE.md) and
 [actual verification](docs/DATABASE_QA.md). No endpoints, OAuth, review workflow,
 reminder sending or normal-data QA is part of this delivery.
 

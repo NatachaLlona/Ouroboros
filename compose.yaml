@@ -24,8 +24,8 @@ services:
       context: .
       dockerfile: modules/api/Dockerfile
     environment:
-      OUROBOROS_API_CONFIG: /config/api/config.json
-      OUROBOROS_DATABASE_CONFIG: /config/database/config.json
+      OUROBOROS_API_CONFIG: /config/api.json
+      OUROBOROS_DATABASE_CONFIG: /config/database.json
       OUROBOROS_PUBLIC_HOST: ${OUROBOROS_PUBLIC_HOST:-127.0.0.1}
       OUROBOROS_PUBLIC_PORT: ${OUROBOROS_PUBLIC_PORT:-6969}
       OUROBOROS_EXTERNAL_ASSISTANCE: '1'
@@ -34,8 +34,8 @@ services:
       OUROBOROS_ASSISTANCE_URL: ${OUROBOROS_ASSISTANCE_URL:-http://assistance:8000}
       OUROBOROS_SERVICE_KEY_FILE: /run/secrets/service_key
     volumes:
-      - ./modules/api:/config/api
-      - ./modules/database:/config/database
+      - ${OUROBOROS_LEGACY_API_CONFIG:?Historical API requires an explicit disposable JSON fixture}:/config/api.json:ro
+      - ${OUROBOROS_LEGACY_DATABASE_CONFIG:?Historical Database requires an explicit disposable JSON fixture}:/config/database.json:ro
       - ./.secrets:/runtime/.secrets
       - ./logs:/runtime/logs
     secrets: [postgres_password, service_key]

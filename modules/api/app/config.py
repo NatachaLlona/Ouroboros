@@ -35,12 +35,14 @@ def validate_logging(config):
 
 def load_config(root=PROJECT_ROOT):
     root = Path(root).resolve()
+    if root == PROJECT_ROOT and (root / 'provisioning.example.jsonc').is_file():
+        raise ConfigurationError('Historical API configuration is test-only. Use start.py --with-api and modules/api/config.jsonc')
     path = Path(os.environ.get('OUROBOROS_API_CONFIG', root / 'modules/api/config.json'))
-    example = root / 'modules/api/config.example.json'
-    config = ensure_object(path, example if example.is_file() else PROJECT_ROOT / 'modules/api/config.example.json')
+    example = root / 'qa/support/legacy/api.fixture.jsonc'
+    config = ensure_object(path, example if example.is_file() else PROJECT_ROOT / 'qa/support/legacy/api.fixture.jsonc')
     database_path = Path(os.environ.get('OUROBOROS_DATABASE_CONFIG', root / 'modules/database/config.json'))
-    database_example = root / 'modules/database/config.example.json'
-    shared_database = ensure_object(database_path, database_example if database_example.is_file() else PROJECT_ROOT / 'modules/database/config.example.json')
+    database_example = root / 'qa/support/legacy/database.fixture.jsonc'
+    shared_database = ensure_object(database_path, database_example if database_example.is_file() else PROJECT_ROOT / 'qa/support/legacy/database.fixture.jsonc')
     runtime = read_object(root / 'config.json') if (root / 'config.json').is_file() else {}
     config.setdefault('host', os.environ.get('OUROBOROS_PUBLIC_HOST', runtime.get('public_host', 'localhost')))
     config.setdefault('port', int(os.environ.get('OUROBOROS_PUBLIC_PORT', runtime.get('public_port', 6969))))
@@ -151,7 +153,10 @@ def load_config(root=PROJECT_ROOT):
 
 
 def save_config(config, root=PROJECT_ROOT):
-    """Persist each preference only in its owning module's canonical config.json."""
+    """Persist historical preferences only inside an explicit disposable fixture."""
+    root = Path(root).resolve()
+    if root == PROJECT_ROOT and (root / 'provisioning.example.jsonc').is_file():
+        raise ConfigurationError('Historical API configuration is test-only. Use modules/api/config.jsonc')
     if config.get('auth', {}).get('password_hash'):
         raise ConfigurationError('Migrate legacy API credentials before saving configuration; no hash copy was written')
     root = Path(root)

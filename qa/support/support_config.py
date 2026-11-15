@@ -6,8 +6,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def example_config():
-    api = json.loads((ROOT/'modules/api/config.example.json').read_text(encoding='utf-8'))
-    database = json.loads((ROOT/'modules/database/config.example.json').read_text(encoding='utf-8'))
+    api = json.loads((ROOT/'qa/support/legacy/api.fixture.jsonc').read_text(encoding='utf-8'))
+    database = json.loads((ROOT/'qa/support/legacy/database.fixture.jsonc').read_text(encoding='utf-8'))
     orchestration = json.loads((ROOT/'config.example.json').read_text(encoding='utf-8'))
     # These unit fixtures deliberately start without a selected database/master.
     database.update(name='', user='')
@@ -31,7 +31,7 @@ def config_path(root):
 
 
 def config_example_path(root):
-    path = Path(root)/'modules/api/config.example.json'
+    path = Path(root)/'qa/support/legacy/api.fixture.jsonc'
     path.parent.mkdir(parents=True,exist_ok=True)
     return path
 

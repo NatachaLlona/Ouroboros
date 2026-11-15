@@ -127,7 +127,12 @@ class ModuleOrchestrationTests(unittest.TestCase):
             root=Path(directory)
             for module in ('','modules/api','modules/database','modules/assistance','modules/frontend'):
                 folder=root/module;folder.mkdir(parents=True,exist_ok=True)
-                (folder/'config.example.json').write_bytes((source/module/'config.example.json').read_bytes())
+                if module in ('modules/api','modules/database'):
+                    fixture=Path('qa/support/legacy')/(module.split('/')[-1]+'.fixture.jsonc')
+                    (root/fixture).parent.mkdir(parents=True,exist_ok=True)
+                    (root/fixture).write_bytes((source/fixture).read_bytes())
+                else:
+                    (folder/'config.example.json').write_bytes((source/module/'config.example.json').read_bytes())
             with patch('api.app.credentials.write_secret'):
                 prepare(root)
                 path=root/'modules/frontend/config.json';custom=json.loads(path.read_text());custom['assistant_name']='Customized assistant'
@@ -138,6 +143,21 @@ class ModuleOrchestrationTests(unittest.TestCase):
             for module in ('','modules/api','modules/database','modules/assistance','modules/frontend'):
                 self.assertTrue((root/module/'config.json').is_file())
             self.assertNotIn('infrastructure',json.loads((root/'modules/api/config.json').read_text()))
+
+    def test_historical_configuration_cannot_recreate_normal_json(self):
+        from api.app.config import load_config, save_config, ConfigurationError
+        from orchestration import prepare, StartupError
+        with patch('api.app.config.ensure_object') as read, patch('api.app.config.write_object') as write:
+            with self.assertRaisesRegex(ConfigurationError, 'test-only'):
+                load_config()
+            with self.assertRaisesRegex(ConfigurationError, 'test-only'):
+                save_config({})
+            read.assert_not_called()
+            write.assert_not_called()
+        with patch('orchestration.initialize') as initialize:
+            with self.assertRaisesRegex(StartupError, 'retired'):
+                prepare(Path(__file__).resolve().parents[1])
+            initialize.assert_not_called()
 
     def test_forwarded_client_address_is_accepted_only_from_resolved_frontend(self):
         from api.app.proxy import FrontendProxyMiddleware

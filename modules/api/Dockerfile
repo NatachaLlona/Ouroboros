@@ -6,6 +6,6 @@ RUN pip install --no-cache-dir -r modules/api/requirements.txt
 COPY modules/api ./modules/api
 COPY shared ./shared
 COPY modules/database/sql ./modules/database/sql
-COPY modules/database/config.example.json ./modules/database/config.example.json
+COPY qa/support/legacy ./qa/support/legacy
 COPY modules/assistance/config.example.json ./modules/assistance/config.example.json
 CMD ["python", "-m", "api.runtime"]
