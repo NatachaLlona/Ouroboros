@@ -156,7 +156,7 @@ def validate_operational(document):
     exact(document, ('master_user', 'secret_file', 'published_address', 'published_port',
                      'startup_timeout_seconds', 'healthcheck'), 'database config')
     identifier(document['master_user'])
-    if document['master_user'] in ('ouroboros_owner', 'ouroboros_runtime'):
+    if document['master_user'] in ('ouroboros_owner', 'ouroboros_runtime', 'ouroboros_api_login'):
         raise ConfigurationError('Master user conflicts with a protected SQL role')
     if document['secret_file'] != '.secrets/database_sql_password':
         raise ConfigurationError('secret_file must reference .secrets/database_sql_password')

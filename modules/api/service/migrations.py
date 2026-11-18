@@ -9,7 +9,8 @@ from api.service.resources import PERSONAL, SPECS
 
 VERSION = 'api-v1/001'
 MIGRATION = Path(__file__).resolve().parents[3]/'modules/database/sql/api_migrations/001_api_runtime.sql'
-MIGRATIONS = ((VERSION,MIGRATION),('api-v1/002',MIGRATION.with_name('002_human_identity.sql')))
+MIGRATIONS = ((VERSION,MIGRATION),('api-v1/002',MIGRATION.with_name('002_human_identity.sql')),
+              ('api-v1/003',MIGRATION.with_name('003_scoped_rbac.sql')))
 LOGIN = 'ouroboros_api_login'
 
 
@@ -25,6 +26,10 @@ def inspect_contract(connection, document, require_api=False):
         for version,source in MIGRATIONS:
             if registry.get(version) != hashlib.sha256(source.read_bytes()).hexdigest():
                 raise ConfigurationError('API migration missing or checksum mismatch; run start.py --api-migrate')
+        for resource,column in (('role','is_system'),('api_user','deleted_at')):
+            if connection.execute('SELECT 1 FROM information_schema.columns WHERE table_schema=%s AND table_name=%s AND column_name=%s',
+                                  (document['schema'],mapping(document)[resource],column)).fetchone() is None:
+                raise ConfigurationError('Scoped authorization metadata is missing; inspect registered API migrations')
     for resource in SPECS:
         physical = mapping(document)[resource]
         columns = {row[0] for row in connection.execute('SELECT column_name FROM information_schema.columns WHERE table_schema=%s AND table_name=%s',(document['schema'],physical))}

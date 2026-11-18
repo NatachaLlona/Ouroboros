@@ -1,3 +1,39 @@
+## Scoped API RBAC adapted from Sympla
+
+The current API supports custom roles and independent section:read/write/edit/delete
+permissions, following the inspected ticketing_sympla/release identity/RBAC reference.
+Use the Ouroboros sections identity, roles, authorization, catalogue, personal,
+subscriptions, settings and audit. Keep legacy resource:create/read/update/delete
+grants as non-broadening compatibility inputs; use new role_identifier payloads
+for scoped delegation. This supersedes administrator-name gates only for the new
+delegated workflow; legacy profile payloads retain their ceilings. Enforce current
+authority and narrowed token scope for all grants and target-role/credential
+administration, inside the membership-locked SQL transaction. Never promote a
+role to the reserved singleton or weaken personal ownership/deny precedence.
+Keep system/internal roles immutable, revoke affected tokens on role/grant/status/
+credential changes, soft-delete identities and reject referenced-role deletion.
+Use additive api-v1/003; preserve applied baseline/migration bytes and credentials.
+QA may use operator-selected OUROBOROS_QA_DB_PORT=2424 or 4242; never silently
+switch an occupied port. The owner selected 4242 for this RBAC verification because
+Sympla uses 2424. Preserve both normal installations. See modules/api/API.md.
+
+## Authenticated PostgreSQL master handover
+
+An edited Database master_user may request a new SQL administrator during normal
+interactive startup. This supersedes historical no-master-change startup rules
+only for the registered Database v1 track. Require the previous LOGIN superuser's
+interactive password, validate the registered contract, request a new confirmed
+password, and require explicit creation confirmation. Never adopt/reset an
+existing target role or change reserved owner/runtime/API login roles.
+Authenticate the new role independently before protected atomic secret publication.
+Journal filesystem/SQL boundaries; preserve pending recovery files after failure.
+Serialize SQL changes and record sanitized audit/version evidence transactionally.
+Offer previous-role deletion only with explicit confirmation and no data deletion,
+ownership reassignment or session termination. The pinned initdb role can only
+have LOGIN disabled, with explicit DISABLE confirmation. Keep SaaS identities,
+API runtime secrets, volumes and immutable baseline/migration bytes unchanged.
+See modules/database/DATABASE.md. Test all role changes on disposable clusters.
+
 ## Database/API module configuration and guides
 
 For the Basic runtime, each module has exactly one active operational configuration:

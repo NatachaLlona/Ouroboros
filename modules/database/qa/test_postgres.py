@@ -1,6 +1,7 @@
 """Real database-only start and relational/security checks on exact owned QA resources."""
 import copy
 import json
+import os
 from pathlib import Path
 import secrets
 import shutil
@@ -34,7 +35,9 @@ class PostgreSQLTests(unittest.TestCase):
         cls.operational = read_jsonc(ROOT/'modules/database/config.example.jsonc')
         cls.operational['published_address'] = '127.0.0.1'
         # Explicit owner-approved disposable port; production validation still requires 6669.
-        cls.operational['published_port'] = 2424
+        cls.operational['published_port'] = int(os.environ.get('OUROBOROS_QA_DB_PORT','2424'))
+        if cls.operational['published_port'] not in (2424,4242):
+            raise RuntimeError('Select an explicitly approved disposable PostgreSQL port: 2424 or 4242')
         cls.password = 'Aa1!'+secrets.token_hex(5)
         cls.app_password = 'Bb2!'+secrets.token_hex(5)
         (cls.fixture/'modules/database').mkdir(parents=True)

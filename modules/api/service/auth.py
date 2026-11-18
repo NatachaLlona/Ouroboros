@@ -1,5 +1,6 @@
 """Separate human and OAuth client credentials with current SQL authorization."""
 import secrets
+import json
 import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError, InvalidHashError
@@ -7,17 +8,19 @@ from fastapi import HTTPException
 from shared.datetimes import utcnow
 from database.settings import structural_identity
 from api.service.resources import SPECS, ADMIN_RESOURCES, ACTIONS
+from api.service import rbac
 
 HASHER=PasswordHasher()
 DUMMY_HASH=HASHER.hash(secrets.token_urlsafe(48))
 
 
-def denied():
-    raise HTTPException(403,'Permission denied')
+def denied(permission=None):
+    detail={'message':'Permission denied','required_permission':permission} if permission else 'Permission denied'
+    raise HTTPException(403,detail)
 
 
 def identity(session,actor):
-    row=session.execute('SELECT id_api_user,username,is_active,credential_version FROM {api_user} WHERE id_api_user=%s',(actor,)).fetchone()
+    row=session.execute('SELECT id_api_user,username,is_active,credential_version FROM {api_user} WHERE id_api_user=%s AND deleted_at IS NULL',(actor,)).fetchone()
     if row is None or not row['is_active']:
         raise HTTPException(401,'Invalid or revoked access token',headers={'WWW-Authenticate':'Bearer'})
     row=dict(row)
@@ -31,6 +34,8 @@ def identity(session,actor):
 def bind(session,actor):
     session.execute("SELECT set_config('ouroboros.actor_api_user',%s,true)",(actor['id_api_user'],))
     session.execute("SELECT set_config('ouroboros.actor_app_user',%s,true)",(actor['person'] or '',))
+    session.execute("SELECT set_config('ouroboros.actor_scopes',%s,true)",
+                    (json.dumps(sorted({rbac.internal(code) for code in actor['scopes'] if not code.startswith('installation_plan:')})),))
 
 
 def can(session,actor,resource,action):
@@ -38,9 +43,8 @@ def can(session,actor,resource,action):
 
 
 def require(session,actor,resource,action):
-    scope=resource+':'+action
-    if scope not in actor.get('scopes',[]) or not can(session,actor,resource,action):
-        denied()
+    if not rbac.covers(actor.get('scopes',[]),resource,action) or not can(session,actor,resource,action):
+        denied(rbac.RESOURCE_SECTION.get(resource,resource)+':'+rbac.TO_PUBLIC[action])
 
 
 class Authentication:
@@ -56,11 +60,14 @@ class Authentication:
         if not valid or record is None:
             raise HTTPException(401,'Invalid authentication credentials',headers={'WWW-Authenticate':'Bearer'})
         actor=identity(session,record['actor'])
-        allowed={resource+':'+action for resource in (*SPECS,*ADMIN_RESOURCES) for action in ACTIONS if can(session,actor,resource,action)}
+        allowed={resource+':'+action for resource in (*SPECS,*ADMIN_RESOURCES,*rbac.SECTIONS,'role','permission')
+                 for action in ACTIONS if can(session,actor,resource,action)}
+        public_allowed={rbac.external(code) if code.split(':')[0] in rbac.SECTIONS else code for code in allowed}
         if actor['super'] and kind=='human_password':
             allowed.update(('installation_plan:read','installation_plan:update'))
-        scopes=set(requested.split()) if requested else allowed
-        if not scopes<=allowed:
+            public_allowed.update(('installation_plan:read','installation_plan:update'))
+        scopes=set(requested.split()) if requested else public_allowed
+        if not {code if code.startswith('installation_plan:') else rbac.internal(code) for code in scopes}<=allowed:
             denied()
         now=int(utcnow().timestamp())
         lifetime=session.limits()['token_ttl_seconds']
@@ -88,6 +95,12 @@ class Authentication:
                 raise ValueError
         except (jwt.InvalidTokenError,ValueError,TypeError,KeyError):
             raise HTTPException(401,'Invalid or revoked access token',headers={'WWW-Authenticate':'Bearer'}) from None
+        try:
+            for code in claims['scopes']:
+                if not code.startswith('installation_plan:'):
+                    rbac.internal(code)
+        except HTTPException:
+            raise HTTPException(401,'Invalid access token',headers={'WWW-Authenticate':'Bearer'}) from None
         actor.update(scopes=claims['scopes'],kind=claims['kind'])
         bind(session,actor)
         return actor

@@ -40,7 +40,7 @@ class Session:
     def function(self,name,*parameters):
         allowed={'api_can','api_credential','api_credential_current','api_create_account','api_assign_role',
                  'api_issue_client','api_revoke_client','api_set_setting','api_add_rule','api_set_active',
-                 'api_remove_rule','api_set_permissions','change_plan'}
+                 'api_remove_rule','api_set_permissions','api_rbac','change_plan'}
         if name not in allowed:
             raise ValueError('Unknown SQL capability')
         query=sql.SQL('SELECT * FROM {}.{}({})').format(sql.Identifier(self.store.document['schema']),sql.Identifier(name),sql.SQL(',').join(sql.Placeholder() for _ in parameters))

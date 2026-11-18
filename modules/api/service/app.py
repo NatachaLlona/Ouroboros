@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Respo
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import OAuth2, HTTPBearer
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from psycopg import Error as SQLFailure
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
@@ -21,6 +21,8 @@ from api.service.resources import APPEND_ONLY, SPECS, StrictBody, Text, Boolean,
 from api.service import repository
 from api.service.tls import origin
 from api.service.swagger import install as install_swagger
+from api.service import rbac
+from api.service.authorization import Permissions, install as install_authorization, mutate, account_data
 
 
 class HumanToken(StrictBody):
@@ -30,21 +32,36 @@ class HumanToken(StrictBody):
 
 class AccountCreate(StrictBody):
     username: Annotated[str,Field(strict=True,min_length=1,max_length=128,pattern=r'^[A-Za-z0-9._@-]+$',title='API User username')]
-    role: Literal['user','manager','administrator']
+    role: Literal['user','manager','administrator'] | None=None
+    role_identifier: Text | None=None
     app_user_name: Annotated[str,Field(strict=True,min_length=1,max_length=256,title='App Display Name')] | None=None
-    permissions: list[Annotated[str,Field(max_length=100,pattern=r'^[a-z_]+:(create|read|update|delete)$')]]=Field(default_factory=list,max_length=64)
+    permissions: list[Annotated[str,Field(max_length=100)]]=Field(default_factory=list,max_length=128)
+
+    @model_validator(mode='after')
+    def role_choice(self):
+        if (self.role is None)==(self.role_identifier is None):
+            raise ValueError('Choose role_identifier or the legacy role profile')
+        rbac.codes(self.permissions)
+        return self
 
 
 class RoleReplacement(StrictBody):
-    role: Literal['user','manager','administrator']
+    role: Literal['user','manager','administrator'] | None=None
+    role_identifier: Text | None=None
+
+    @model_validator(mode='after')
+    def role_choice(self):
+        if (self.role is None)==(self.role_identifier is None):
+            raise ValueError('Choose one role representation')
+        return self
 
 
 class ActiveReplacement(StrictBody):
     is_active: Boolean
 
 
-class PermissionReplacement(StrictBody):
-    permissions: list[Annotated[str,Field(max_length=100,pattern=r'^[a-z_]+:(create|read|update|delete)$')]]=Field(max_length=64)
+class PermissionReplacement(Permissions):
+    pass
 
 
 class SettingReplacement(StrictBody):
@@ -53,16 +70,33 @@ class SettingReplacement(StrictBody):
 
 class RuleCreate(StrictBody):
     id_api_user: Text | None=None
-    rule_kind: Literal['allow','deny']
-    resource: Text
-    action: Literal['create','read','update','delete']
+    rule_kind: Literal['allow','deny'] | None=None
+    resource: Text | None=None
+    action: Literal['create','read','update','delete','write','edit'] | None=None
+    api_user_identifier: Text | None=None
+    permission: Text | None=None
+
+    @model_validator(mode='after')
+    def rule_choice(self):
+        if self.permission is not None or self.api_user_identifier is not None:
+            if self.permission is None or self.api_user_identifier is None or any(value is not None for value in (self.id_api_user,self.rule_kind,self.resource,self.action)):
+                raise ValueError('Choose an individual grant or an allow/deny restriction')
+            rbac.internal(self.permission)
+        elif self.rule_kind is None or self.resource is None or self.action is None:
+            raise ValueError('Provide all restriction fields')
+        return self
 
 
 def error_response(request,status,message):
     code={400:'VALIDATION_ERROR',401:'AUTHENTICATION_REQUIRED',403:'INSUFFICIENT_PERMISSIONS',
           404:'RESOURCE_NOT_FOUND',405:'METHOD_NOT_ALLOWED',409:'RELATIONSHIP_CONFLICT',
           413:'VALIDATION_ERROR',422:'VALIDATION_ERROR',429:'REQUEST_LIMIT_EXCEEDED',503:'DATABASE_UNAVAILABLE'}.get(status,'INTERNAL_ERROR')
-    return JSONResponse({'error':{'code':code,'message':message,'interaction_id':getattr(request.state,'interaction_id','')}},status_code=status)
+    required=message.get('required_permission') if isinstance(message,dict) else None
+    message=message.get('message','Permission denied') if isinstance(message,dict) else message
+    error={'code':code,'message':message,'interaction_id':getattr(request.state,'interaction_id','')}
+    if required:
+        error['required_permission']=required
+    return JSONResponse({'error':error},status_code=status)
 
 
 class SafetyMiddleware:
@@ -135,7 +169,7 @@ def create_app(store,key):
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request,error):
-        response=error_response(request,error.status_code,str(error.detail))
+        response=error_response(request,error.status_code,error.detail)
         response.headers.update(error.headers or {})
         return response
 
@@ -213,15 +247,20 @@ def create_app(store,key):
 
     @app.get('/me',tags=['Identity'])
     def me(auth=Depends(context,scope='function')):
-        _,actor=auth
-        return {field:actor[field] for field in ('id_api_user','username','roles','person','super','kind')}
+        session,actor=auth
+        return {**account_data(session,actor['id_api_user']),**{field:actor[field] for field in ('id_api_user','username','roles','person','super','kind')}}
 
     @app.post('/api-users',status_code=201,tags=['Identity'],summary='Create an authorized account and return its new client secret once')
     def create_account(body:AccountCreate,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'api_user','create')
         secret=secrets.token_urlsafe(48)
-        target,credential=next(iter(session.function('api_create_account',body.username,body.role,body.app_user_name,body.permissions,HASHER.hash(secret)).fetchone().values()))
+        if body.role_identifier is not None:
+            target,credential=mutate(session,'account_create',None,{'username':body.username,'role_identifier':body.role_identifier,'app_user_name':body.app_user_name,'initial_hash':HASHER.hash(secret)}).split(':')
+            if body.permissions:
+                mutate(session,'account_permissions',target,{'permissions':rbac.codes(body.permissions)})
+        else:
+            target,credential=next(iter(session.function('api_create_account',body.username,body.role,body.app_user_name,rbac.codes(body.permissions),HASHER.hash(secret)).fetchone().values()))
         return {'id_api_user':target,'client_id':credential,'client_secret':secret}
 
     @app.get('/api-users',tags=['Identity'])
@@ -230,46 +269,62 @@ def create_app(store,key):
         require(session,actor,'api_user','read')
         if page_size>session.limits()['page_size']:
             raise HTTPException(422,'Page size exceeds the permitted limit')
-        return {'items':session.execute('SELECT id_api_user,username,is_active,created_at FROM {api_user} ORDER BY sequence_api_user LIMIT %s OFFSET %s',(page_size,(page-1)*page_size)).fetchall()}
+        rows=session.execute('SELECT id_api_user FROM {api_user} WHERE deleted_at IS NULL ORDER BY sequence_api_user LIMIT %s OFFSET %s',(page_size,(page-1)*page_size)).fetchall()
+        return {'items':[account_data(session,row['id_api_user']) for row in rows]}
+
+    @app.get('/api-users/{identifier}',tags=['Identity'])
+    def account(identifier:str,auth=Depends(context,scope='function')):
+        session,actor=auth
+        require(session,actor,'api_user','read')
+        return account_data(session,identifier)
+
+    @app.delete('/api-users/{identifier}',status_code=204,tags=['Identity'],summary='Soft-delete an ordinary API identity and invalidate its tokens')
+    def delete_account(identifier:str,auth=Depends(context,scope='function')):
+        session,actor=auth
+        require(session,actor,'api_user','delete')
+        mutate(session,'account_delete',identifier,{})
+        return Response(status_code=204)
 
     @app.put('/api-users/{identifier}/role',tags=['Identity'])
     def assign_role(identifier:str,body:RoleReplacement,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'api_user','update')
-        session.function('api_assign_role',identifier,body.role)
-        return {'id_api_user':identifier,'role':body.role}
+        if body.role_identifier is not None:
+            mutate(session,'account_role',identifier,{'role_identifier':body.role_identifier})
+        else:
+            session.function('api_assign_role',identifier,body.role)
+        return account_data(session,identifier)
 
     @app.patch('/api-users/{identifier}',tags=['Identity'],summary='Activate or deactivate an ordinary identity, revoking its existing tokens')
     def set_active(identifier:str,body:ActiveReplacement,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'api_user','update')
-        session.function('api_set_active',identifier,body.is_active)
+        mutate(session,'account_active',identifier,{'is_active':body.is_active})
         return {'id_api_user':identifier,'is_active':body.is_active}
 
     @app.put('/api-users/{identifier}/permissions',tags=['Authorization'],summary='Replace individual permission grants without changing the operational profile')
     def assign_permissions(identifier:str,body:PermissionReplacement,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'permission_assignment','update')
-        session.function('api_set_permissions',identifier,body.permissions)
+        mutate(session,'account_permissions',identifier,{'permissions':rbac.codes(body.permissions)})
         return {'id_api_user':identifier,'permissions':body.permissions}
 
     @app.post('/api-users/{identifier}/credentials',status_code=201,tags=['Identity'])
     def issue_client(identifier:str,body:StrictBody,auth=Depends(context,scope='function')):
         session,actor=auth
-        if identifier!=actor['id_api_user']:
-            require(session,actor,'api_user','update')
+        require(session,actor,'api_user','update')
         secret=secrets.token_urlsafe(48)
-        credential=next(iter(session.function('api_issue_client',identifier,HASHER.hash(secret)).fetchone().values()))
+        credential=mutate(session,'client_issue',identifier,{'initial_hash':HASHER.hash(secret)})
         return {'client_id':credential,'client_secret':secret}
 
     @app.delete('/credentials/{identifier}',status_code=204,tags=['Identity'])
     def revoke(identifier:str,auth=Depends(context,scope='function')):
         session,actor=auth
         owner=session.function('api_credential',identifier,'client_credentials').fetchone()
-        if owner is not None and owner['actor']!=actor['id_api_user']:
-            require(session,actor,'api_user','update')
-        # SQL capability permits only self revocation or authorized administrative update.
-        session.function('api_revoke_client',identifier)
+        require(session,actor,'api_user','delete')
+        if owner is None:
+            raise HTTPException(404,'Client credential not found')
+        mutate(session,'client_revoke',owner['actor'],{'credential':identifier})
         return Response(status_code=204)
 
     @app.get('/installation/plan',tags=['Installation'])
@@ -301,25 +356,37 @@ def create_app(store,key):
     def add_rule(body:RuleCreate,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'access_rule','create')
-        if body.resource not in {*SPECS,'*', 'api_user','operator_setting'}:
+        if body.permission is not None:
+            identifier=mutate(session,'permission_add',body.api_user_identifier,{'permissions':[rbac.internal(body.permission)]})
+            return {'identifier':identifier,'api_user_identifier':body.api_user_identifier,'permission':rbac.external(rbac.internal(body.permission)),'kind':'grant'}
+        if body.resource not in {*SPECS,*rbac.SECTIONS,'*', 'api_user','operator_setting'}:
             raise HTTPException(422,'Unknown or protected rule resource')
-        identifier=next(iter(session.function('api_add_rule',body.id_api_user,body.rule_kind,body.resource,body.action).fetchone().values()))
+        identifier=next(iter(session.function('api_add_rule',body.id_api_user,body.rule_kind,body.resource,rbac.TO_STORAGE[body.action]).fetchone().values()))
         return {'id_access_rule':identifier}
 
     @app.get('/access-rules',tags=['Authorization'])
     def rules(page:Annotated[int,Query(ge=1)]=1,page_size:Annotated[int,Query(ge=1)]=10,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'access_rule','read')
-        if not actor['super'] and 'administrator' not in actor['roles']:
-            denied()
         if page_size>session.limits()['page_size']:
             raise HTTPException(422,'Page size exceeds the permitted limit')
-        return {'items':session.execute('SELECT * FROM {access_rule} ORDER BY sequence_access_rule LIMIT %s OFFSET %s',(page_size,(page-1)*page_size)).fetchall()}
+        if actor['super'] or 'administrator' in actor['roles']:
+            rows=session.execute('SELECT * FROM {access_rule} ORDER BY sequence_access_rule LIMIT %s OFFSET %s',(page_size,(page-1)*page_size)).fetchall()
+        else:
+            rows=session.execute('SELECT * FROM {access_rule} WHERE id_api_user=%s ORDER BY sequence_access_rule LIMIT %s OFFSET %s',(actor['id_api_user'],page_size,(page-1)*page_size)).fetchall()
+        # Grants and deny/allow restrictions remain explicitly distinguishable.
+        grants=session.execute("SELECT rp.id_role_permission AS identifier,ur.id_api_user AS api_user_identifier,p.resource||':'||p.action AS permission FROM {api_user_role} ur JOIN {role} r USING(id_role) JOIN {role_permission} rp USING(id_role) JOIN {permission} p USING(id_permission) WHERE r.name='identity_'||ur.id_api_user AND (%s OR ur.id_api_user=%s) ORDER BY rp.sequence_role_permission LIMIT %s OFFSET %s",(actor['super'] or 'administrator' in actor['roles'],actor['id_api_user'],page_size,(page-1)*page_size)).fetchall()
+        return {'items':[{**dict(row),'kind':'restriction'} for row in rows],
+                'individual_grants':[{**dict(row),'permission':rbac.external(row['permission']),'kind':'grant'} for row in grants]}
 
     @app.delete('/access-rules/{identifier}',status_code=204,tags=['Authorization'])
     def remove_rule(identifier:str,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'access_rule','delete')
+        grant=session.execute("SELECT ur.id_api_user FROM {role_permission} rp JOIN {role} r USING(id_role) JOIN {api_user_role} ur USING(id_role) WHERE rp.id_role_permission=%s AND r.name='identity_'||ur.id_api_user",(identifier,)).fetchone()
+        if grant is not None:
+            mutate(session,'permission_delete',grant['id_api_user'],{'permission_identifier':identifier})
+            return Response(status_code=204)
         session.function('api_remove_rule',identifier)
         return Response(status_code=204)
 
@@ -327,15 +394,18 @@ def create_app(store,key):
     def audits(page:Annotated[int,Query(ge=1)]=1,page_size:Annotated[int,Query(ge=1)]=10,auth=Depends(context,scope='function')):
         session,actor=auth
         require(session,actor,'api_audit_log','read')
-        if not actor['super'] and 'administrator' not in actor['roles']:
-            denied()
         if page_size>session.limits()['page_size']:
             raise HTTPException(422,'Page size exceeds the permitted limit')
-        return {'items':session.execute('SELECT * FROM {api_audit_log} ORDER BY sequence_api_audit_log DESC LIMIT %s OFFSET %s',(page_size,(page-1)*page_size)).fetchall()}
+        if actor['super'] or 'administrator' in actor['roles']:
+            rows=session.execute('SELECT * FROM {api_audit_log} ORDER BY sequence_api_audit_log DESC LIMIT %s OFFSET %s',(page_size,(page-1)*page_size)).fetchall()
+        else:
+            rows=session.execute('SELECT * FROM {api_audit_log} WHERE id_api_user=%s ORDER BY sequence_api_audit_log DESC LIMIT %s OFFSET %s',(actor['id_api_user'],page_size,(page-1)*page_size)).fetchall()
+        return {'items':rows}
 
     @app.get('/record-versions/{resource}/{identifier}',tags=['Evidence'])
     def versions(resource:str,identifier:str,auth=Depends(context,scope='function')):
         session,actor=auth
+        require(session,actor,'record_version','read')
         if resource not in SPECS:
             raise HTTPException(404,'Unknown versioned resource')
         repository.get(session,actor,resource,identifier)
@@ -380,4 +450,24 @@ def create_app(store,key):
             app.add_api_route(path+suffix,endpoint,methods=methods,status_code=status,tags=[resource],name=resource+'_'+endpoint.__name__,summary=summary)
     for resource in SPECS:
         mount(resource)
+    install_authorization(app,context)
+    # Swagger publishes the same section/action contract used by runtime checks.
+    for route in app.routes:
+        path=getattr(route,'path','')
+        if path=='/installation/plan':
+            route.openapi_extra={'x-required-permission':'installation_plan:read','x-reserved-human':True}
+            continue
+        methods=getattr(route,'methods',set())
+        resource=path.strip('/').split('/')[0]
+        resource={'api-users':'api_user','credentials':'api_user','roles':'role','permissions':'permission',
+                  'access-rules':'access_rule','settings':'operator_setting','audit':'api_audit_log','record-versions':'record_version'}.get(resource,resource)
+        if resource not in rbac.RESOURCE_SECTION:
+            continue
+        method=next(iter(methods-{'HEAD','OPTIONS'}),'GET')
+        action={'GET':'read','POST':'write','PUT':'edit','PATCH':'edit','DELETE':'delete'}.get(method)
+        if path.endswith('/permissions') and resource=='api_user':
+            resource='permission_assignment'
+        if path.endswith('/credentials') and method=='POST':
+            action='edit'
+        route.openapi_extra={'x-required-permission':rbac.RESOURCE_SECTION[resource]+':'+action}
     return app

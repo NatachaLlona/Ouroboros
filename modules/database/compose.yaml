@@ -1,28 +1,44 @@
 # Independent new-installation track. Never attach the historical postgres_data volume.
 services:
+  # Included by root compose.basic.yaml in the ouroboros project.
   postgresql:
+    # Pinned PostgreSQL release; changing it is a separate upgrade procedure.
     image: postgres:17.11-bookworm
     environment:
+      # runtime.py supplies these from provisioning.jsonc and Database config.jsonc.
+      # PostgreSQL uses initdb settings only when the data directory is empty.
+      # Editing POSTGRES_USER does not rename/create a role in an existing volume.
       POSTGRES_DB: ${DATABASE_NAME:?Run start.py}
       POSTGRES_USER: ${DATABASE_MASTER:?Run start.py}
+      # Pass a secret-file reference, never the password itself in the environment.
       POSTGRES_PASSWORD_FILE: /run/secrets/sql_password
+      # Authentication method for a newly initialized cluster; not a password reset.
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
     ports:
+      # Publish only on the configured loopback address; internal SQL port is 5432.
       - "${DATABASE_ADDRESS:-127.0.0.1}:${DATABASE_PORT:-6669}:5432"
     volumes:
+      # Persistent installation data survives container recreation and normal startup.
       - installation_v1:/var/lib/postgresql/data
+    # Mount the protected host secret as /run/secrets/sql_password.
     secrets: [sql_password]
     healthcheck:
+      # Check server readiness over TCP. This does not prove password authentication
+      # or schema validity; runtime.py performs authenticated connection checks too.
       test: ["CMD-SHELL", 'pg_isready -h 127.0.0.1 -p 5432 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      # Values come from config.jsonc healthcheck via runtime.py's environment.
       interval: ${DATABASE_HEALTH_INTERVAL:-2}s
       timeout: ${DATABASE_HEALTH_TIMEOUT:-3}s
       retries: ${DATABASE_HEALTH_RETRIES:-30}
       start_period: ${DATABASE_HEALTH_START_PERIOD:-5}s
 secrets:
   sql_password:
+    # Absolute protected host-file path selected by runtime.py; contents stay local.
     file: ${DATABASE_SECRET_FILE:?Run start.py}
 volumes:
+  # Compose prefixes this name with the project: ouroboros_installation_v1.
   installation_v1:
     labels:
+      # Ownership checks prevent accidental adoption of another installation's data.
       org.ouroboros.workspace: ${DATABASE_WORKSPACE:?Run start.py}
       org.ouroboros.baseline: database-v1

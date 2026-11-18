@@ -1,6 +1,6 @@
 {
   // PostgreSQL Master Username identifies the SQL administrator.
-  // SQL initdb administrator, not an application identity. Editing does not rename the existing SQL role.
+  // SQL administrator, not a SaaS identity. A new unused name requests an authenticated interactive handover at startup.
   "master_user": "ouroboros_master",
   // Protected file reference only. Never put a password in JSONC.
   // Fixed protected SQL master secret file reference. Never put the password in this document.

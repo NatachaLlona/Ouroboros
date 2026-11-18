@@ -1,5 +1,246 @@
 # Database module — installation and schema reference
 
+## Reading this module for the first time
+
+This is the Database guide. The separate [API guide](../api/API.md) explains
+HTTP routes and application authentication. `documentation.py` is a generator,
+not the API implementation and not the maintained operator guide.
+
+- [Files and their responsibilities](#files-and-their-responsibilities)
+- [Configuration changes on an existing installation](#configuration-changes-on-an-existing-installation)
+- [Structural identity and naming](#structural-identity-and-naming)
+- [All tables and columns](#tables-and-columns)
+- [Every configuration field](#complete-configuration-field-reference)
+- [Relationship diagrams and cardinalities](#relationship-diagrams-by-subject)
+
+## Files and their responsibilities
+
+Paths in this section are relative to `modules/database` unless stated otherwise.
+The actual records live in the PostgreSQL Docker volume, not in these source files.
+
+| File | Responsibility |
+| --- | --- |
+| config.jsonc | Active local operational configuration; never a password store |
+| config.example.jsonc | Sanitized template copied only when the local file is absent |
+| compose.yaml | PostgreSQL container, pinned image, persistent volume, secret mount, host port and readiness probe |
+| runtime.py | Startup coordinator: configuration validation, resource ownership checks, Docker startup, SQL connection, baseline, enrollment and upgrades |
+| settings.py | JSONC parser, field/type validation, logical-to-physical name mapping, prefixes and structural fingerprint |
+| model.py | Immutable baseline definition of all 43 tables, columns, keys and constraints; generates qualified creation SQL |
+| provision.py | Immutable baseline provisioning, SQL roles, functions, triggers, audit evidence and transactional operator enrollment |
+| upgrades.py | Checksummed incremental Database updates; verifies applied files and executes pending additions transactionally |
+| secrets.py | Masked terminal password input, password validation and OS permissions on the local SQL secret |
+| master_admin.py | Authenticated SQL master creation, independent login verification, atomic secret publication, recovery journal and confirmed previous-role retirement |
+| requirements.txt | Python dependencies: Psycopg PostgreSQL driver and Argon2 password hashing |
+| __init__.py | Declares the database Python package |
+| DATABASE.md | Maintained installation, configuration, schema and operations guide |
+| documentation.py | Auxiliary baseline reference/example generator. Executing it can rewrite provisioning.example.jsonc and generate SCHEMA.generated.md; do not use it to overwrite installation choices or this curated guide |
+
+### SQL files
+
+| File | Responsibility and current status |
+| --- | --- |
+| sql/upgrades/002_basic_plan.sql | Current Database addition: assigns the Basic product name to the existing initial plan |
+| sql/upgrades/003_app_username.sql | Current Database addition: human username, constraints and unambiguous historical backfill |
+| sql/api_migrations/001_api_runtime.sql | Current API-managed SQL capabilities for restricted runtime access and authorized account/permission/credential/settings operations |
+| sql/api_migrations/002_human_identity.sql | Current API-managed human login alias resolution |
+| sql/migrations/001_create_test.sql | Historical schema: initial test table |
+| sql/migrations/002_create_api_users.sql | Historical schema: API accounts |
+| sql/migrations/003_add_api_user_role.sql | Historical schema: account roles |
+| sql/migrations/004_add_credential_version.sql | Historical schema: credential versions for token revocation |
+| sql/migrations/005_create_catalogue.sql | Historical schema: catalogue tables and relationships |
+| sql/migrations/006_add_supervisor_role.sql | Historical schema: supervisor profile |
+| sql/migrations/007_add_catalogue_creation_context.sql | Historical schema: catalogue creation timestamps and source context |
+| sql/migrations/008_create_api_audit_logs.sql | Historical schema: API audit evidence |
+| sql/migrations/009_add_classification_tiers.sql | Historical schema: independent ordered classification positions |
+| sql/migrations/010_add_test_creation_context.sql | Historical schema: test creation timestamps/context |
+| sql/migrations/011_add_platform_access.sql | Historical schema: platform access information |
+
+The `sql/migrations` history is preserved but is not replayed by Database v1.
+Applied baseline/migration bytes are immutable. New changes require a new
+explicit migration, not an edit to an already applied file.
+
+The following `sql/queries` files belong to the historical API implementation;
+the current API service uses its own repositories and restricted SQL capabilities.
+
+| Query file | Responsibility |
+| --- | --- |
+| insert_test.sql | Insert a diagnostic record |
+| list_test.sql | List diagnostic records |
+| page_test.sql | Paginate diagnostic records |
+| read_test.sql | Read one diagnostic record |
+| insert_api_user.sql | Insert a technical account |
+| find_api_user_by_id.sql | Find an account by ID |
+| find_api_user_by_name.sql | Find an account by username |
+| page_users.sql | Paginate accounts |
+| create_managed_user.sql | Create an account through the managed-account workflow |
+| lock_api_user_credentials.sql | Lock credentials for a transactional change |
+| change_api_user_password.sql | Update credentials through an authorized password-change workflow |
+| catalogue_insert.sql | Insert a catalogue record |
+| catalogue_read.sql | Read a catalogue record |
+| catalogue_page.sql | Paginate catalogue records |
+| catalogue_update.sql | Update one catalogue record |
+| catalogue_delete.sql | Delete one catalogue record |
+| catalogue_bulk_update.sql | Update a filtered catalogue selection |
+| catalogue_bulk_delete.sql | Delete a filtered catalogue selection |
+
+### QA files
+
+| File | Responsibility |
+| --- | --- |
+| qa/run.py | Module test-suite entry point |
+| qa/test_master_admin.py | Disposable SQL master creation, wrong credentials, cancellation, interrupted publication, audit rollback, dependencies and previous-role retirement |
+| qa/test_settings.py | Current JSONC, field, naming, prefix and operational validation |
+| qa/test_postgres.py | Current disposable PostgreSQL startup/restart, baseline, IDs, relationships, audit and privilege checks |
+| qa/test_password_input.py | Masked password entry, editing and cancellation |
+| qa/test_database.py | Configuration, credentials, Docker failure and migration unit checks, mainly for historical components |
+| qa/test_database_integration.py | Opt-in historical PostgreSQL integration checks using test-owned resources |
+| qa/test_user_migration.py | Historical credential migration and separate database/master selection |
+
+Generated `__pycache__` directories are Python caches, not editable configuration.
+The root `start.py`, `compose.basic.yaml` and `provisioning.jsonc` are also involved
+in startup, but remain outside the module because they coordinate the installation.
+
+## Configuration changes on an existing installation
+
+The active file is **modules/database/config.jsonc**, not the retired config.json.
+The filename extension matters: JSONC allows the explanatory comments in this guide.
+Changing a template does not update an existing active configuration.
+
+### What happens if master_user changes?
+
+`master_user` identifies the SQL administrator of PostgreSQL, not an App User,
+API User or SaaS customer. On an empty installation it still selects the initdb
+administrator. On an existing registered installation, editing it to a new unused
+name now starts an interactive administrator handover when normal startup runs.
+It does not repeat schema creation or SaaS operator enrollment.
+
+1. Edit only `master_user` in `modules/database/config.jsonc`, preserving other values.
+2. Run `.\.venv\Scripts\python.exe start.py --database-only` (or `--with-api`).
+3. The launcher identifies the previous master from protected local identity
+   metadata or the owned PostgreSQL container. If only the preserved volume
+   remains and no identity metadata exists, it asks for the current master name.
+4. Enter the **existing PostgreSQL Master Password** for that previous SQL user.
+   It must authenticate as a LOGIN superuser against the registered installation.
+5. Enter and confirm a **new PostgreSQL Master Password** for the requested name.
+   The existing human SQL password policy still applies. Type `CREATE <new_name>`
+   to authorize creation. An existing role is never silently adopted or reset.
+6. The program creates the new SQL superuser, grants the existing migration-owner
+   membership and search path, and writes administrative audit/version evidence
+   in the same SQL transaction. It independently authenticates the new user over
+   TCP before atomically publishing the protected startup secret and identity.
+7. It offers retirement of the previous master. Press Enter to keep it, type
+   `DELETE <old_name>` to delete an ordinary role, or `DISABLE <old_name>` for
+   the special initial role. SaaS identities, their Argon2id hashes, memberships,
+   business records, schema, volume and migration checksums remain unchanged.
+
+The initdb bootstrap role (OID 10) is required by PostgreSQL and cannot be dropped.
+For that role, confirmed retirement sets NOLOGIN and clears its SQL password;
+its internal object ownership remains intact. Ordinary roles can be dropped only
+when PostgreSQL permits it. Dependencies or open client sessions stop retirement
+without deleting objects. No DROP OWNED, CASCADE, automatic ownership reassignment,
+session termination or volume reset is performed. A failure at this final step
+does not undo the already validated new administrator; the journal remains for retry.
+
+The file edit alone never grants SQL authority. Wrong existing passwords,
+insufficient SQL authority, reserved names and noninteractive execution refuse
+the handover. Changing the name to `ouroboros_owner`, `ouroboros_runtime` or
+`ouroboros_api_login` is prohibited. A same-name edit does not reset a password.
+`--check` validates configuration only and neither prompts nor performs a handover.
+
+### Interrupted handover and recovery
+
+The launcher uses OS-protected files under ignored `.secrets`:
+
+| File | Purpose |
+| --- | --- |
+| database_master_identity.json | Last validated active SQL username; local runtime metadata, not a second editable configuration |
+| database_master_transition.json | Previous/target usernames and format version; recovery journal with no password |
+| database_sql_password.pending | Temporary protected secret for the candidate master; may remain after interruption |
+| database_sql_password | Protected secret published only after the new login validates |
+
+Preserve these files and the database volume if interrupted. Keep `master_user`
+set to the journal's target and rerun interactively. If role creation committed,
+the launcher validates the journaled candidate without overwriting its password,
+finishes publication and repeats the retirement offer. If creation rolled back,
+it requests existing authority again. Do not delete recovery files to force a reset.
+After completion the journal and pending secret are removed; identity metadata
+remains so outdated initdb container labels cannot trigger another handover.
+
+If an accidental edit has not created a journal/role, restore the original name.
+If a journal already exists, finish that transition first; changing the target
+to another name is refused. Missing protected secrets on an existing installation
+require deliberate recovery, not a new-password prompt that cannot update SQL.
+Application/runtime SQL credentials and API signing keys are separate and are
+not changed by a master handover. Close old SQL-client sessions before retiring
+their login. Platform-level PostgreSQL audit extensions or external monitoring
+remain the operator's responsibility; no blanket security-compliance claim is made.
+
+### Which settings can change, and when?
+
+| Setting | Before first provisioning | After provisioning | Required action |
+| --- | --- | --- | --- |
+| Root provisioning.jsonc: database/schema, vocabulary, prefixes, digit width and format/naming versions | Select valid values; reserved prefixes/versions remain fixed | Frozen structural contract; no automatic rename or ID regeneration | For an accidental edit restore registered values. A deliberate structural change needs an explicit migration design |
+| Database master_user | Choose the initial SQL administrator | A new unused name requests an authenticated interactive handover | Run normal startup, authenticate the previous master, confirm the new password/creation and optionally retire the previous role |
+| Database secret_file | Fixed reference .secrets/database_sql_password | Still fixed; contents are updated only after a successful administrator handover | Preserve protected recovery files; deleting the file does not reset SQL |
+| Database published_address | Choose an accepted loopback IP | May change within validation rules | Rerun startup; update SQL-client host settings if needed |
+| Database published_port | Exactly 6669 | Still fixed | Restore invalid edits; no automatic alternative port |
+| Database startup_timeout_seconds | Select 10–3600 seconds | May change | Rerun startup to use the new wait budget |
+| Database healthcheck fields | Select values within documented bounds | May change | Rerun startup; Compose updates/recreates its owned container when needed while retaining its volume |
+| Comments and whitespace | Editable | Editable | No structural migration or runtime restart needed for comments alone |
+
+### Apply a supported operational edit
+
+1. Edit the existing local operational file, preserving all unrelated installation
+   values. Keep structural values in root provisioning.jsonc.
+2. Validate without SQL or Docker changes in PowerShell from the project root:
+
+```powershell
+.\.venv\Scripts\python.exe start.py --database-only --check
+```
+
+3. Expect `Database JSONC configuration validated. No services or PostgreSQL data changed.`
+   This validates the configuration structure; it does not prove that a changed
+   username/password authenticates or that structural values match the live registry.
+4. Apply the supported operational settings:
+
+```powershell
+.\.venv\Scripts\python.exe start.py --database-only
+```
+
+5. Expect `Database ready; registered baseline reused` on an existing installation.
+   Inspect the printed SQL address and verify your SQL-client connection. For
+   Database plus API use `start.py --with-api`; API file edits take effect on
+   API restart, as detailed in [API.md](../api/API.md).
+
+There is no live configuration watcher. Editing a file alone does not update a
+running container. Restarting/recreating a container does not reinitialize its
+persistent volume. Do not remove volumes, reset the database, rewrite checksums
+or re-enter normal records to apply configuration changes.
+
+### Where do table definitions and names come from?
+
+Operational config.jsonc does **not** contain a per-table schema definition.
+`model.py` defines columns, types, primary/foreign keys, uniqueness and checks;
+`provision.py` adds baseline functions/triggers/indexes. Numbered upgrades add
+explicit later changes. Structural naming comes only from root provisioning.jsonc:
+
+| Source | Effect |
+| --- | --- |
+| database_name / schema | Database and qualified application namespace |
+| vocabulary.work.name / platform.name / tag.name | Tokens substituted into derived table names |
+| vocabulary.activity.name | Replaces watch in watch_list_entry and watch_history names |
+| prefixes.<logical_table> | Immutable friendly-ID prefix for that logical table |
+| base_quantity_digits | Minimum numeric width of generated friendly IDs |
+| settings.py mapping and fixed-name rules | Decides which names derive from vocabulary and which remain technical fixed names |
+
+For example, work=book and activity=read yield book, book_availability,
+read_list_entry and read_history. The logical prefix key remains work even if
+the physical table is book. These are fresh-installation choices, not a way to
+rename existing tables. See the full table list, common metadata and structural
+reference below. The seven subject diagrams show the actual FK cardinalities;
+many-to-many associations appear as two one-to-many relationships through a
+relationship table, such as role → role_permission ← permission.
+
 `start.py --database-only` starts only PostgreSQL and provisions the new schema.
 The default `start.py` and `--with-api` start PostgreSQL plus the HTTPS API in the
 single Compose project `ouroboros`. Fresh bootstrap automatically activates
@@ -72,9 +313,9 @@ An interrupted first start may leave the schema ready for terminal enrollment.
 Restart with the same start command. PostgreSQL remains running when the command
 finishes. Operational address/health/timeout values take effect on the next start;
 Compose recreates the owned container when its effective configuration changes.
-The SQL master username is an initdb identity: changing it does not rename or
-create a SQL role and fails authentication until restored or deliberately
-administered outside startup. Startup never rotates the master password.
+The SQL master username is initially an initdb identity. A later name change
+uses the authenticated interactive handover documented above, rather than
+reinitializing PostgreSQL or reenrolling SaaS identities.
 
 ## SQL client administration
 
@@ -895,7 +1136,7 @@ tables; other prefixes may be selected only before provisioning.
 
 | Field | Purpose and accepted values | Template default | Change after provisioning |
 | --- | --- | --- | --- |
-| master_user | SQL initdb administrator identifier using the identifier rules above; cannot be ouroboros_owner or ouroboros_runtime | ouroboros_master | Not a rename mechanism; retain existing role unless deliberately administered separately |
+| master_user | SQL administrator identifier using the identifier rules above; cannot be ouroboros_owner, ouroboros_runtime or ouroboros_api_login | ouroboros_master | New unused names initiate an authenticated interactive handover during normal startup |
 | secret_file | Protected SQL master password file reference; exactly .secrets/database_sql_password | .secrets/database_sql_password | Fixed; editing does not rotate a password |
 | published_address | Loopback IP string; blank/whitespace normalizes to 127.0.0.1 | empty string | Next startup recreates owned container if required |
 | published_port | Host SQL port, integer exactly 6669 | 6669 | Fixed |
@@ -1138,3 +1379,53 @@ that deployment against the registered Database v1 installation.
 See the validation record at the end of [API.md](../api/API.md) for this change.
 Existing [Database QA evidence](../../docs/DATABASE_QA.md) describes its stated
 earlier execution, not a claim that every operation was repeated for this edit.
+
+## SQL master handover security references
+
+Administrative changes reauthenticate existing SQL authority, whitelist/compose
+role identifiers, omit credentials from application evidence, and use libpq's
+local SCRAM verifier generation rather than putting plaintext passwords in SQL.
+Built-in statement/error/parameter logging is suppressed for verifier-bearing
+transactions. Role mutation and administrative audit/version evidence commit or
+roll back together; filesystem publication is separately journaled because it
+cannot share PostgreSQL's transaction. No business trigger is disabled.
+
+Sources consulted: [OWASP ASVS](https://owasp.org/projects/asvs), the
+[OWASP Authentication](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html),
+[Authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html),
+[Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html),
+[Logging](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html),
+[Input Validation](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)
+and [Error Handling](https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html)
+guides, PostgreSQL 17 [role removal](https://www.postgresql.org/docs/17/role-removal.html)
+and [libpq password encryption](https://www.postgresql.org/docs/17/libpq-misc.html).
+Application human credentials remain Argon2id; PostgreSQL SQL passwords use its
+native SCRAM mechanism. These are separate credential domains.
+
+### Handover verification in this working tree
+
+All destructive checks used UUID-owned disposable PostgreSQL infrastructure:
+10 master-handover tests passed (including actual name-change startup, restart,
+wrong credentials, existing-target rejection, cancellation, transactional audit
+rollback, interrupted file publication, dependencies, deletion and initial-role
+LOGIN deactivation). The PostgreSQL regression suite passed 16 tests. The API
+regression suite passed 14 tests and skipped its two port-6969 container/restart
+checks because the existing normal service was preserved. Seven settings tests
+and five central startup checks passed. Both configuration-only startup modes
+passed. Baseline sources and all SQL migration files retain their exact bytes.
+No normal SQL master was created, deleted, disabled or rotated for verification.
+Real operator password prompts on the normal installation remain unexecuted.
+
+## API scoped-authorization addition
+
+API migration api-v1/003 (`sql/api_migrations/003_scoped_rbac.sql`) adds
+`role.is_system BOOLEAN NOT NULL DEFAULT false` and nullable
+`api_user.deleted_at TIMESTAMPTZ`. System/internal roles are protected through the
+API. Deleted identities remain as inactive historical rows. Existing FK and
+ownership constraints, IDs, common metadata and checksummed baseline SQL remain.
+The migration adds no business table or prefix and does not rewrite credentials.
+Section/action catalogue entries reuse permission.resource/action with existing
+create/read/update/delete SQL actions; HTTP write/edit map to create/update.
+Custom roles use role_permission; individual grants retain private identity_ roles
+and their role_permission rows. Legacy access_rule remains restrictive allow/deny.
+See the [current API authorization contract](../api/API.md#scoped-roles-and-permissions--current-api-contract).

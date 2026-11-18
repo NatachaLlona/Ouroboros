@@ -108,7 +108,7 @@ def main(root=ROOT, argv=None, with_api=False):
         from database.secrets import prompt_password, sql_secret
         from database.provision import apply_baseline, bootstrap, has_operator
         env = environment(root, document, operational)
-        resources, _ = owned_resources(root)
+        resources, existing_volume = owned_resources(root)
         own_running = any(resource['State']['Running'] for resource in resources)
         for resource in resources:
             initial = dict(value.split('=',1) for value in resource['Config']['Env'] if '=' in value)
@@ -118,17 +118,35 @@ def main(root=ROOT, argv=None, with_api=False):
             occupied = probe.connect_ex((operational['published_address'],operational['published_port'])) == 0
         if occupied and not own_running:
             raise ConfigurationError('Port 6669 is occupied. Identify and deliberately stop the previous installation; startup never stops it or chooses another port')
+        from database.master_admin import ensure as ensure_master, previous_master, remember
+        if existing_volume and not resources:
+            from database.master_admin import IDENTITY, JOURNAL, read_state, role_name
+            if read_state(root/IDENTITY) is None and read_state(root/JOURNAL) is None:
+                if not sys.stdin.isatty():
+                    raise ConfigurationError('Existing volume has no administrator identity metadata; rerun interactively with its current SQL master username')
+                previous = role_name(input('Existing PostgreSQL Master Username for the preserved volume: ').strip())
+                resources = [{'Config': {'Env': ['POSTGRES_USER='+previous]}}]
+        if (resources or existing_volume) and not (root/operational['secret_file']).is_file():
+            raise ConfigurationError('Existing installation SQL secret is missing; restore the protected file. A new password prompt cannot reset PostgreSQL')
         sql_secret(root, operational['secret_file'])
         # Refuse structural/checksum changes before Compose can recreate an existing service.
         if own_running:
+            ensure_master(root,document,operational,resources)
             with connect(root,document,operational) as connection:
                 apply_baseline(connection,document,operational['master_user'])
+        elif resources or existing_volume:
+            # Existing data ignores initdb variables. Retain the authenticated old
+            # identity in Docker metadata until the interactive handover succeeds.
+            env['DATABASE_MASTER'] = previous_master(root,resources,operational['master_user'])
         command = compose(root)
         docker(command+['config','--quiet'],env)
         timeout = operational['startup_timeout_seconds']
         docker(command+['up','--detach','--wait','--wait-timeout',str(timeout),'postgresql'],env,timeout+30)
+        if not own_running and (resources or existing_volume):
+            ensure_master(root,document,operational,resources)
         with connect(root,document,operational) as connection:
             applied = apply_baseline(connection,document,operational['master_user'])
+            remember(root,operational['master_user'])
             if not has_operator(connection,document):
                 if not sys.stdin.isatty():
                     raise ConfigurationError('Baseline ready; run again in an interactive terminal to enroll the installation operator')

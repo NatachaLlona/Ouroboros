@@ -40,7 +40,7 @@ class APITests(unittest.TestCase):
             cls.harness.tearDownClass()
             raise
         cls.store=Store(cls.harness.document,cls.settings,{
-            'host':'127.0.0.1','port':2424,'dbname':cls.harness.document['database_name'],
+            'host':'127.0.0.1','port':cls.harness.operational['published_port'],'dbname':cls.harness.document['database_name'],
             'user':LOGIN,'password':cls.runtime_password})
 
     @classmethod

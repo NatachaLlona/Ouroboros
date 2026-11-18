@@ -6,6 +6,190 @@ forms, Assistance, inference or speech routes. The historical implementation is
 retained for reference and its existing tests. JWT/Argon2id libraries, the shared
 UTC utilities and the existing bounded login throttle are reused.
 
+
+## Scoped roles and permissions — current API contract
+
+This authorization model follows the inspected Sympla reference in
+`C:/Dev/ticketing_sympla/release/ticketing_sympla_app/core/rbac.py`, `auth.py`,
+`identity.py` and its README identity section. Ouroboros retains its existing
+FastAPI/JWT/human authentication, friendly IDs, ownership predicates, Argon2id,
+transactional audit/version triggers and restrictive database relationships.
+No Sympla provider token, Django dependency or Sympla database is imported.
+
+### Independent section/action permissions
+
+`read` authorizes GET, `write` creation POST, `edit` PUT/PATCH and credential
+issuance POST, and `delete` DELETE. Actions do not imply one another. A role
+with catalogue:write can create a platform but cannot list, edit or delete it.
+Token issuance and GET /me require valid current credentials, not a resource grant.
+
+| Section | Ouroboros resources |
+| --- | --- |
+| identity | API accounts, role assignment, activation, soft deletion and client credentials |
+| roles | Custom role creation, metadata and permission replacement |
+| authorization | Permission catalogue, individual grants and allow/deny restrictions |
+| catalogue | test, work, platform, availability, classifications, work aliases/external references and platform plans/promotions |
+| personal | user_work, user_platform, lists/history, tags/categories/relationships, work tags and submissions |
+| subscriptions | subscriptions, payment snapshots and reminder records |
+| settings | Bounded installation settings |
+| audit | Read-only audit events and record-version evidence |
+
+GET /permissions requires authorization:read and returns 32 codes, each with its
+section, action and description. A code without an implemented operation adds no
+new operation. OpenAPI publishes `x-required-permission` for protected resources.
+Missing permissions return 403 with the safe error envelope and, when rejected
+by the request permission check, `error.required_permission`.
+
+Roles and individual grants combine additively. Applicable deny rules still win;
+allow lists restrict existing authority and never grant it. Personal ownership
+remains mandatory even for broad section permissions or an administrator. An
+integration without a current person link cannot use personal resources.
+Ordinary audit:read delegates see only their own audit events. The reserved
+holder and existing administrator profile retain installation audit visibility.
+Version reads also require read authority/ownership on the underlying record.
+
+### First custom role and account
+
+Use an authorized human/bootstrap token in Swagger. These examples contain only
+sample values; do not place live secrets in files or command arguments.
+
+```http
+POST /roles
+Content-Type: application/json
+
+{"name":"Catalogue reader","description":"Shared catalogue reads only","permissions":["catalogue:read"]}
+```
+
+Copy the returned generated `identifier` into `role_identifier`:
+
+```http
+POST /api-users
+Content-Type: application/json
+
+{"username":"catalogue-integration","role_identifier":"RO0000001"}
+```
+
+The account response returns its existing-style `id_api_user`, generated credential
+`client_id` and a random `client_secret` once. Use those Client Credentials to
+obtain a Bearer token. The selected role does not create a reserved master or SQL
+login. Optional app_user_name creates a linked person; it does not create a human
+password credential. New account creation requires identity:write and authority
+over every granted role permission. Supplying initial individual permissions also
+requires authorization:edit.
+
+### Role and individual-grant operations
+
+| Operation | Required section permission | Behavior |
+| --- | --- | --- |
+| GET /roles and GET /roles/{identifier} | roles:read | Read system/custom metadata and grants; internal per-identity roles are hidden |
+| POST /roles | roles:write | Create a role with a unique trimmed printable name (1–80 characters), optional description (up to 200) and permissions |
+| PATCH /roles/{identifier} | roles:edit | Change supplied name/description; no empty patch or null fields |
+| PUT /roles/{identifier}/permissions | roles:edit | Replace all role grants; revoke tokens of affected accounts |
+| DELETE /roles/{identifier} | roles:delete | Delete only an unreferenced custom role, including its grant rows |
+| PUT /api-users/{identifier}/role | identity:edit | Set role_identifier; preserve individual grants and revoke old tokens |
+| PUT /api-users/{identifier}/permissions | authorization:edit | Replace all direct grants while retaining the assigned role |
+| POST /access-rules with api_user_identifier and permission | authorization:write | Add one individual grant and return its identifier; invalidate existing tokens |
+| DELETE /access-rules/{identifier} for a grant | authorization:delete | Remove that individual grant and invalidate existing tokens |
+| GET /access-rules | authorization:read | Return restrictive rules in items and additive grants in individual_grants, each with a kind discriminator |
+| GET /api-users/{identifier} | identity:read | Read safe metadata, selected role and individual/effective section permissions |
+| DELETE /api-users/{identifier} | identity:delete | Soft-delete, deactivate and revoke tokens; preserve historical foreign keys |
+
+Example individual grant:
+
+```json
+{"api_user_identifier":"AU0000002","permission":"catalogue:read"}
+```
+
+The legacy restriction body remains supported separately:
+
+```json
+{"id_api_user":"AU0000002","rule_kind":"deny","resource":"platform","action":"read"}
+```
+
+These two formats cannot be mixed. A restriction's identifier refers to an
+access_rule row; a grant's identifier refers to a role_permission row in the
+identity's private grant role. Both keep their existing generated ID machinery.
+Global/wildcard restriction mutation is reserved to the protected holder.
+
+System user/manager/administrator roles are immutable through role CRUD. Reserved
+and identity_-prefixed names are rejected; internal individual-grant roles are
+not ordinary editable roles. Assigned roles cannot be deleted, including roles
+referenced by soft-deleted identities. Role metadata/permission replacement and
+deletion require authority over their current permissions. Creation/replacement
+also checks every requested new permission. Account role, grants, credentials
+and status operations require authority over the target's current grants, plus
+requested new grants. Token scope restrictions also bound delegation: a narrowed
+token cannot mint broader credentials/accounts using the legacy profile path.
+The caller's own role/status/grants and the reserved identity cannot be changed
+through these administrative endpoints. Self client-credential operations still
+require identity:edit/delete and authority over the account's existing grants.
+
+### Compatibility and protected authority
+
+Existing resource:create/read/update/delete permission rows and legacy profile
+payloads remain accepted. Public write/edit map to the existing SQL create/update
+actions; no applied action CHECK, prefix or historical permission ID is rewritten.
+Fine-grained resource grants continue to work without being broadened into whole
+section grants. Existing ordinary accounts receive no new section administration
+grants during migration. The existing administrator system profile receives the
+section catalogue consistent with its administrative purpose; it is still not
+the reserved human holder. Older tokens do not automatically gain new scopes.
+
+The old role-name payload retains its profile ceiling and legacy replacement
+semantics. Use role_identifier for the Sympla-style delegated workflow and to
+preserve individual grants on a role change. Custom-role administration uses
+current scoped authority rather than a mandatory administrator name. The profile
+matrix later in this guide describes compatibility profiles, not a hard-coded
+administrator requirement on the new custom-role workflow.
+
+Authority is rechecked under the installation membership lock in the mutation
+transaction. Role/grant/status/credential changes increment the relevant account
+credential versions, invalidating old JWTs. Deny/allow restrictions also apply on
+every request. Mandatory evidence failures roll back role/grant/account mutations.
+The reserved singleton, SQL master, current human login aliases and HTTP plan-change
+prohibition remain separate. No role can grant reserved status, alter the SQL
+master, expose credential hashes or bypass personal ownership.
+
+### Migration and deployment
+
+New `api-v1/003`, `modules/database/sql/api_migrations/003_scoped_rbac.sql`, adds
+role.is_system and nullable api_user.deleted_at, marks existing system/internal
+roles, extends the permission catalogue and installs narrowly granted SQL
+capabilities. It preserves all previous migration/baseline bytes, identity IDs,
+human/client credential hashes, memberships and normal records. SaaS accounts are
+not reseeded. Run the trusted normal startup or the existing interactive
+`start.py --api-migrate` path to apply it, then restart through `start.py --with-api`.
+Configuration-only --check neither applies it nor proves live schema readiness.
+The normal database was not migrated or seeded during implementation/QA.
+
+Security decisions follow the project [OWASP references](https://owasp.org/projects/asvs)
+and [Authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+Passing focused tests is not a blanket OWASP compliance statement.
+
+### Scoped-RBAC verification
+
+On the operator-selected disposable PostgreSQL port 4242, all 11 scoped-RBAC
+tests passed. They cover action independence, custom roles, delegation ceilings,
+narrow token scopes, credential impersonation prevention, role/direct-grant token
+revocation, individual grant add/remove, soft deletion, protected system identities,
+personal ownership, deny precedence and rollback on mandatory audit failure.
+The existing API integration suite passed 14 tests; its two real port-6969
+container/restart checks skipped because the normal service was preserved.
+Three API configuration tests, five central startup tests and the automated
+Swagger authorization harness passed. Both configuration-only startup modes
+passed. All 157 OpenAPI operations match this guide's inventory and protected
+operations publish their required permission. Applied baseline/SQL files retain
+their exact bytes. Generated output is private in reports/scoped_rbac*.txt.
+
+The initial QA attempt refused occupied port 2424, which belongs to the normal
+Sympla database. After the operator explicitly selected 4242, the suites ran
+sequentially in UUID-owned projects and removed only their own containers/volumes.
+No normal account, credential, role or permission was changed, and neither
+Sympla nor Ouroboros was restarted. Applying api-v1/003 and inspecting the normal
+installation through the existing interactive master-credential workflow remain
+deployment steps; successful --check does not substitute for that migration.
+
+
 ## Start Database + API
 
 The active module lives at `modules/api`. Use
@@ -192,9 +376,10 @@ profiles, optional new person/membership, individual permission grants and an
 initial client credential in one audited transaction. Its response returns
 `id_api_user`, `client_id` and `client_secret`. Store that one-time secret safely.
 `POST /api-users/{id}/credentials` with an empty JSON object issues an additional
-secret to its owner or an authorized administrator. Client credentials cannot
+secret only with identity:edit and authority over the target's current grants,
+including for self-issuance. Client credentials cannot
 be issued for the reserved bootstrap identity. `DELETE /credentials/{client_id}`
-revokes an owned credential or an authorized administrative target and increments
+requires identity:delete and authority over the target's grants, then increments
 the identity's credential version, invalidating its existing tokens.
 
 ### Existing human bootstrap identity
@@ -234,7 +419,7 @@ account and fifty per client address in five minutes, with hashed keys and
 Retry-After. No request or response bodies are logged, including rejected tokens,
 human passwords and one-time client secrets.
 
-## Authorization matrix
+## Legacy profile compatibility matrix
 
 All actions deny by default and require the relevant `resource:action` scope AND
 current database authorization. List rules do not grant permissions. Any matching
@@ -255,10 +440,12 @@ Profile and permission assignments persist in `role`, `permission`,
 `identity_<api_user ID>` role; they do not change shared profile permissions.
 `PUT /api-users/{id}/permissions` replaces only those explicit grants, while
 `PUT /api-users/{id}/role` replaces the operational profile and clears old role
-assignments. Both require an administrator/reserved holder and reject self or
-reserved targets. `PATCH /api-users/{id}` accepts only `is_active`, with the same
-ceiling; deactivation and permission/profile replacement revoke earlier tokens.
-Managers cannot use these existing-account operations.
+assignments when the legacy role-name payload is used. The role_identifier
+payload preserves direct grants instead. Scoped authority and target-delegation
+ceilings apply to the new workflow; self/reserved targets are protected.
+`PATCH /api-users/{id}` accepts only `is_active`; deactivation and permission/role
+replacement revoke earlier tokens. A manager profile alone does not grant these
+operations; explicit effective permissions are required.
 
 The API serializes authority transitions and authenticated business operations
 with the installation membership advisory lock within each SQL transaction.
@@ -307,7 +494,7 @@ restricted to authorized records before paging.
 
 Submissions persist data only; no match-review automation or human review flow
 is exposed. Reminder records do not send reminders. No app-user signup,
-external-reference enrollment, generic role CRUD, generic plan CRUD, raw
+external-reference enrollment, generic plan CRUD, raw
 credential CRUD, migration CRUD or writable audit/version endpoint is mounted.
 
 - **PUT replaces the complete editable representation.** All required fields in
@@ -334,9 +521,10 @@ credential CRUD, migration CRUD or writable audit/version endpoint is mounted.
 
 `GET /me` returns only the current technical identity/profile/link summary.
 `GET /api-users` returns bounded non-secret ordinary account metadata.
-`GET /audit` is restricted to administrators/reserved holder and returns bounded
-read-only events. `GET /record-versions/{resource}/{id}` first authorizes the
-underlying record and its owner, then returns bounded event-linked versions.
+`GET /audit` requires audit:read and returns bounded read-only events. Ordinary
+delegates see their own actor events; administrator/reserved holders retain
+installation visibility. `GET /record-versions/{resource}/{id}` requires audit:read
+and authorizes the underlying record and owner before returning bounded versions.
 
 ## Contracted plan and evidence
 
@@ -550,156 +738,164 @@ OpenAPI security schemes alone do not express these database authorization rules
 
 | Method | Path | Purpose | Authentication | Permission / additional restriction |
 | --- | --- | --- | --- | --- |
-| POST | `/oauth/token` | Issue an integration token using OAuth 2.0 Client Credentials | Client credentials (body or HTTP Basic) | Current active client credential; requested scopes within current authority |
-| POST | `/auth/user-token` | Authenticate a linked human identity; never a Client Credentials secret | App/API username + App Password | Active unambiguous human credential/link |
-| GET | `/health` | Health | Public | SQL availability; no business data |
-| GET | `/me` | Me | Bearer | Current identity; no extra resource scope |
-| POST | `/api-users` | Create an authorized account and return its new client secret once | Bearer | api_user:create; profile and grant ceilings |
-| GET | `/api-users` | Accounts | Bearer | api_user:read |
-| PUT | `/api-users/{identifier}/role` | Assign Role | Bearer | api_user:update; administrator/reserved, ordinary nonself target |
-| PATCH | `/api-users/{identifier}` | Activate or deactivate an ordinary identity, revoking its existing tokens | Bearer | api_user:update; administrator/reserved, ordinary nonself target |
-| PUT | `/api-users/{identifier}/permissions` | Replace individual permission grants without changing the operational profile | Bearer | permission_assignment:update; administrator/reserved, ordinary nonself target |
-| POST | `/api-users/{identifier}/credentials` | Issue Client | Bearer | Own eligible identity or api_user:update for another; reserved identity excluded |
-| DELETE | `/credentials/{identifier}` | Revoke | Bearer | Own client credential or api_user:update for another; SQL capability rechecks |
-| GET | `/installation/plan` | Current Plan | Human bearer | installation_plan:read; active reserved human holder |
-| GET | `/settings` | Settings Read | Bearer | operator_setting:read |
-| PUT | `/settings/{name}` | Settings Replace | Bearer | operator_setting:update; administrator/reserved, bounds enforced |
-| POST | `/access-rules` | Add Rule | Bearer | access_rule:create; administrator/reserved |
-| GET | `/access-rules` | Rules | Bearer | access_rule:read; administrator/reserved |
-| DELETE | `/access-rules/{identifier}` | Remove Rule | Bearer | access_rule:delete; administrator/reserved |
-| GET | `/audit` | Audits | Bearer | api_audit_log:read; administrator/reserved |
-| GET | `/record-versions/{resource}/{identifier}` | Versions | Bearer | Underlying resource:read plus its owner/visibility predicate |
-| GET | `/test` | List authorized records | Bearer | test:read |
-| POST | `/test` | Create one record or an atomic batch | Bearer | test:create |
-| GET | `/test/{identifier}` | Read an authorized record | Bearer | test:read |
-| PUT | `/test/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | test:update |
-| PATCH | `/test/{identifier}` | Update only supplied fields | Bearer | test:update |
-| DELETE | `/test/{identifier}` | Delete an authorized record | Bearer | test:delete |
-| GET | `/work` | List authorized records | Bearer | work:read |
-| POST | `/work` | Create one record or an atomic batch | Bearer | work:create |
-| GET | `/work/{identifier}` | Read an authorized record | Bearer | work:read |
-| PUT | `/work/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | work:update |
-| PATCH | `/work/{identifier}` | Update only supplied fields | Bearer | work:update |
-| DELETE | `/work/{identifier}` | Delete an authorized record | Bearer | work:delete |
-| GET | `/platform` | List authorized records | Bearer | platform:read |
-| POST | `/platform` | Create one record or an atomic batch | Bearer | platform:create |
-| GET | `/platform/{identifier}` | Read an authorized record | Bearer | platform:read |
-| PUT | `/platform/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | platform:update |
-| PATCH | `/platform/{identifier}` | Update only supplied fields | Bearer | platform:update |
-| DELETE | `/platform/{identifier}` | Delete an authorized record | Bearer | platform:delete |
-| GET | `/work_availability` | List authorized records | Bearer | work_availability:read |
-| POST | `/work_availability` | Create one record or an atomic batch | Bearer | work_availability:create |
-| GET | `/work_availability/{identifier}` | Read an authorized record | Bearer | work_availability:read |
-| PUT | `/work_availability/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | work_availability:update |
-| PATCH | `/work_availability/{identifier}` | Update only supplied fields | Bearer | work_availability:update |
-| DELETE | `/work_availability/{identifier}` | Delete an authorized record | Bearer | work_availability:delete |
-| GET | `/work_classification` | List authorized records | Bearer | work_classification:read |
-| POST | `/work_classification` | Create one record or an atomic batch | Bearer | work_classification:create |
-| GET | `/work_classification/{identifier}` | Read an authorized record | Bearer | work_classification:read |
-| PUT | `/work_classification/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | work_classification:update |
-| PATCH | `/work_classification/{identifier}` | Update only supplied fields | Bearer | work_classification:update |
-| DELETE | `/work_classification/{identifier}` | Delete an authorized record | Bearer | work_classification:delete |
-| GET | `/work_title_alias` | List authorized records | Bearer | work_title_alias:read |
-| POST | `/work_title_alias` | Create one record or an atomic batch | Bearer | work_title_alias:create |
-| GET | `/work_title_alias/{identifier}` | Read an authorized record | Bearer | work_title_alias:read |
-| PUT | `/work_title_alias/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | work_title_alias:update |
-| PATCH | `/work_title_alias/{identifier}` | Update only supplied fields | Bearer | work_title_alias:update |
-| DELETE | `/work_title_alias/{identifier}` | Delete an authorized record | Bearer | work_title_alias:delete |
-| GET | `/work_external_reference` | List authorized records | Bearer | work_external_reference:read |
-| POST | `/work_external_reference` | Create one record or an atomic batch | Bearer | work_external_reference:create |
-| GET | `/work_external_reference/{identifier}` | Read an authorized record | Bearer | work_external_reference:read |
-| PUT | `/work_external_reference/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | work_external_reference:update |
-| PATCH | `/work_external_reference/{identifier}` | Update only supplied fields | Bearer | work_external_reference:update |
-| DELETE | `/work_external_reference/{identifier}` | Delete an authorized record | Bearer | work_external_reference:delete |
-| GET | `/user_work` | List authorized records | Bearer | user_work:read; person/owner predicate |
-| POST | `/user_work` | Create one record or an atomic batch | Bearer | user_work:create; person/owner predicate |
-| GET | `/user_work/{identifier}` | Read an authorized record | Bearer | user_work:read; person/owner predicate |
-| PUT | `/user_work/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | user_work:update; person/owner predicate |
-| PATCH | `/user_work/{identifier}` | Update only supplied fields | Bearer | user_work:update; person/owner predicate |
-| DELETE | `/user_work/{identifier}` | Delete an authorized record | Bearer | user_work:delete; person/owner predicate |
-| GET | `/user_platform` | List authorized records | Bearer | user_platform:read; person/owner predicate |
-| POST | `/user_platform` | Create one record or an atomic batch | Bearer | user_platform:create; person/owner predicate |
-| GET | `/user_platform/{identifier}` | Read an authorized record | Bearer | user_platform:read; person/owner predicate |
-| PUT | `/user_platform/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | user_platform:update; person/owner predicate |
-| PATCH | `/user_platform/{identifier}` | Update only supplied fields | Bearer | user_platform:update; person/owner predicate |
-| DELETE | `/user_platform/{identifier}` | Delete an authorized record | Bearer | user_platform:delete; person/owner predicate |
-| GET | `/watch_list_entry` | List authorized records | Bearer | watch_list_entry:read; person/owner predicate |
-| POST | `/watch_list_entry` | Create one record or an atomic batch | Bearer | watch_list_entry:create; person/owner predicate |
-| GET | `/watch_list_entry/{identifier}` | Read an authorized record | Bearer | watch_list_entry:read; person/owner predicate |
-| PUT | `/watch_list_entry/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | watch_list_entry:update; person/owner predicate |
-| PATCH | `/watch_list_entry/{identifier}` | Update only supplied fields | Bearer | watch_list_entry:update; person/owner predicate |
-| DELETE | `/watch_list_entry/{identifier}` | Delete an authorized record | Bearer | watch_list_entry:delete; person/owner predicate |
-| GET | `/watch_history` | List authorized records | Bearer | watch_history:read; person/owner predicate |
-| POST | `/watch_history` | Create one record or an atomic batch | Bearer | watch_history:create; person/owner predicate |
-| GET | `/watch_history/{identifier}` | Read an authorized record | Bearer | watch_history:read; person/owner predicate |
-| PUT | `/watch_history/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | watch_history:update; person/owner predicate |
-| PATCH | `/watch_history/{identifier}` | Update only supplied fields | Bearer | watch_history:update; person/owner predicate |
-| DELETE | `/watch_history/{identifier}` | Delete an authorized record | Bearer | watch_history:delete; person/owner predicate |
-| GET | `/tag` | List authorized records | Bearer | tag:read; person/owner predicate |
-| POST | `/tag` | Create one record or an atomic batch | Bearer | tag:create; person/owner predicate |
-| GET | `/tag/{identifier}` | Read an authorized record | Bearer | tag:read; person/owner predicate |
-| PUT | `/tag/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | tag:update; person/owner predicate |
-| PATCH | `/tag/{identifier}` | Update only supplied fields | Bearer | tag:update; person/owner predicate |
-| DELETE | `/tag/{identifier}` | Delete an authorized record | Bearer | tag:delete; person/owner predicate |
-| GET | `/tag_category` | List authorized records | Bearer | tag_category:read; person/owner predicate |
-| POST | `/tag_category` | Create one record or an atomic batch | Bearer | tag_category:create; person/owner predicate |
-| GET | `/tag_category/{identifier}` | Read an authorized record | Bearer | tag_category:read; person/owner predicate |
-| PUT | `/tag_category/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | tag_category:update; person/owner predicate |
-| PATCH | `/tag_category/{identifier}` | Update only supplied fields | Bearer | tag_category:update; person/owner predicate |
-| DELETE | `/tag_category/{identifier}` | Delete an authorized record | Bearer | tag_category:delete; person/owner predicate |
-| GET | `/tag_relationship` | List authorized records | Bearer | tag_relationship:read; person/owner predicate |
-| POST | `/tag_relationship` | Create one record or an atomic batch | Bearer | tag_relationship:create; person/owner predicate |
-| GET | `/tag_relationship/{identifier}` | Read an authorized record | Bearer | tag_relationship:read; person/owner predicate |
-| PUT | `/tag_relationship/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | tag_relationship:update; person/owner predicate |
-| PATCH | `/tag_relationship/{identifier}` | Update only supplied fields | Bearer | tag_relationship:update; person/owner predicate |
-| DELETE | `/tag_relationship/{identifier}` | Delete an authorized record | Bearer | tag_relationship:delete; person/owner predicate |
-| GET | `/tag_category_relationship` | List authorized records | Bearer | tag_category_relationship:read; person/owner predicate |
-| POST | `/tag_category_relationship` | Create one record or an atomic batch | Bearer | tag_category_relationship:create; person/owner predicate |
-| GET | `/tag_category_relationship/{identifier}` | Read an authorized record | Bearer | tag_category_relationship:read; person/owner predicate |
-| PUT | `/tag_category_relationship/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | tag_category_relationship:update; person/owner predicate |
-| PATCH | `/tag_category_relationship/{identifier}` | Update only supplied fields | Bearer | tag_category_relationship:update; person/owner predicate |
-| DELETE | `/tag_category_relationship/{identifier}` | Delete an authorized record | Bearer | tag_category_relationship:delete; person/owner predicate |
-| GET | `/work_tag` | List authorized records | Bearer | work_tag:read; person/owner predicate |
-| POST | `/work_tag` | Create one record or an atomic batch | Bearer | work_tag:create; person/owner predicate |
-| GET | `/work_tag/{identifier}` | Read an authorized record | Bearer | work_tag:read; person/owner predicate |
-| PUT | `/work_tag/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | work_tag:update; person/owner predicate |
-| PATCH | `/work_tag/{identifier}` | Update only supplied fields | Bearer | work_tag:update; person/owner predicate |
-| DELETE | `/work_tag/{identifier}` | Delete an authorized record | Bearer | work_tag:delete; person/owner predicate |
-| GET | `/platform_plan` | List authorized records | Bearer | platform_plan:read |
-| POST | `/platform_plan` | Create one record or an atomic batch | Bearer | platform_plan:create |
-| GET | `/platform_plan/{identifier}` | Read an authorized record | Bearer | platform_plan:read |
-| PUT | `/platform_plan/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | platform_plan:update |
-| PATCH | `/platform_plan/{identifier}` | Update only supplied fields | Bearer | platform_plan:update |
-| DELETE | `/platform_plan/{identifier}` | Delete an authorized record | Bearer | platform_plan:delete |
-| GET | `/platform_promotion` | List authorized records | Bearer | platform_promotion:read |
-| POST | `/platform_promotion` | Create one record or an atomic batch | Bearer | platform_promotion:create |
-| GET | `/platform_promotion/{identifier}` | Read an authorized record | Bearer | platform_promotion:read |
-| PUT | `/platform_promotion/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | platform_promotion:update |
-| PATCH | `/platform_promotion/{identifier}` | Update only supplied fields | Bearer | platform_promotion:update |
-| DELETE | `/platform_promotion/{identifier}` | Delete an authorized record | Bearer | platform_promotion:delete |
-| GET | `/platform_subscription` | List authorized records | Bearer | platform_subscription:read; person/owner predicate |
-| POST | `/platform_subscription` | Create one record or an atomic batch | Bearer | platform_subscription:create; person/owner predicate |
-| GET | `/platform_subscription/{identifier}` | Read an authorized record | Bearer | platform_subscription:read; person/owner predicate |
-| PUT | `/platform_subscription/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | platform_subscription:update; person/owner predicate |
-| PATCH | `/platform_subscription/{identifier}` | Update only supplied fields | Bearer | platform_subscription:update; person/owner predicate |
-| DELETE | `/platform_subscription/{identifier}` | Delete an authorized record | Bearer | platform_subscription:delete; person/owner predicate |
-| GET | `/subscription_charge` | List authorized records | Bearer | subscription_charge:read; person/owner predicate |
-| POST | `/subscription_charge` | Create one record or an atomic batch | Bearer | subscription_charge:create; person/owner predicate |
-| GET | `/subscription_charge/{identifier}` | Read an authorized record | Bearer | subscription_charge:read; person/owner predicate |
-| GET | `/subscription_reminder` | List authorized records | Bearer | subscription_reminder:read; person/owner predicate |
-| POST | `/subscription_reminder` | Create one record or an atomic batch | Bearer | subscription_reminder:create; person/owner predicate |
-| GET | `/subscription_reminder/{identifier}` | Read an authorized record | Bearer | subscription_reminder:read; person/owner predicate |
-| PUT | `/subscription_reminder/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | subscription_reminder:update; person/owner predicate |
-| PATCH | `/subscription_reminder/{identifier}` | Update only supplied fields | Bearer | subscription_reminder:update; person/owner predicate |
-| DELETE | `/subscription_reminder/{identifier}` | Delete an authorized record | Bearer | subscription_reminder:delete; person/owner predicate |
-| GET | `/work_submission` | List authorized records | Bearer | work_submission:read; person/owner predicate |
-| POST | `/work_submission` | Create one record or an atomic batch | Bearer | work_submission:create; person/owner predicate |
-| GET | `/work_submission/{identifier}` | Read an authorized record | Bearer | work_submission:read; person/owner predicate |
-| PUT | `/work_submission/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | work_submission:update; person/owner predicate |
-| PATCH | `/work_submission/{identifier}` | Update only supplied fields | Bearer | work_submission:update; person/owner predicate |
-| DELETE | `/work_submission/{identifier}` | Delete an authorized record | Bearer | work_submission:delete; person/owner predicate |
-
-Total: **148 operations**. Swagger/static assets and `/openapi.json` are framework documentation routes outside this operation inventory.
+| POST | `/oauth/token` | Issue an integration token using OAuth 2.0 Client Credentials | Client Credentials | Active client credential, optional scope subset |
+| POST | `/auth/user-token` | Authenticate a linked human identity; never a Client Credentials secret | Human username/password | Active unambiguous human identity |
+| GET | `/health` | Health | Public | SQL readiness only |
+| GET | `/me` | Me | Bearer | Current active credentials |
+| POST | `/api-users` | Create an authorized account and return its new client secret once | Bearer | identity:write |
+| GET | `/api-users` | Accounts | Bearer | identity:read |
+| GET | `/api-users/{identifier}` | Account | Bearer | identity:read |
+| DELETE | `/api-users/{identifier}` | Soft-delete an ordinary API identity and invalidate its tokens | Bearer | identity:delete |
+| PATCH | `/api-users/{identifier}` | Activate or deactivate an ordinary identity, revoking its existing tokens | Bearer | identity:edit |
+| PUT | `/api-users/{identifier}/role` | Assign Role | Bearer | identity:edit |
+| PUT | `/api-users/{identifier}/permissions` | Replace individual permission grants without changing the operational profile | Bearer | authorization:edit |
+| POST | `/api-users/{identifier}/credentials` | Issue Client | Bearer | identity:edit |
+| DELETE | `/credentials/{identifier}` | Revoke | Bearer | identity:delete |
+| GET | `/installation/plan` | Current Plan | Human bearer | Reserved holder and installation_plan:read |
+| GET | `/settings` | Settings Read | Bearer | settings:read |
+| PUT | `/settings/{name}` | Settings Replace | Bearer | settings:edit |
+| POST | `/access-rules` | Add Rule | Bearer | authorization:write |
+| GET | `/access-rules` | Rules | Bearer | authorization:read |
+| DELETE | `/access-rules/{identifier}` | Remove Rule | Bearer | authorization:delete |
+| GET | `/audit` | Audits | Bearer | audit:read |
+| GET | `/record-versions/{resource}/{identifier}` | Versions | Bearer | audit:read plus underlying resource read/ownership |
+| GET | `/test` | List authorized records | Bearer | catalogue:read |
+| POST | `/test` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/test/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/test/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/test/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/test/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/work` | List authorized records | Bearer | catalogue:read |
+| POST | `/work` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/work/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/work/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/work/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/work/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/platform` | List authorized records | Bearer | catalogue:read |
+| POST | `/platform` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/platform/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/platform/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/platform/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/platform/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/work_availability` | List authorized records | Bearer | catalogue:read |
+| POST | `/work_availability` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/work_availability/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/work_availability/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/work_availability/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/work_availability/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/work_classification` | List authorized records | Bearer | catalogue:read |
+| POST | `/work_classification` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/work_classification/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/work_classification/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/work_classification/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/work_classification/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/work_title_alias` | List authorized records | Bearer | catalogue:read |
+| POST | `/work_title_alias` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/work_title_alias/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/work_title_alias/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/work_title_alias/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/work_title_alias/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/work_external_reference` | List authorized records | Bearer | catalogue:read |
+| POST | `/work_external_reference` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/work_external_reference/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/work_external_reference/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/work_external_reference/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/work_external_reference/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/user_work` | List authorized records | Bearer | personal:read |
+| POST | `/user_work` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/user_work/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/user_work/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/user_work/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/user_work/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/user_platform` | List authorized records | Bearer | personal:read |
+| POST | `/user_platform` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/user_platform/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/user_platform/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/user_platform/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/user_platform/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/watch_list_entry` | List authorized records | Bearer | personal:read |
+| POST | `/watch_list_entry` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/watch_list_entry/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/watch_list_entry/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/watch_list_entry/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/watch_list_entry/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/watch_history` | List authorized records | Bearer | personal:read |
+| POST | `/watch_history` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/watch_history/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/watch_history/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/watch_history/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/watch_history/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/tag` | List authorized records | Bearer | personal:read |
+| POST | `/tag` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/tag/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/tag/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/tag/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/tag/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/tag_category` | List authorized records | Bearer | personal:read |
+| POST | `/tag_category` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/tag_category/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/tag_category/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/tag_category/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/tag_category/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/tag_relationship` | List authorized records | Bearer | personal:read |
+| POST | `/tag_relationship` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/tag_relationship/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/tag_relationship/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/tag_relationship/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/tag_relationship/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/tag_category_relationship` | List authorized records | Bearer | personal:read |
+| POST | `/tag_category_relationship` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/tag_category_relationship/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/tag_category_relationship/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/tag_category_relationship/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/tag_category_relationship/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/work_tag` | List authorized records | Bearer | personal:read |
+| POST | `/work_tag` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/work_tag/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/work_tag/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/work_tag/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/work_tag/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/platform_plan` | List authorized records | Bearer | catalogue:read |
+| POST | `/platform_plan` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/platform_plan/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/platform_plan/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/platform_plan/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/platform_plan/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/platform_promotion` | List authorized records | Bearer | catalogue:read |
+| POST | `/platform_promotion` | Create one record or an atomic batch | Bearer | catalogue:write |
+| GET | `/platform_promotion/{identifier}` | Read an authorized record | Bearer | catalogue:read |
+| PUT | `/platform_promotion/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | catalogue:edit |
+| PATCH | `/platform_promotion/{identifier}` | Update only supplied fields | Bearer | catalogue:edit |
+| DELETE | `/platform_promotion/{identifier}` | Delete an authorized record | Bearer | catalogue:delete |
+| GET | `/platform_subscription` | List authorized records | Bearer | subscriptions:read |
+| POST | `/platform_subscription` | Create one record or an atomic batch | Bearer | subscriptions:write |
+| GET | `/platform_subscription/{identifier}` | Read an authorized record | Bearer | subscriptions:read |
+| PUT | `/platform_subscription/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | subscriptions:edit |
+| PATCH | `/platform_subscription/{identifier}` | Update only supplied fields | Bearer | subscriptions:edit |
+| DELETE | `/platform_subscription/{identifier}` | Delete an authorized record | Bearer | subscriptions:delete |
+| GET | `/subscription_charge` | List authorized records | Bearer | subscriptions:read |
+| POST | `/subscription_charge` | Create one record or an atomic batch | Bearer | subscriptions:write |
+| GET | `/subscription_charge/{identifier}` | Read an authorized record | Bearer | subscriptions:read |
+| GET | `/subscription_reminder` | List authorized records | Bearer | subscriptions:read |
+| POST | `/subscription_reminder` | Create one record or an atomic batch | Bearer | subscriptions:write |
+| GET | `/subscription_reminder/{identifier}` | Read an authorized record | Bearer | subscriptions:read |
+| PUT | `/subscription_reminder/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | subscriptions:edit |
+| PATCH | `/subscription_reminder/{identifier}` | Update only supplied fields | Bearer | subscriptions:edit |
+| DELETE | `/subscription_reminder/{identifier}` | Delete an authorized record | Bearer | subscriptions:delete |
+| GET | `/work_submission` | List authorized records | Bearer | personal:read |
+| POST | `/work_submission` | Create one record or an atomic batch | Bearer | personal:write |
+| GET | `/work_submission/{identifier}` | Read an authorized record | Bearer | personal:read |
+| PUT | `/work_submission/{identifier}` | Replace all editable fields; omitted optional fields reset to defaults | Bearer | personal:edit |
+| PATCH | `/work_submission/{identifier}` | Update only supplied fields | Bearer | personal:edit |
+| DELETE | `/work_submission/{identifier}` | Delete an authorized record | Bearer | personal:delete |
+| GET | `/permissions` | List independent section/action permissions | Bearer | authorization:read |
+| GET | `/roles` | Roles | Bearer | roles:read |
+| POST | `/roles` | Create | Bearer | roles:write |
+| GET | `/roles/{identifier}` | Detail | Bearer | roles:read |
+| PATCH | `/roles/{identifier}` | Patch | Bearer | roles:edit |
+| DELETE | `/roles/{identifier}` | Remove | Bearer | roles:delete |
+| PUT | `/roles/{identifier}/permissions` | Replace | Bearer | roles:edit |
+Total: **157 operations**. Swagger/static assets and `/openapi.json` are framework documentation routes outside this operation inventory.
 
 Collection queries accept page (integer >=1, default 1), page_size (integer >=1,
 default 10, within effective limit), and optional exact id for business lists.
@@ -711,9 +907,10 @@ individual GET: no PUT, PATCH or DELETE. Record-version reads authorize the
 underlying current record, so a deleted record is not automatically readable
 through that endpoint even though evidence remains in the database.
 
-## Verification for this configuration/documentation change
+## Earlier configuration/documentation verification
 
-Executed against this working tree:
+Historical evidence for the earlier configuration/documentation revision, before
+the scoped-RBAC migration and its additional routes:
 
 | Verification | Actual result |
 | --- | --- |
@@ -750,3 +947,12 @@ archived byte-for-byte in ignored `.tmp/retired-module-configuration`. Exact
 baseline source and SQL migration bytes match the prerequisite commit. README,
 Frontend, Assistance and authentication/authorization implementations received
 no edits in this configuration/documentation commit.
+
+## PostgreSQL master replacement
+
+Changing Database master_user is a host-only authenticated interactive workflow,
+documented in [DATABASE.md](../database/DATABASE.md#what-happens-if-master_user-changes).
+Normal `--with-api` startup runs it before preparing/starting the API. It does not
+rotate the restricted API SQL password, signing key or SaaS credentials and has
+no HTTP endpoint. `--api-inspect` and `--api-migrate` remain recovery tools for the
+already active master; use normal startup to finish a pending handover first.
