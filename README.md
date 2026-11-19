@@ -1,12 +1,26 @@
 # Ouroboros
 
+Internal assistant responsibilities are separated: `assistant_1` reserves general site guidance (intelligent navigation/search remain disabled), while `assistant_2` owns enabled form-filling integrations. Each has its own instruction file; only security rules are shared. Display names and colors remain configurable. See [assistant responsibility boundaries](docs/FORM_ASSISTANT.md#assistant-responsibility-boundaries).
+
+Assistant 2 now shares one form-filling policy, confirms actual frontend application, protects manual values and uses authorized paginated GETs for existing matches and relative positions. Only the already enabled work-classification form is connected to GPT-5.4; other forms are not enabled implicitly. Human save and existing confirmations remain mandatory. See [behavior, adapters and read tools](docs/FORM_ASSISTANT.md) and [executed/pending QA](docs/FORM_ASSISTANT_QA.md).
+
+The current source layout is `frontend/`, `api/`, `assistance/` and `database/`, with one `config.json` per module and root `config.json` for orchestration. Private files are ignored; sanitized `config.example.json` files document each owner. See [the canonical layout and configuration migration](docs/MODULES.md) and [layout QA](docs/LAYOUT_QA.md).
+
+Ouroboros now starts four Docker Compose services: PostgreSQL, Base/API, Angular/Nginx frontend and isolated assistance. From the project directory run `python start.py`; enter existing credentials in its interactive bootstrap. Host virtual environments are preserved but are no longer application runtimes. See [module configuration and startup](docs/MODULES.md) and [executed/pending QA](docs/MODULES_QA.md). Existing ports, data, API paths and permissions are preserved.
+
+Registration keeps its three main choices and adds a **Tag / Tag Category** submenu inside Tag, with category creation through the existing API. Available navigation-card images share their buttons' destinations; Watchlist and Watched remain unavailable. See [Tag/category registration and image navigation](docs/TAG_CATEGORY_UI.md) for the contract, checks and pending browser verification.
+
+**Create Tag** also offers an optional searchable multi-category dropdown with checkboxes, Select All and Clear All. Existing category IDs are linked through the current relationship API; selections follow the form's reset/unsaved-change rules. See [multiple category selection](docs/TAG_CATEGORIES_SELECTION.md), including staged-save recovery and manual-validation notes.
+
+The Tag submenu uses two equal-width areas with centered labels (50% per option). Registration headings follow the centralized entity-title configuration: Create Platform, Create Tag, Create Tag Category and Create Work Classification. Shared styling and reactive selection keep the heading aligned with the displayed form.
+
 Current phase-one registration controls: see [Individual registration UI](docs/REGISTRATION_UI.md). It documents the unanswered checkboxes, exact comma-decimal input, currency/access selectors, conditional address, twenty-result anchored autocomplete, cancel-first unsaved-change protection, compact consultation filters and session-only recent searches. No API or database contract changes are required.
 
 Ouroboros is a relational entertainment-consumption catalogue across books, films, series, and other media. It records works, platform availability, watchlist entries, consumption experiences, classifications, and dynamic tags. 🐍
 
 Catalogue and test creation accepts one object or an atomic ordered array, with a configurable default maximum of 300 records. See [object and array creation](docs/BATCH_CREATION.md) for examples, permissions and request limits.
 
-Built from **Foundation**, it retains authentication, password change/reset, health checks, logging and QA infrastructure. Migrations **005–010** add eleven catalogue resources, supervisor permissions, central auditing, UTC/source context, filtered administrator bulk operations, independent classification tiers and complete integer-ID test CRUD. Existing records are preserved without catalogue seeds. See the [catalogue model](docs/CATALOGUE.md), [CRUD API guide](docs/CATALOGUE_API.md), [tier/test contracts](docs/TIERS_AND_TEST_CRUD.md) and [performance/security review](docs/REMAINING_PHASE_REVIEW.md). The Portuguese Angular 22 frontend supports home/login and individual platform/tag/work-classification creation on the existing FastAPI origin; advanced search and AI remain planned. See [frontend setup and security](docs/FRONTEND.md).
+Built from **Foundation**, it retains authentication, password change/reset, health checks, logging and QA infrastructure. Migrations **005–010** add eleven catalogue resources, supervisor permissions, central auditing, UTC/source context, filtered administrator bulk operations, independent classification tiers and complete integer-ID test CRUD. Existing records are preserved without catalogue seeds. See the [catalogue model](docs/CATALOGUE.md), [CRUD API guide](docs/CATALOGUE_API.md), [tier/test contracts](docs/TIERS_AND_TEST_CRUD.md) and [performance/security review](docs/REMAINING_PHASE_REVIEW.md). The English Angular 22 frontend supports home/login and individual platform/tag/work-classification creation on the existing FastAPI origin; advanced search remains planned; the enabled form assistant is described above. See [frontend setup and security](docs/FRONTEND.md).
 
 
 ## 🧾 Audit and safe bulk operations
@@ -48,7 +62,7 @@ From the project root in PowerShell:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r api/requirements.txt
 Set-Location frontend
 npm.cmd ci --no-fund
 npm.cmd run build
@@ -58,7 +72,7 @@ Set-Location ..
 
 The commands above invoke the virtual environment interpreter explicitly, so activation is optional. Use bare `python start.py` only when that interpreter is already selected or activated. The entry point also works when launched by absolute path from another directory. The example selects Compose identity `ouroboros` and fresh JWT issuer/audience `ouroboros` / `ouroboros-api`. Startup binds it to this workspace. For another copy, choose a unique identity and free ports before launching.
 
-On first run, Ouroboros creates `.app.config` from `.app.config.example` without overwriting existing settings. If the infrastructure identity is blank, startup stops with a clear configuration error: edit the generated local file and select a unique project name before retrying. It first displays the configured database and asks whether to keep it or enter another, independently displays and confirms the master user, and then requests the master password. Missing names/users are prompted directly. Selecting another database does not select another master user automatically. Password input displays one asterisk per character, supports Backspace, and cancels with Ctrl+C or Escape. Use an interactive terminal, such as the VS Code terminal; do not send the password as a command argument.
+On first run, Ouroboros creates `api/config.json` from `api/config.example.json` without overwriting existing settings. If the infrastructure identity is blank, startup stops with a clear configuration error: edit the generated local file and select a unique project name before retrying. It first displays the configured database and asks whether to keep it or enter another, independently displays and confirms the master user, and then requests the master password. Missing names/users are prompted directly. Selecting another database does not select another master user automatically. Password input displays one asterisk per character, supports Backspace, and cancels with Ctrl+C or Escape. Use an interactive terminal, such as the VS Code terminal; do not send the password as a command argument.
 
 These are master database credentials, not API accounts. Names use 1-63 lowercase letters, digits, or underscores and cannot begin with a digit. The database password is never stored in JSON or logs. API password hashes are stored only in PostgreSQL `public.api_users`, using Argon2id; neither password nor hash is logged. Local configuration stores only `api_users.last_api_username` as a convenience preference, not proof of identity.
 
@@ -91,7 +105,7 @@ Migration **002_create_api_users.sql** adds `public.api_users`, separate from Po
 
 Migration **006** extends the CHECK to standard/supervisor/administrator without changing existing account values or credentials.
 
-The old `auth.username`/`auth.password_hash` pair is accepted **only for one-way migration**. After connecting and applying migrations, Ouroboros commits the exact old hash and existing test permissions to `api_users`, then removes both legacy fields from `.app.config` and records `last_api_username`. It never asks for the old API password or rehashes it. Repeating the import is safe; an existing identical account is reused. A different hash, scope set, or active state causes a clear conflict and leaves the original configuration intact. No backup or temporary configuration file containing the legacy hash is generated. If configuration saving fails after commit, the next run safely repeats the import.
+The old `auth.username`/`auth.password_hash` pair is accepted **only for one-way migration**. After connecting and applying migrations, Ouroboros commits the exact old hash and existing test permissions to `api_users`, then removes both legacy fields from `api/config.json` and records `last_api_username`. It never asks for the old API password or rehashes it. Repeating the import is safe; an existing identical account is reused. A different hash, scope set, or active state causes a clear conflict and leaves the original configuration intact. No backup or temporary configuration file containing the legacy hash is generated. If configuration saving fails after commit, the next run safely repeats the import.
 
 Migration **003** preserves existing IDs, hashes, scopes, active state and timestamps. **Every existing account starts as standard; no ID is promoted silently.** At the master-authenticated terminal, enter `promote` and the exact active username, or `create` and a unique username/password. A newly created database's first API account is administrator. Duplicate creation never replaces an account. There is no public signup, deletion or refresh API. Active API users change their own password through PUT /users/me/password; current administrators can reset another account through PUT /users/{id}/password. `last_api_username` never proves identity. PostgreSQL master credentials cannot log into the API.
 
@@ -136,9 +150,9 @@ Ouroboros uses **Compose project `ouroboros`**, volume **`ouroboros_postgres_dat
 
 For a future derived project (illustrative **AcmeService**, not implemented here):
 
-1. Copy only source and tracked templates into `C:\Dev\AcmeService`. **Do not copy `.app.config`, `.secrets/`, logs, virtual environments, private Postman settings, or data volumes.**
+1. Copy only source and tracked templates into `C:\Dev\AcmeService`. **Do not copy `api/config.json`, `.secrets/`, logs, virtual environments, private Postman settings, or data volumes.**
 2. Create a fresh virtual environment and install requirements.
-3. Copy `.app.config.example` to a **new** local `.app.config`; never overwrite another existing local file.
+3. Copy `api/config.example.json` to a **new** local `api/config.json`; never overwrite another existing local file.
 4. Keep the existing logging/auth settings and edit these fields (choose ports that are actually free):
 
 ```json
@@ -182,7 +196,7 @@ Runner fixture aggregation now maps setup/teardown class/module failures to affe
 
 **Password storage rule:** never put plaintext passwords in configuration JSON, source code, logs, or versioned files. API hashes belong only in PostgreSQL. The documented exception is the initial PostgreSQL password in its restricted, ignored file used by `POSTGRES_PASSWORD_FILE`; this is plaintext with filesystem access control, **not encrypted storage**.
 
-`.app.config`, `.secrets/`, and `logs/` are ignored by Git. `.secrets/jwt_signing_key` is generated automatically using cryptographic randomness, protected by the same filesystem permissions, and reused across restarts. Keep this signing key private and persistent; losing or replacing it invalidates outstanding tokens. API passwords never have a plaintext secret file. Only the sanitized `.app.config.example` is versioned. On first initialization, `.secrets/postgres_password` supplies the password through the Compose file secret mounted as `POSTGRES_PASSWORD_FILE`. On Windows its directory has a protected ACL granting access only to the current user; on POSIX the directory and file use modes 0700 and 0600. Docker must run under the same user's authorized environment.
+`api/config.json`, `.secrets/`, and `logs/` are ignored by Git. `.secrets/jwt_signing_key` is generated automatically using cryptographic randomness, protected by the same filesystem permissions, and reused across restarts. Keep this signing key private and persistent; losing or replacing it invalidates outstanding tokens. API passwords never have a plaintext secret file. Only the sanitized `api/config.example.json` is versioned. On first initialization, `.secrets/postgres_password` supplies the password through the Compose file secret mounted as `POSTGRES_PASSWORD_FILE`. On Windows its directory has a protected ACL granting access only to the current user; on POSIX the directory and file use modes 0700 and 0600. Docker must run under the same user's authorized environment.
 
 The secret file contains the initialization password in plaintext with restricted filesystem access; it is not an encrypted vault. Keep it while the container exists or might need recreation. Later runs preserve its contents and use the freshly prompted password for the database connection. An incorrect password never overwrites the initialization secret. Do not copy it into configuration, source files, logs, or commands. Database superuser access and Docker administrators remain trusted.
 
@@ -193,7 +207,7 @@ Do not remove the secret while its container may be started or recreated. Remove
 The Compose file needs its non-secret settings and secret path when parsed. Always pass the configured project identity explicitly. In a new PowerShell terminal, load them first:
 
 ```powershell
-$config = Get-Content -Raw -Encoding UTF8 .app.config | ConvertFrom-Json
+$config = Get-Content -Raw -Encoding UTF8 api/config.json | ConvertFrom-Json
 $project = $config.infrastructure.project_name
 $env:OUROBOROS_DB_NAME = $config.database.name
 $env:OUROBOROS_DB_USER = $config.database.user
@@ -337,7 +351,7 @@ Fixed fields use minimum widths: **level 8**, **interaction ID 24**, and **categ
 
 ```text
 INFO     |                          | 2026-10-18T11:33:11.048+01:00 | application |  | ouroboros | - | start.py:30 | Ouroboros preparation completed | {}
-DEBUG    | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | POST /test | ouroboros | - | app/main.py:45 | Request JSON body received | {"body": {"value": "Ouroboros está vivo! 🐍💻"}, "truncated": false}
+DEBUG    | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | POST /test | ouroboros | - | api/app/main.py:45 | Request JSON body received | {"body": {"value": "Ouroboros está vivo! 🐍💻"}, "truncated": false}
 ```
 
 Accents and emojis remain literal Unicode in the console and UTF-8 file; fitting body objects are serialized **once** inside context, not stored as a JSON string. An oversized body uses `body_preview` with `truncated: true`; its preview remains bounded by `logging.body_max_chars`. Redaction happens before preview generation. Line breaks/control characters remain escaped, preserving **one event per line**. Tokens, secret fields, and `/token` bodies remain excluded.
@@ -352,7 +366,7 @@ Only the console's **level label** is colored: DEBUG gray, INFO green, WARNING y
 2. Open Docker Desktop, then run Ouroboros from the project root and **keep that terminal running**:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r api/requirements.txt
 .\.venv\Scripts\python.exe start.py
 ```
 
@@ -23684,11 +23698,11 @@ Platforms now support multiple access types (application, website, link) and an 
 
 ## First frontend
 
-Open **http://localhost:6969/** after normal startup. The Portuguese Angular 22 home offers **Cadastrar** and **Consultar**, with shared selection pages. Isolated items support creation, search, filters, ordering, pagination, editing and confirmed deletion by ID for platforms, tags and work classifications. Watched and Watchlist remain **Em breve**. See the current refinement walkthrough and approved ports in [ANGULAR.md](docs/ANGULAR.md). Strict TypeScript, standalone components and Signal Forms preserve the original SVGs and design. Build once with npm ci and npm run build under frontend/ before normal Python startup; Node is not needed to serve production assets. See [Windows build commands and Angular architecture](docs/ANGULAR.md). Configure the exact browser origin and explicitly opt into loopback development HTTP before using cookie sessions. Existing private configuration is preserved. See [setup, session security and the three-form walkthrough](docs/FRONTEND.md). Existing bearer API clients remain supported.
+Open **http://localhost:6969/** after normal startup. The English Angular 22 home offers **Create** and **Browse**, with shared selection pages. Isolated items support creation, search, filters, ordering, pagination, editing and confirmed deletion by ID for platforms, tags and work classifications. Watched and Watchlist remain **Coming soon**. See the current refinement walkthrough and approved ports in [ANGULAR.md](docs/ANGULAR.md). Strict TypeScript, standalone components and Signal Forms preserve the original SVGs and design. Build once with npm ci and npm run build under frontend/ before normal Python startup; Node is not needed to serve production assets. See [Windows build commands and Angular architecture](docs/ANGULAR.md). Configure the exact browser origin and explicitly opt into loopback development HTTP before using cookie sessions. Existing private configuration is preserved. See [setup, session security and the three-form walkthrough](docs/FRONTEND.md). Existing bearer API clients remain supported.
 # Current frontend delivery diagnosis
 
 For the source/build/live-HTTP comparison on port 6969, per-feature status, current listener findings and remaining browser checks, see [Frontend delivery diagnosis](docs/FRONTEND_DELIVERY_DIAGNOSIS.md). Production `npm run build` now stamps public build provenance; compare the loaded page's footer identifier with `/frontend/build-info.json` before attributing a discrepancy to caching. Existing interactive credentials remain private to startup/login.
 Platform registration now uses ordinary initially unchecked checkboxes, required name/access fields with red markers, concise help, and one outlined back-to-registration link. See [focused Platform checks](docs/REGISTRATION_UI.md).
-Form labels and contextual help now share one component and centralized “Nome Fantasia” wording. Help appears through accessible ⓘ tooltips; existing validation remains unchanged. See [Change 01 verification and manual checks](docs/REGISTRATION_UI.md).
+Form labels and contextual help now share one component and centralized “Display Name” wording. Help appears through accessible ⓘ tooltips; existing validation remains unchanged. See [Change 01 verification and manual checks](docs/REGISTRATION_UI.md).
 Tooltip and currency-dropdown presentation now uses scoped external CSS compatible with the existing CSP. See [current visual-correction results and pending browser checks](docs/REGISTRATION_UI.md).
 Descriptions now share an application-configured grapheme limit and live counter; classification positions reuse the searchable dropdown, with automatic backend append and a ten-row current-order view. See [description/tier contracts, checks and Windows commands](docs/DESCRIPTION_AND_TIERS.md).

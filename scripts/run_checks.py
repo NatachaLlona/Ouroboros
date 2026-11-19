@@ -1,4 +1,10 @@
 """Run mandatory automated QA checks with secret-free, catalogue-based reports."""
+
+import sys as _sys
+from pathlib import Path as _Path
+_repository = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_repository))
+_sys.path.insert(0, str(_repository / "modules"))
 import argparse
 from collections import Counter
 import contextlib
@@ -19,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 if str(ROOT/"scripts") not in sys.path: sys.path.insert(0, str(ROOT/"scripts"))
 from qa_catalog import load_catalog, validate_catalog
+from qa.run import PATHS
 
 
 class DiscardOutput(io.TextIOBase):
@@ -192,7 +199,7 @@ def main(argv=None):
     if checks["python"] and checks["dependencies"] and not consistency:
         with contextlib.redirect_stdout(DiscardOutput()), contextlib.redirect_stderr(DiscardOutput()):
             try:
-                suite = unittest.defaultTestLoader.discover(str(ROOT/"tests"))
+                suite = unittest.TestSuite(unittest.TestLoader().discover(str(directory)) for directory in [ROOT/"qa", *ROOT.glob("modules/*/qa")])
                 suite.run(result)
             except (Exception, KeyboardInterrupt):
                 # Still emit artifacts on loader/runner cancellation without raw data.

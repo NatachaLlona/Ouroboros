@@ -1,0 +1,126 @@
+{
+  // Structural values are frozen after provisioning; comments are ignored.
+  // Structural document format; exactly 1. Frozen after provisioning.
+  "format_version": 1,
+  // Physical naming algorithm; exactly 1. Frozen after provisioning.
+  "naming_rules_version": 1,
+  // SQL database identifier; frozen after provisioning.
+  "database_name": "ouroboros",
+  // Dedicated application schema identifier; frozen after provisioning.
+  "schema": "ouroboros",
+  // Singular vocabulary only; activity has no table or prefix.
+  // Singular vocabulary used only to derive structural names; frozen after provisioning.
+  "vocabulary": {
+    // Immutable generated-ID prefix for work; must be unique across logical tables.
+    "work": {
+      // Singular lowercase ASCII identifier; derived names must remain unique and at most 40 characters.
+      "name": "work"
+    },
+    // Immutable generated-ID prefix for platform; must be unique across logical tables.
+    "platform": {
+      // Singular lowercase ASCII identifier; derived names must remain unique and at most 40 characters.
+      "name": "platform"
+    },
+    // Immutable generated-ID prefix for tag; must be unique across logical tables.
+    "tag": {
+      // Singular lowercase ASCII identifier; derived names must remain unique and at most 40 characters.
+      "name": "tag"
+    },
+    "activity": {
+      // Singular lowercase ASCII identifier; derived names must remain unique and at most 40 characters.
+      "name": "watch"
+    }
+  },
+  // Minimum friendly-ID digit width, 1-18. IDs grow without truncation; frozen after provisioning.
+  "base_quantity_digits": 7,
+  // Unique immutable uppercase prefixes indexed by logical table key.
+  // Unique logical-table ID prefixes, 2-8 uppercase ASCII letters; frozen after provisioning.
+  "prefixes": {
+    // Immutable generated-ID prefix for test; must be unique across logical tables.
+    "test": "QA",
+    // Immutable generated-ID prefix for foundation_migration; must be unique across logical tables.
+    "foundation_migration": "FM",
+    // Immutable generated-ID prefix for provisioning_registry; must be unique across logical tables.
+    "provisioning_registry": "PR",
+    // Immutable generated-ID prefix for api_user; must be unique across logical tables.
+    "api_user": "AU",
+    // Immutable generated-ID prefix for api_user_credential; must be unique across logical tables.
+    "api_user_credential": "AC",
+    // Immutable generated-ID prefix for app_user; must be unique across logical tables.
+    "app_user": "US",
+    // Immutable generated-ID prefix for app_user_api; must be unique across logical tables.
+    "app_user_api": "UA",
+    // Immutable generated-ID prefix for app_user_external_reference; must be unique across logical tables.
+    "app_user_external_reference": "UR",
+    // Immutable generated-ID prefix for role; must be unique across logical tables.
+    "role": "RO",
+    // Immutable generated-ID prefix for permission; must be unique across logical tables.
+    "permission": "PE",
+    // Immutable generated-ID prefix for api_user_role; must be unique across logical tables.
+    "api_user_role": "AR",
+    // Immutable generated-ID prefix for role_permission; must be unique across logical tables.
+    "role_permission": "RP",
+    // Immutable generated-ID prefix for super_administrator; must be unique across logical tables.
+    "super_administrator": "SA",
+    // Immutable generated-ID prefix for plan; must be unique across logical tables.
+    "plan": "PN",
+    // Immutable generated-ID prefix for module; must be unique across logical tables.
+    "module": "MD",
+    // Immutable generated-ID prefix for plan_module; must be unique across logical tables.
+    "plan_module": "PM",
+    // Immutable generated-ID prefix for installation_plan; must be unique across logical tables.
+    "installation_plan": "IP",
+    // Immutable generated-ID prefix for operator_setting; must be unique across logical tables.
+    "operator_setting": "OS",
+    // Immutable generated-ID prefix for access_rule; must be unique across logical tables.
+    "access_rule": "AX",
+    // Immutable generated-ID prefix for work; must be unique across logical tables.
+    "work": "WK",
+    // Immutable generated-ID prefix for platform; must be unique across logical tables.
+    "platform": "PL",
+    // Immutable generated-ID prefix for work_availability; must be unique across logical tables.
+    "work_availability": "AV",
+    // Immutable generated-ID prefix for work_classification; must be unique across logical tables.
+    "work_classification": "WC",
+    // Immutable generated-ID prefix for work_title_alias; must be unique across logical tables.
+    "work_title_alias": "TA",
+    // Immutable generated-ID prefix for work_external_reference; must be unique across logical tables.
+    "work_external_reference": "WR",
+    // Immutable generated-ID prefix for user_work; must be unique across logical tables.
+    "user_work": "UW",
+    // Immutable generated-ID prefix for user_platform; must be unique across logical tables.
+    "user_platform": "UP",
+    // Immutable generated-ID prefix for watch_list_entry; must be unique across logical tables.
+    "watch_list_entry": "WL",
+    // Immutable generated-ID prefix for watch_history; must be unique across logical tables.
+    "watch_history": "WH",
+    // Immutable generated-ID prefix for work_submission; must be unique across logical tables.
+    "work_submission": "SB",
+    // Immutable generated-ID prefix for work_match_review; must be unique across logical tables.
+    "work_match_review": "MR",
+    // Immutable generated-ID prefix for tag; must be unique across logical tables.
+    "tag": "TG",
+    // Immutable generated-ID prefix for tag_category; must be unique across logical tables.
+    "tag_category": "TC",
+    // Immutable generated-ID prefix for tag_category_relationship; must be unique across logical tables.
+    "tag_category_relationship": "CR",
+    // Immutable generated-ID prefix for tag_relationship; must be unique across logical tables.
+    "tag_relationship": "TR",
+    // Immutable generated-ID prefix for work_tag; must be unique across logical tables.
+    "work_tag": "WT",
+    // Immutable generated-ID prefix for platform_plan; must be unique across logical tables.
+    "platform_plan": "PP",
+    // Immutable generated-ID prefix for platform_subscription; must be unique across logical tables.
+    "platform_subscription": "PS",
+    // Immutable generated-ID prefix for subscription_charge; must be unique across logical tables.
+    "subscription_charge": "SC",
+    // Immutable generated-ID prefix for platform_promotion; must be unique across logical tables.
+    "platform_promotion": "PX",
+    // Immutable generated-ID prefix for subscription_reminder; must be unique across logical tables.
+    "subscription_reminder": "SR",
+    // Immutable generated-ID prefix for api_audit_log; must be unique across logical tables.
+    "api_audit_log": "AL",
+    // Immutable generated-ID prefix for record_version; must be unique across logical tables.
+    "record_version": "RV"
+  }
+}

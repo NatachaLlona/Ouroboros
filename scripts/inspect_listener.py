@@ -1,4 +1,10 @@
 """Identify only the local API listener without printing arbitrary launch secrets."""
+
+import sys as _sys
+from pathlib import Path as _Path
+_repository = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_repository))
+_sys.path.insert(0, str(_repository / "modules"))
 import json
 from pathlib import Path
 import re

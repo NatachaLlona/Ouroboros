@@ -1,0 +1,27 @@
+{
+  // PostgreSQL Master Username identifies the SQL administrator.
+  // SQL administrator, not a SaaS identity. A new unused name requests an authenticated interactive handover at startup.
+  "master_user": "ouroboros_master",
+  // Protected file reference only. Never put a password in JSONC.
+  // Fixed protected SQL master secret file reference. Never put the password in this document.
+  "secret_file": ".secrets/database_sql_password",
+  // Empty means 127.0.0.1. Only loopback addresses are accepted.
+  // Loopback IP only; empty means 127.0.0.1. Applied on next startup.
+  "published_address": "",
+  // Fixed published PostgreSQL port 6669; container port remains 5432.
+  "published_port": 6669,
+  // Readiness wait in seconds, 10-3600; applied on next startup.
+  "startup_timeout_seconds": 120,
+  // Effective Docker health check; internal PostgreSQL port is always 5432.
+  // Docker PostgreSQL health settings; applied on next startup.
+  "healthcheck": {
+    // Probe interval in seconds, 1-300.
+    "interval_seconds": 2,
+    // Per-probe timeout in seconds, 1-300.
+    "timeout_seconds": 3,
+    // Number of failed probes before unhealthy, 1-300.
+    "retries": 30,
+    // Initial health-check grace in seconds, 0-300.
+    "start_period_seconds": 5
+  }
+}

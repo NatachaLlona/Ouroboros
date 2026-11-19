@@ -1,4 +1,192 @@
+## Scoped API RBAC adapted from Sympla
+
+The current API supports custom roles and independent section:read/write/edit/delete
+permissions, following the inspected ticketing_sympla/release identity/RBAC reference.
+Use the Ouroboros sections identity, roles, authorization, catalogue, personal,
+subscriptions, settings and audit. Keep legacy resource:create/read/update/delete
+grants as non-broadening compatibility inputs; use new role_identifier payloads
+for scoped delegation. This supersedes administrator-name gates only for the new
+delegated workflow; legacy profile payloads retain their ceilings. Enforce current
+authority and narrowed token scope for all grants and target-role/credential
+administration, inside the membership-locked SQL transaction. Never promote a
+role to the reserved singleton or weaken personal ownership/deny precedence.
+Keep system/internal roles immutable, revoke affected tokens on role/grant/status/
+credential changes, soft-delete identities and reject referenced-role deletion.
+Use additive api-v1/003; preserve applied baseline/migration bytes and credentials.
+QA may use operator-selected OUROBOROS_QA_DB_PORT=2424 or 4242; never silently
+switch an occupied port. The owner selected 4242 for this RBAC verification because
+Sympla uses 2424. Preserve both normal installations. See modules/api/API.md.
+
+## Authenticated PostgreSQL master handover
+
+An edited Database master_user may request a new SQL administrator during normal
+interactive startup. This supersedes historical no-master-change startup rules
+only for the registered Database v1 track. Require the previous LOGIN superuser's
+interactive password, validate the registered contract, request a new confirmed
+password, and require explicit creation confirmation. Never adopt/reset an
+existing target role or change reserved owner/runtime/API login roles.
+Authenticate the new role independently before protected atomic secret publication.
+Journal filesystem/SQL boundaries; preserve pending recovery files after failure.
+Serialize SQL changes and record sanitized audit/version evidence transactionally.
+Offer previous-role deletion only with explicit confirmation and no data deletion,
+ownership reassignment or session termination. The pinned initdb role can only
+have LOGIN disabled, with explicit DISABLE confirmation. Keep SaaS identities,
+API runtime secrets, volumes and immutable baseline/migration bytes unchanged.
+See modules/database/DATABASE.md. Test all role changes on disposable clusters.
+
+## Database/API module configuration and guides
+
+For the Basic runtime, each module has exactly one active operational configuration:
+`modules/api/config.jsonc` and `modules/database/config.jsonc`. Keep structural
+`provisioning.jsonc` beside `start.py`. Each module has one sanitized JSONC example.
+Historical JSON schemas are test fixtures in `qa/support/legacy`, never normal
+deployment fallbacks. The historical launcher refuses the normal workspace.
+Keep module guides in `modules/api/API.md` and `modules/database/DATABASE.md`;
+old docs URLs remain forwarding pages. Do not regenerate the curated Database
+guide from the baseline-only schema generator. Existing historical rules below
+apply only to the runtime and revision they describe.
+
 # 🧬 Developer README — Next Generation
+
+## API over the registered Database v1 contract
+
+Keep the four service modules in `modules/api`, `modules/assistance`,
+`modules/database` and `modules/frontend`. Postman collections and private local
+environments belong under `modules/api/postman`. Root startup and general
+orchestration remain beside provisioning.jsonc. Python entrypoints add the
+modules directory to their package search path, preserving package names and
+immutable Database baseline imports. Container PYTHONPATH mirrors this layout.
+
+Keep central startup/configuration/integration tests in `qa`, shared test
+fixtures in `qa/support`, and service-specific suites in `modules/<module>/qa`.
+Use `python qa/run.py --suite central` or `--suite all` for central orchestration,
+and `python modules/<module>/qa/run.py` for one module. Tests have one owner.
+Angular specifications also live in the Frontend QA directory. Use the module's
+declared dependencies, including the speech environment for Assistance tests.
+
+Database + API requires direct TLS on approved port 6969, including localhost.
+Use strict `tls` file references and server_name in modules/api/config.jsonc. Validate
+key correspondence, certificate dates and SAN before service startup and
+again inside the container. Keep keys protected and outside Git/build contexts.
+Disable forwarded-header trust for direct TLS. Health probes verify TLS and
+hostname. OpenAPI and Swagger OAuth use the configured HTTPS origin. Follow
+the Windows mkcert preparation in modules/api/API.md. Certificate failure stops startup
+with remediation. Database-only remains independent of TLS.
+
+Use `start.py --with-api` (also the default startup) for Database plus API in the
+single Compose project `ouroboros`, with `postgresql` and `api` services from
+`compose.basic.yaml`. `--database-only` starts only PostgreSQL. Fresh enrollment
+prompts for separate SQL/application credentials, activates Basic automatically,
+and prepares the restricted API login in the trusted host provisioning path.
+The optional `--api-inspect` and `--api-migrate` recovery tools request the
+existing interactive SQL master password. Apply only numbered additions in
+`modules/database/sql/api_migrations/`; do not alter Database baseline sources, historical
+migrations, existing IDs, operator identity/membership or password. Runtime uses
+only `ouroboros_api_login` inheriting the restricted capability role. Keep the SQL
+master and migration owner out of the API container and runtime connection path.
+
+`modules/api/config.jsonc` supersedes legacy API JSON for this track. Validate duplicate
+keys, exact fields/types and operator bounds; installation adjustments may not
+exceed those bounds. Reuse root provisioning plus its live registry rather than
+duplicating structural names. The API v1 implementation is in `modules/api/service/`;
+the legacy public-schema/integer-ID routers are not mounted and must not be run
+against this database. Keep Frontend/Assistance unchanged in this API phase.
+
+Separate human-password authentication from OAuth Client Credentials. Never
+convert the reserved human credential into a client secret. Reload current
+credential status/version, roles, permissions and active person links per request;
+deny rules override allow lists, which never grant authority. Derive personal
+ownership on the server before counts/pagination and all mutations. Managers may
+create manager/user identities only within current authority, never administer
+existing managers or promote themselves. Use narrowly authorized SQL capabilities
+for identity/permission/credential/setting changes. Only the reserved active human
+holder retains the protected SQL plan-change authority. Plan changes have no
+HTTP/Swagger operation in this Basic delivery. Generic CRUD cannot bypass it.
+
+New API PUT replaces the entire editable representation; PATCH preserves omitted
+fields. This intentionally supersedes historical partial PUT only for API v1.
+Reject extra owner/role/plan/ID/evidence fields. Complete SQL commit and deferred
+constraints before sending successful headers. Preserve mandatory transactional
+audit/version triggers and classification lock ordering. See [API.md](modules/api/API.md)
+for routes, exact startup commands, profile/ownership matrix and compatibility,
+and [API_QA.md](docs/API_QA.md) for measured verification.
+
+## Human login and Swagger authorization
+
+Keep App Username, API Username, integration Client ID and SQL administration
+credentials explicitly labelled and separate. Human authentication accepts an
+unambiguous App Username or linked API Username with the existing App Password;
+expired links and alias collisions deny access. Both aliases share the account
+rate limit. Preserve credential hashes and memberships through additive Database
+upgrade 003 and API migration api-v1/002. Swagger serves local assets and supports
+human sign-in/token paste separately from OAuth Client Credentials, with tokens
+held only in memory. Never use normal credentials or data as automated QA fixtures.
+
+All project presentation is English, including Frontend, assistants, public
+configuration, Database/API prompts, errors, accessibility text and Swagger.
+This supersedes historical Portuguese UI wording below. Preserve existing normal
+records, immutable baseline/migration bytes and Unicode input support. Canonical
+Frontend routes are /create, /browse, /catalogue and /registrations; historical
+paths redirect. Public assistant configuration uses assistant_name,
+assistant_2_name, assistant_greeting and assistant_2_greeting.
+
+Database and API operator prompts, errors and Swagger presentation are English.
+Use App User for the human identity and API User for its linked API identity;
+label username fields accordingly. Keep Client ID/Client Secret for integration
+credentials and PostgreSQL Master credentials for SQL administration. Token
+errors must never issue a Basic challenge that opens a native browser login.
+Browser-native dialog text follows the browser language and cannot be translated
+by the API; prevent the unintended challenge instead.
+
+## Database delivery one: new-installation runtime
+
+For the new-installation Database track, explicit `--database-only` starts only
+PostgreSQL and the independent provisioning code
+in `modules/database/`. This supersedes the four-module launcher and database JSON rules
+below for this track. Do not start the historical API against its new schema.
+Use root `provisioning.jsonc` and `modules/database/config.jsonc`, copied from versioned
+commented examples and strictly validated before database changes. Root
+provisioning defines immutable structural identity, vocabulary, prefixes and ID
+width; operational database settings define the SQL master secret reference,
+loopback address, fixed published port 6669, timeout and effective health checks.
+Never store passwords in configuration. SQL and application bootstrap credentials
+are separate, with non-echoing confirmation and the requested 8-16-character human
+policy; generated future client secrets have no such upper bound.
+
+Use `compose.basic.yaml` project `ouroboros`, including module-local Compose
+files, and volume `ouroboros_installation_v1`. Database-only leaves the API profile
+inactive. Startup never removes volumes, stops another installation or selects
+another port. The owner-authorized 2026-11-13 reset is a one-time operation
+separate from startup. Keep the Basic display-name addition in the checksummed
+`modules/database/sql/upgrades/002_basic_plan.sql`; preserve baseline source bytes.
+Historical migrations 001-011 are not replayed; the explicit fresh-only baseline
+is `database-v1/001`. Its raw source checksum and canonical structural registry
+must match on restart. `modules/database/model.py` and `modules/database/provision.py` are
+byte-preserved baseline sources; changes after deployment require a new explicit
+migration design, never a registry checksum rewrite.
+
+Keep every new table's generated textual ID, positive identity sequence and
+immutable prefix. Preserve ownership and same-work/same-platform composite keys,
+restrictive deletion, membership history, append-only charges, and atomic
+mutation/audit/version triggers. Reserve plan changes to the installation's
+unique super administrator, separate from common roles and SQL administration.
+Keep owner/migration and runtime SQL capabilities separate; the future API is a
+trusted broker, while tenants never receive SQL credentials. See
+[Database schema and startup](modules/database/DATABASE.md) and
+[actual verification](docs/DATABASE_QA.md). No endpoints, OAuth, review workflow,
+reminder sending or normal-data QA is part of this delivery.
+
+## Shared Assistant 2 form policy
+
+Keep identity-specific instructions in modules/assistance/assistant_1_instructions.py and modules/assistance/assistant_2_instructions.py, composing only common safety/authorization/error rules from modules/assistance/common_instructions.py via modules/assistance/instructions.py. Route by stable assistant_1/assistant_2 identifiers, never display names; keep each context, tool allowlist and history isolated. Assistant 1 remains disabled for inference/navigation/search in this phase. Keep form behavioral instructions in modules/assistance/assistant_2_instructions.py and explicitly enabled adapter metadata in shared/form_adapters.py, derived from existing schemas. Frontend bindings must report real current validation/order and acknowledge proposals only after application. Never copy prompts per form, request generated technical names spontaneously, overwrite manual changes without confirmation or enable incomplete form integrations. Model reads must use the API-owned allowlist and existing authenticated GET routes with pagination; never arbitrary URLs, SQL or privileged fallback. Resolve relative references from actual data, confirm before filling, reread before confirmation and reconfirm changed effects. Assistant business writes remain forbidden; existing save dialogs and validation stay authoritative. Preserve optional refusal and conversation isolation per draft. See [behavior](docs/FORM_ASSISTANT.md) and [QA](docs/FORM_ASSISTANT_QA.md). Audio/transcription is outside this change.
+
+## Canonical layout
+
+Keep service-specific code/builds/dependencies/resources in modules/frontend/, modules/api/, modules/assistance/ and modules/database/. Use exactly one canonical deployment config.json in each and root config.json for orchestration; examples are config.example.json. Never reintroduce retired dot-config fallback sources or duplicate app/modules packages. Keep genuine cross-module contracts in shared/. Resolve project/module resources from shared.paths or the script location; never depend on terminal cwd. Database selection/port/startup preferences belong only to modules/database/config.json; API connection budgets remain in modules/api/config.json. Provider secrets stay in modules/assistance/.env and protected shared secrets remain external to images. The existing cache location is owned only by modules/assistance/config.json. Preserve SQL migration bytes when moving files and keep modules/database/sql/migrations/*.sql -text. See docs/MODULES.md and docs/LAYOUT_QA.md for migration and scoped evidence.
+
+## Four-module runtime (current development rule)
+
+The production entry point is `python start.py`, using the standard-library orchestrator in orchestration.py and exactly four Compose services: PostgreSQL, Base/API, frontend and assistance. This supersedes earlier host-venv/one-process/static-serving runtime instructions below; host environments remain for development and tests. Follow [the module contract](docs/MODULES.md): keep business authorization/CSRF/auditing in Base/API, model execution in assistance without database access, and public presentation JSON loaded before Angular bootstrap. Preserve the existing Compose identity, PostgreSQL volume, exact migration bytes and cached models. Never publish an alternative port, terminate an unidentified listener, extract stored credentials for normal migration checks, or couple catalogue readiness to inference availability. Module-local private config files are ignored; examples and runtime schema must remain aligned. Generate external assistant CSS from validated public JSON, never inline styles or private frontend settings. Use owned tmpfs containers for mutation QA and record actual/pending evidence in docs/MODULES_QA.md. Node only builds assets or generates startup configuration; Nginx serves the frontend.
 
 This document records the rules, conventions, and working practices adopted by the developers of **Ouroboros**. It is intended to help the next generation of contributors understand those decisions, preserve consistency, and continue the project with a shared way of working.
 
@@ -8,7 +196,7 @@ The main **README.md** introduces the project. **NEXTGENERATION.md** explains ho
 
 ## 📍 Project status
 
-Ouroboros is an independent entertainment-consumption catalogue derived from Foundation. Migrations005–010 provide eleven catalogue tables, supervisor roles, central auditing, UTC/source context, independent classification positions and full integer-ID test CRUD. Scalar/date filters, paging, whitelisted ordering, administrator bulk preview/confirmation and transactional evidence are implemented. See [the model](docs/CATALOGUE.md), [API contracts](docs/CATALOGUE_API.md) and [tier/test rules](docs/TIERS_AND_TEST_CRUD.md). The Portuguese Angular 22 frontend provides home/login, shared selection pages and platform/tag/work-classification create/edit/consultation with confirmed individual deletion on the same FastAPI origin. Advanced search and AI remain future work.
+Ouroboros is an independent entertainment-consumption catalogue derived from Foundation. Migrations005–010 provide eleven catalogue tables, supervisor roles, central auditing, UTC/source context, independent classification positions and full integer-ID test CRUD. Scalar/date filters, paging, whitelisted ordering, administrator bulk preview/confirmation and transactional evidence are implemented. See [the model](docs/CATALOGUE.md), [API contracts](docs/CATALOGUE_API.md) and [tier/test rules](docs/TIERS_AND_TEST_CRUD.md). The English Angular 22 frontend provides home/login, shared selection pages and platform/tag/work-classification create/edit/consultation with confirmed individual deletion on the same FastAPI origin. Advanced search remains future work; the enabled form assistant is documented above.
 
 Configuration, logging, Docker Compose PostgreSQL preparation, credential prompts, and the initial test-table migration are implemented. Python 3.10 or newer and the declared Psycopg driver are required. Run `python start.py` from the configured virtual environment. FastAPI health, local OAuth2 password-grant tokens, and scope-protected test endpoints are implemented. Startup now serves the API until Ctrl+C; PostgreSQL remains running afterward.
 
@@ -198,7 +386,7 @@ The application-related examples illustrate the naming convention; they do not i
 
 - `start.py` prepares a basic console logger before loading configuration, initializes the configured logger, and coordinates Docker checks, credential prompts, PostgreSQL health, authenticated TCP connection, migrations, and completion. Record successes only after verification; all general events use `application`. The configured logger records failures in both console and file once initialized. Failures return a nonzero exit code. Bootstrap errors omit raw configuration and exception details that could expose secrets.
 - Resolve paths from the project root, not the current working directory.
-- `.app.config` is local UTF-8 JSON and is ignored. If absent, copy `.app.config.example` without overwriting an existing local file. The sanitized example is explicitly allowed by `.gitignore` and must remain versioned.
+- `modules/api/config.json` is local UTF-8 JSON and is ignored. If absent, copy `modules/api/config.example.json` without overwriting an existing local file. The sanitized example is explicitly allowed by `.gitignore` and must remain versioned.
 - `host`: a string; missing, null, empty, or whitespace-only values normalize to `localhost`.
 - `port`: an integer from 1 to 65535; booleans and numeric strings are invalid. The example uses `6969`.
 - `database.name` and `database.user`: strings prompted when empty and saved in local JSON. Names contain 1-63 lowercase letters, digits, or underscores and cannot start with a digit. The user is the database master, not an API account. Never store passwords or tokens in JSON.
@@ -230,7 +418,7 @@ Console and file use separate formatters. Console color is added **after** plain
 
 ```text
 INFO     |                          | 2026-10-18T11:33:11.048+01:00 | application |  | ouroboros | - | start.py:30 | Ouroboros preparation completed | {}
-DEBUG    | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | POST /test | ouroboros | - | app/main.py:45 | Request JSON body received | {"body": {"value": "Ouroboros está vivo! 🐍💻"}, "truncated": false}
+DEBUG    | 202610181133110482759163 | 2026-10-18T11:33:11.048+01:00 | request     | POST /test | ouroboros | - | modules/api/app/main.py:45 | Request JSON body received | {"body": {"value": "Ouroboros está vivo! 🐍💻"}, "truncated": false}
 ```
 
 ## Local verification
@@ -241,12 +429,12 @@ Run `python -m unittest discover -s tests -v` from the project root. Tests isola
 
 ### Responsibilities and dependencies
 
-- `app/config.py`: load and validate JSON, supply backward-compatible defaults for new database settings, and atomically save non-secret choices without dropping other fields.
-- `app/credentials.py`: interactive user selection, masked password input, and restricted persistent secret creation. Ctrl+C, Escape, or EOF cancels safely. Passwords must never enter command arguments, JSON, logs, or exception messages.
-- `app/database.py`: safe subprocess invocation, Docker checks, Compose startup, and authenticated database connections. Use Psycopg 3 from `requirements.txt`; install with `python -m pip install -r requirements.txt` in the virtual environment.
-- `app/database_test.py`: parameterized insert/read operations for `public.test`; transaction ownership belongs to the caller.
-- `app/migrate.py`: transactional migrations, advisory lock for concurrent startup, applied-version tracking, SHA-256 checksums, and schema compatibility checks. Never edit an applied SQL migration; add a new numbered file.
-- `sql/migrations/001_create_test.sql`: idempotent table creation, `id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY`, `value TEXT NOT NULL`, and no extra value index. No artificial text length limit or demonstration inserts.
+- `modules/api/app/config.py`: load and validate JSON, supply backward-compatible defaults for new database settings, and atomically save non-secret choices without dropping other fields.
+- `modules/api/app/credentials.py`: interactive user selection, masked password input, and restricted persistent secret creation. Ctrl+C, Escape, or EOF cancels safely. Passwords must never enter command arguments, JSON, logs, or exception messages.
+- `modules/api/app/database.py`: safe subprocess invocation, Docker checks, Compose startup, and authenticated database connections. Use Psycopg 3 from `modules/api/requirements.txt`; install with `python -m pip install -r modules/api/requirements.txt` in the virtual environment.
+- `modules/api/app/database_test.py`: parameterized insert/read operations for `public.test`; transaction ownership belongs to the caller.
+- `modules/api/app/migrate.py`: transactional migrations, advisory lock for concurrent startup, applied-version tracking, SHA-256 checksums, and schema compatibility checks. Never edit an applied SQL migration; add a new numbered file.
+- `modules/database/sql/migrations/001_create_test.sql`: idempotent table creation, `id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY`, `value TEXT NOT NULL`, and no extra value index. No artificial text length limit or demonstration inserts.
 - `compose.yaml`: infrastructure only; fixed `postgres:17.11-bookworm`, named volume, loopback-only published port, file secret, and healthcheck. Never use `latest` or automatically remove existing volumes.
 - `start.py`: orchestration only. Check CLI, Compose, and Engine before credential prompts; start/reuse PostgreSQL with a bounded wait, verify credentials, migrate, then serve the configured FastAPI application. On graceful shutdown, release API connections and in-memory credentials while leaving PostgreSQL running.
 
@@ -269,9 +457,9 @@ The normal Ouroboros Compose project is `ouroboros`; its named volume is `ourobo
 
 Request a password every execution. `.secrets/postgres_password` is a plaintext initialization secret with restricted filesystem access, not encrypted storage. Restrict the directory before writing: Windows protected DACL for the current user only; POSIX directory 0700 and file 0600. Fail if protection cannot be applied. Compose mounts this file for `POSTGRES_PASSWORD_FILE`, so keep it available for container startup and recreation. Existing secret contents are preserved on later runs, including failed authentication attempts. Do not rotate PostgreSQL master passwords through application startup; self-service API password replacement is separate.
 
-Keep `.secrets/`, `.app.config`, and logs ignored; verify the example configuration is not ignored. Do not forward inherited `PGPASSWORD` or `POSTGRES_PASSWORD` to Docker commands, display raw Docker/driver errors, or log connection strings. Docker and database administrators are trusted. Remove a secret manually only after its associated container is deliberately retired and its volume lifecycle is understood.
+Keep `.secrets/`, `modules/api/config.json`, and logs ignored; verify the example configuration is not ignored. Do not forward inherited `PGPASSWORD` or `POSTGRES_PASSWORD` to Docker commands, display raw Docker/driver errors, or log connection strings. Docker and database administrators are trusted. Remove a secret manually only after its associated container is deliberately retired and its volume lifecycle is understood.
 
-For safe stop/start commands, load the non-secret Compose environment from `.app.config` as documented in README. Use `docker compose -p ouroboros stop postgres` and `docker compose -p ouroboros start --wait postgres`. `down` preserves data unless explicitly given destructive volume flags; never use `down --volumes` for normal project shutdown. Use `python start.py` for credential validation and migrations.
+For safe stop/start commands, load the non-secret Compose environment from `modules/api/config.json` as documented in README. Use `docker compose -p ouroboros stop postgres` and `docker compose -p ouroboros start --wait postgres`. `down` preserves data unless explicitly given destructive volume flags; never use `down --volumes` for normal project shutdown. Use `python start.py` for credential validation and migrations.
 
 ### Verification and environment limits
 
@@ -285,15 +473,15 @@ Official references: [PostgreSQL image initialization and file secrets](https://
 
 ### Structure and startup
 
-`app/main.py` provides an application factory and registers health, token, test, and users routers. Keep strict schemas in `app/schemas/`, shared collection pagination in `app/pagination.py`, authorization in `app/auth.py`, administrator recovery in `app/api_credentials.py`, account persistence in `app/api_users.py`, test data access in `app/database_test.py`, and fixed queries in `sql/queries/`. Values must always use driver parameters; never concatenate filters into SQL.
+`modules/api/app/main.py` provides an application factory and registers health, token, test, and users routers. Keep strict schemas in `app/schemas/`, shared collection pagination in `shared/pagination.py`, authorization in `modules/api/app/auth.py`, administrator recovery in `modules/api/app/api_credentials.py`, account persistence in `modules/api/app/api_users.py`, test data access in `modules/api/app/database_test.py`, and fixed queries in `modules/database/sql/queries/`. Values must always use driver parameters; never concatenate filters into SQL.
 
 `start.py` independently confirms database name and master user, requests the master password, prepares PostgreSQL and the selected database, runs migrations, imports any legacy API account, explicitly recovers the first administrator if necessary, loads the protected signing key, and starts Uvicorn on normalized host/port. With an active administrator, startup offers no unrestricted terminal enrollment. Do not add reload or multiple workers. Each request gets short-lived connections with caller-owned transactions; connection contexts commit/roll back and close. Lifespan clears provider password/signing-key references; Python cannot guarantee secure erasure of immutable strings. Ctrl+C stops the API, not PostgreSQL.
 
-Install pinned runtime and verification dependencies with `python -m pip install -r requirements.txt` in `.venv`. Tests use FastAPI TestClient and HTTPX. Current Starlette emits an HTTPX deprecation notice; tests still pass. A future TestClient dependency update can migrate to its recommended HTTPX2 client.
+Install pinned runtime and verification dependencies with `python -m pip install -r modules/api/requirements.txt` in `.venv`. Tests use FastAPI TestClient and HTTPX. Current Starlette emits an HTTPX deprecation notice; tests still pass. A future TestClient dependency update can migrate to its recommended HTTPX2 client.
 
 ### 👤 **Database API users and token validation**
 
-`sql/migrations/002_create_api_users.sql` introduces `public.api_users`: identity BIGINT primary key, unique non-null text username, Argon2id password hash, automatic TIMESTAMPTZ created_at, non-null boolean is_active default true, and non-null TEXT[] scopes. Migration **003_add_api_user_role.sql** adds non-null text role default `standard`, with a CHECK accepting only `standard` and `administrator`. Never edit applied migrations. No additional role/permission tables are introduced. API users are not PostgreSQL master roles.
+`modules/database/sql/migrations/002_create_api_users.sql` introduces `public.api_users`: identity BIGINT primary key, unique non-null text username, Argon2id password hash, automatic TIMESTAMPTZ created_at, non-null boolean is_active default true, and non-null TEXT[] scopes. Migration **003_add_api_user_role.sql** adds non-null text role default `standard`, with a CHECK accepting only `standard` and `administrator`. Never edit applied migrations. No additional role/permission tables are introduced. API users are not PostgreSQL master roles.
 
 Configuration `auth` retains only issuer, audience, and token_ttl_seconds; `api_users` retains only last_api_username. The preference never proves existence or grants access. Continue validating token lifetime as integer 1-86400 and using the protected persistent signing key. Runtime authentication must always query PostgreSQL, not legacy fields or a cached account.
 
@@ -307,13 +495,13 @@ The password grant remains for the controlled local client. There are no refresh
 
 ### 🔌 **Database selection and definitive ports**
 
-API/Swagger default to **6969** (`http://localhost:6969/docs`); PostgreSQL is published at **127.0.0.1:6669:5432**, retaining container port 5432. Keep both host ports configurable and distinct; update local/example JSON, Compose fallback, Postman base_url, README examples and embedded collection together. Port changes may recreate the container but must retain its existing named volume.
+API/Swagger use **6969** (`https://localhost:6969/docs`), with API internal port 8000. PostgreSQL is published at **127.0.0.1:6669:5432**. Align active JSONC, Compose, OpenAPI and Postman defaults when changing publication. Preserve README.md as the historical project introduction and keep its embedded collection intact. Port changes may recreate the API container while retaining the existing database volume.
 
 Prompt order is database confirmation/new name, independent master-user confirmation/new name, then masked master password. Choosing another database never automatically changes the username. Existing master roles are authenticated, not created or modified. Connect to postgres for database existence checks; use an autocommit connection and Identifier composition for CREATE DATABASE. Explain missing CREATEDB privileges clearly. Never delete an existing database or volume to make selection work.
 
 ### 🧪 **Account migration verification**
 
-`tests/test_accounts_integration.py` uses its own UUID Compose project, creates both databases and restricted roles only in that disposable cluster, verifies the exact legacy hash and cleanup of configuration, repeats the import, rejects conflicts without overwrites, authenticates two accounts, tests inactivity and permission reductions, and checks preservation of earlier records/databases. Port checks bind 6969/6669 only when free; if occupied, do not stop the existing service and explicitly skip that fixed-port assertion. Other account checks continue on an ephemeral database port. Unit tests also ensure database/master prompts are independent and no temporary legacy-hash configuration copy is written.
+`modules/api/qa/test_accounts_integration.py` uses its own UUID Compose project, creates both databases and restricted roles only in that disposable cluster, verifies the exact legacy hash and cleanup of configuration, repeats the import, rejects conflicts without overwrites, authenticates two accounts, tests inactivity and permission reductions, and checks preservation of earlier records/databases. Port checks bind 6969/6669 only when free; if occupied, do not stop the existing service and explicitly skip that fixed-port assertion. Other account checks continue on an ephemeral database port. Unit tests also ensure database/master prompts are independent and no temporary legacy-hash configuration copy is written.
 
 Historically, the Foundation stage passed **45 tests**, including real fixed-port API/Swagger/PostgreSQL checks in isolation. Its existing local account was then imported and its legacy configuration fields removed after successful commit; record count and a SHA-256 data fingerprint matched, prior databases remained present, and the named volume was retained. That evidence belongs to Foundation, not this Ouroboros phase. Postman desktop UI import and physical terminal key interaction remain separate manual verification.
 
@@ -338,7 +526,7 @@ References: [FastAPI OAuth2 and JWT](https://fastapi.tiangolo.com/tutorial/secur
 
 ## 🧪 **Manual and automated test maintenance**
 
-- **Canonical collection:** `postman/Ouroboros.postman_collection.json`, Postman Collection v2.1, is the only maintained import source. Historical local YAMLs include three List all entries copies (plain, -1, -2) with old array assertions/different order; preserve them and personal settings, do not import alongside JSON or silently synchronize private artifacts. Document replacing an existing JSON import while retaining private environments/custom requests. Never publish credentials from `.postman/`, `.resources/`, YAML metadata or exports.
+- **Canonical collection:** `modules/api/postman/Ouroboros.postman_collection.json`, Postman Collection v2.1, is the only maintained import source. Historical local YAMLs include three List all entries copies (plain, -1, -2) with old array assertions/different order; preserve them and personal settings, do not import alongside JSON or silently synchronize private artifacts. Document replacing an existing JSON import while retaining private environments/custom requests. Never publish credentials from `.postman/`, `.resources/`, YAML metadata or exports.
 - **Keep contracts synchronized:** update requests, status assertions, automatic token/ID capture, README examples, expected results, and the complete collapsible JSON block whenever endpoints change. Run `python scripts/sync_postman_readme.py` after editing the collection; a test enforces byte-equivalent embedded JSON.
 - **Safe defaults:** `api_username`, `api_password`, `access_token`, and `test_id` are empty in versioned JSON. Set credentials only in a private local environment. Do not shadow the captured collection token/ID with empty environment variables. Never log or version passwords, tokens, hashes, or personal credentials. Review exports before staging.
 - **Optional Params:** request 04 (List all entries) keeps a structured URL with `id={{test_id}}` and `value=%Ouroboros%`, both `disabled: true`. Preserve raw percent signs in Params and automatic single URL encoding; do not encode `%25` into the Params value. Verify neither/id/value/both checkbox combinations, keep Bearer authentication, and retain separate filter requests 05-07. Never add GET filters to the insertion POST.
@@ -361,7 +549,7 @@ References: [FastAPI OAuth2 and JWT](https://fastapi.tiangolo.com/tutorial/secur
 
 Foundation retains identity `foundation` and volume `foundation_postgres_data`; never rename, migrate, replace or adopt that volume. Ouroboros uses `ouroboros` and `ouroboros_postgres_data`. The tracked example selects `ouroboros`; another derived workspace must choose its own identity. Local infrastructure.workspace binds configuration to its directory. The middleware-independent startup guard rejects mismatched roots and containers whose Compose working-directory labels do not match. The ignored `.secrets/infrastructure_identity.json` receipt records project/root ownership; a matching receipt is required before reusing a volume without a container. Never silently adopt an unowned existing volume.
 
-Derived projects start from tracked source/templates only, with a unique identity, own available API/database host ports, fresh configuration, fresh secrets, own API users, and their own `<project_name>_postgres_data` volume. Do not copy local `.app.config`, `.secrets`, data volumes, private Postman settings, or runtime artifacts. Preserve blank workspace only for the initial fresh setup; it is bound/saved on startup. Use configured `--project-name` for every Compose operation; no hardcoded fallback to Ouroboros in source or Compose. The README’s AcmeService example is instructional. Ouroboros phase one is implemented separately from Foundation.
+Derived projects start from tracked source/templates only, with a unique identity, own available API/database host ports, fresh configuration, fresh secrets, own API users, and their own `<project_name>_postgres_data` volume. Do not copy local `modules/api/config.json`, `.secrets`, data volumes, private Postman settings, or runtime artifacts. Preserve blank workspace only for the initial fresh setup; it is bound/saved on startup. Use configured `--project-name` for every Compose operation; no hardcoded fallback to Ouroboros in source or Compose. The README’s AcmeService example is instructional. Ouroboros phase one is implemented separately from Foundation.
 
 ### 🔐 **Swagger contract**
 
@@ -379,7 +567,7 @@ PowerShell JSON/Unicode examples must use UTF-8 bytes and application/json; char
 
 ## 📚 **Collection pagination and fixed-role administration**
 
-**Breaking contract:** collection GETs return `{count, page, page_size, items}`, including GET `/test` (formerly a bare array) and GET `/users`. Share the dependency/schema in `app/pagination.py`: page is an integer >=1, default 1; page_size is an integer 10–50, default 50. Reject fractional text; never coerce `1.0` into a page. Count matching rows before pagination; retain count on an empty out-of-range page, return 0 when no rows match, and apply selected ordering, defaulting to ID ascending for inherited lists. Apply LIMIT/OFFSET in SQL; count and items must be obtained in **one statement snapshot**, including empty pages. Fetch only the bounded page into Python. Single-object endpoints such as health are exempt. Separate page requests do not promise a frozen snapshot across HTTP calls. References: [PostgreSQL snapshots](https://www.postgresql.org/docs/17/transaction-iso.html) and [transaction advisory locks](https://www.postgresql.org/docs/17/explicit-locking.html).
+**Breaking contract:** collection GETs return `{count, page, page_size, items}`, including GET `/test` (formerly a bare array) and GET `/users`. Share the dependency/schema in `shared/pagination.py`: page is an integer >=1, default 1; page_size is an integer 10–50, default 50. Reject fractional text; never coerce `1.0` into a page. Count matching rows before pagination; retain count on an empty out-of-range page, return 0 when no rows match, and apply selected ordering, defaulting to ID ascending for inherited lists. Apply LIMIT/OFFSET in SQL; count and items must be obtained in **one statement snapshot**, including empty pages. Fetch only the bounded page into Python. Single-object endpoints such as health are exempt. Separate page requests do not promise a frozen snapshot across HTTP calls. References: [PostgreSQL snapshots](https://www.postgresql.org/docs/17/transaction-iso.html) and [transaction advisory locks](https://www.postgresql.org/docs/17/explicit-locking.html).
 
 **Central authorization:** all protected endpoints use `require_scopes` through FastAPI Security. Standard accounts retain test:read/test:write and current scope intersection, with no user-management permission. Administrator access covers all shared-authorization endpoints, including future scopes, without a static all-scopes list as its authority. OAuth2 advertises users:manage for discoverability; that scope can only be requested by an administrator. Never trust a JWT role claim: retrieve current account/active state/role on every request. A token issued before demotion cannot retain administrative access. `/health` and `/token` remain public; PostgreSQL master credentials are never API credentials.
 
@@ -485,7 +673,7 @@ Historical test counts and observations elsewhere in this guide describe Foundat
 
 The current [catalogue API guide](docs/CATALOGUE_API.md) owns the endpoint/permission/filter matrix. It supersedes earlier schema-only statements about CRUD and two-role operation. Migration **006** extends the fixed role CHECK to **standard, supervisor, administrator**, without editing migrations 001–005 or replacing accounts.
 
-- Preserve separation: fixed named contracts/query schemas in `app/schemas/catalogue.py`, routers in `app/endpoints/catalogue.py`, transactional persistence in `app/catalogue_repository.py`, trusted ordering/snapshot composition in `ordering.py` and `collection_queries.py`, and SQL templates in `sql/queries/`. Never use client-selected table/column names or raw direction tokens.
+- Preserve separation: fixed named contracts/query schemas in `shared/schemas/catalogue.py`, routers in `modules/api/app/endpoints/catalogue.py`, transactional persistence in `modules/api/app/catalogue_repository.py`, trusted ordering/snapshot composition in `ordering.py` and `collection_queries.py`, and SQL templates in `modules/database/sql/queries/`. Never use client-selected table/column names or raw direction tokens.
 - Every catalogue resource has seven endpoint forms, including filtered administrator bulk PUT/DELETE. Ordered classifications are approved in migration009; no seed data or additional domain tables are introduced. POST/PUT/GET-by-ID and page items share the same complete persisted record model.
 - Supervisor can use test scopes, own-password change and catalogue GET/POST/PUT/DELETE by ID. It cannot administer users, reset another password or DELETE all. Standard has no catalogue access; administrator retains all protected APIs. Derive supervisor catalogue access from current role even for old test-only tokens. Authentication always reloads current role/state/version.
 - Catalogue writes take membership lock **719230818**, then lock/revalidate the actor row/version, then catalogue rows. All privileged paths share consistent ordering with administration. Keep last-active-administrator protection for demotion to **either** standard or supervisor. User creation/role replacement must revalidate API credential version too. Direct master SQL remains outside these API invariants.
@@ -494,14 +682,14 @@ The current [catalogue API guide](docs/CATALOGUE_API.md) owns the endpoint/permi
 - Every filter is ANDed before ordering/count/pagination. Document exact versus unmodified ILIKE semantics explicitly, preserving empty text and escaped wildcard behavior. Use driver parameters for values and trusted SQL identifiers for names. No arbitrary short text limits or automatic synopsis-language detection.
 - DELETE by ID returns empty 204, missing 404, dependencies 409. Administrator collection DELETE/PUT accept strict scalar and creation-range filters, require explicit confirm=true for execution, reject page/order/display controls, support dry_run previews, and return bounded counts/summary. No filters selects the whole table; zero matches returns zero. Never TRUNCATE, cascade or reset sequences. Do not add bulk mutations for infrastructure/users/audits.
 - Emit safe deletion audit only after commit: actor_id/resource/target_id/deleted_count/outcome plus automatic interaction ID. Expected transaction rejections record rejected status without committed counts. Shared pre-repository failures use existing safe rejection events; never expose database error text.
-- Maintain canonical examples through `scripts/sync_catalogue_postman.py`, then `sync_qa_postman.py` and `sync_postman_readme.py`. All collection GETs show editable filters, optional fields unchecked, paging and valid ordering. Both deletion examples are skipped unless a private local `catalogue_destructive_opt_in=isolated` is set; DELETE all additionally ships with confirm=false. Opt-in is only for explicitly selected disposable QA flows, never normal data.
+- Maintain canonical examples through `modules/api/scripts/sync_catalogue_postman.py`, then `sync_qa_postman.py` and `sync_postman_readme.py`. All collection GETs show editable filters, optional fields unchecked, paging and valid ordering. Both deletion examples are skipped unless a private local `catalogue_destructive_opt_in=isolated` is set; DELETE all additionally ships with confirm=false. Opt-in is only for explicitly selected disposable QA flows, never normal data.
 - QA scenarios **14.1–14.7** cover the new API work. Use owned UUID Docker resources and fresh per-test databases for destructive verification. Manual Swagger/Postman/terminal/hosted-CI evidence remains separate from schema and HTTP automation. No commit, push or merge is part of this request.
 
 ## 🛡️ Permanent security and next-phase rules
 
 Follow the [audit, datetime and bulk contracts](docs/AUDIT_DATETIME_BULK.md). New API mutations must use the Database provider and its request audit context; do not bypass transactional mutation triggers. Audit entry/finalization must not hold locks across business work or overwrite committed evidence. Keep audit reads read-only, bounded and authorized; omit returned audit bodies from their own access records. Add migrations rather than changing applied files.
 
-Use `app/datetimes.py` for UTC server clocks, canonical instants, source context and presentation. Never invent historical creation dates, infer geographical zones from offsets, accept timezone-naive datetime inputs or filter formatted strings. New bulk APIs require strict known filters, preview support, explicit confirmation and authority revalidation inside the transaction. Preserve sequences and restrictive foreign keys.
+Use `shared/datetimes.py` for UTC server clocks, canonical instants, source context and presentation. Never invent historical creation dates, infer geographical zones from offsets, accept timezone-naive datetime inputs or filter formatted strings. New bulk APIs require strict known filters, preview support, explicit confirmation and authority revalidation inside the transaction. Preserve sequences and restrictive foreign keys.
 
 Consult official [OWASP ASVS 5.0.0](https://owasp.org/projects/asvs) and the [Cheat Sheet Series](https://cheatsheetseries.owasp.org/) for Authentication, Authorization, Password Storage, Logging, Input Validation and Error Handling, linked individually in the contract guide (consulted 2026-10-19). Concrete review checks are current-account authorization on every request; transaction-time privilege checks; parameterized SQL and whitelisted ordering; Argon2id; current-password self change; administrator reset of another account; credential-version revocation; bounded redaction and whole token/password body omission; protected audit reads; safe centralized errors and audit rollback tests. Scans/tests do not establish blanket OWASP compliance. No password GET/recovery endpoint may return an existing password. Future email recovery must reset passwords. Do not store plaintext or reversible passwords. Never include credentials, hashes, tokens, signing keys or connection strings in logs/audits/errors/public response schemas.
 
@@ -517,7 +705,7 @@ Migrations009–010 add independent classification tier positions and complete i
 
 ## Calendar-filter development rule
 
-Use shared calendar/date-bound parsing and UTC boundary calculation in app/datetimes.py for every publicly filterable timestamp. Expose exact-day and optional date/timestamp ranges consistently in GET and bulk schemas. Resolve omitted filter_timezone from application_timezone before calculating mixed boundaries; display_timezone never controls filtering. Calendar upper dates include the whole final local day via next-day midnight, while timestamp upper bounds remain exclusive instants. Never add 24 hours to a UTC start to calculate a local day or cast stored rows to dates. Keep strict validation, NULL-history exclusion and GET/preview predicate parity. See the calendar-day section in [the datetime contract](docs/AUDIT_DATETIME_BULK.md).
+Use shared calendar/date-bound parsing and UTC boundary calculation in shared/datetimes.py for every publicly filterable timestamp. Expose exact-day and optional date/timestamp ranges consistently in GET and bulk schemas. Resolve omitted filter_timezone from application_timezone before calculating mixed boundaries; display_timezone never controls filtering. Calendar upper dates include the whole final local day via next-day midnight, while timestamp upper bounds remain exclusive instants. Never add 24 hours to a UTC start to calculate a local day or cast stored rows to dates. Keep strict validation, NULL-history exclusion and GET/preview predicate parity. See the calendar-day section in [the datetime contract](docs/AUDIT_DATETIME_BULK.md).
 
 ## Atomic array POST development rules
 
@@ -529,13 +717,13 @@ api.max_batch_size defaults to 300 (integer 1?10000); api.max_creation_body_byte
 
 ## Backend review development rules
 
-Migration011 adds platform_access_types and platform_url without rewriting historical values. Follow the [backend review contract](docs/BACKEND_REVIEW.md) for their operation matrix, user filters, shared new-password policy and bounded login admission. Keep newly set passwords at 15-1024 Unicode characters through app/password_policy.py; never apply this minimum to existing-password verification or rewrite stored hashes. Single-worker login limits are 10/account and 50/direct client per 300 seconds with at most 10000 hashed entries, no active-limit eviction, 429/Retry-After and automatic expiry. Disable Uvicorn proxy header handling; do not trust arbitrary forwarded addresses. Keep reference readOnly metadata on fields rather than duplicating it on referenced models. QA scenarios 14.2/14.3/14.6/14.7 map all four relationship regressions; 18.1-18.4 cover these backend additions. Regenerate all maintained QA/Postman artifacts together.
+Migration011 adds platform_access_types and platform_url without rewriting historical values. Follow the [backend review contract](docs/BACKEND_REVIEW.md) for their operation matrix, user filters, shared new-password policy and bounded login admission. Keep newly set passwords at 15-1024 Unicode characters through modules/api/app/password_policy.py; never apply this minimum to existing-password verification or rewrite stored hashes. Single-worker login limits are 10/account and 50/direct client per 300 seconds with at most 10000 hashed entries, no active-limit eviction, 429/Retry-After and automatic expiry. Disable Uvicorn proxy header handling; do not trust arbitrary forwarded addresses. Keep reference readOnly metadata on fields rather than duplicating it on referenced models. QA scenarios 14.2/14.3/14.6/14.7 map all four relationship regressions; 18.1-18.4 cover these backend additions. Regenerate all maintained QA/Postman artifacts together.
 
 ## First frontend and browser session rules
 
-Browser origin/transport denials must use BROWSER_ORIGIN_REJECTED and never be presented as account-permission failures. Diagnose safe interaction traces and current public account metadata before proposing role changes. Catalogue actions need a native /cadastros navigation fallback, visible progress and focused/visible feedback; a banner outside the viewport is not sufficient. Preserve the shared administrator/supervisor scope semantics for bearer and browser sessions and never auto-promote an account to fix configuration. See the normal login/navigation diagnosis in docs/FRONTEND.md.
+Browser origin/transport denials must use BROWSER_ORIGIN_REJECTED and never be presented as account-permission failures. Diagnose safe interaction traces and current public account metadata before proposing role changes. Catalogue actions need a native /registrations navigation fallback, visible progress and focused/visible feedback; a banner outside the viewport is not sufficient. Preserve the shared administrator/supervisor scope semantics for bearer and browser sessions and never auto-promote an account to fix configuration. See the normal login/navigation diagnosis in docs/FRONTEND.md.
 
-The approved frontend is Angular 22 with strict TypeScript, standalone feature components, Signals, stable Signal Forms and zoneless change detection under frontend/. Scope includes home/login, reusable selection pages and individual platform/tag/work-classification creation, consultation, editing and confirmed deletion. Build optimized hashed static assets before FastAPI startup; Node is a build tool, never a production runtime. Keep the lazy registration route, same-origin HttpClient/Router services and exact API payload contracts. Follow docs/ANGULAR.md for reproducible versions, commands, caching, CI and isolated QA. Do not restore the obsolete handwritten frontend or rebuild on every application start. Visible interface text is Portuguese; identifiers/comments/logs/developer docs remain English. Use original local SVG assets and the exact palette with measured contrast. Follow [the browser/security/operation contract](docs/FRONTEND.md).
+The approved frontend is Angular 22 with strict TypeScript, standalone feature components, Signals, stable Signal Forms and zoneless change detection under modules/frontend/. Scope includes home/login, reusable selection pages and individual platform/tag/work-classification creation, consultation, editing and confirmed deletion. Build optimized hashed static assets before FastAPI startup; Node is a build tool, never a production runtime. Keep the lazy registration route, same-origin HttpClient/Router services and exact API payload contracts. Follow docs/ANGULAR.md for reproducible versions, commands, caching, CI and isolated QA. Do not restore the obsolete handwritten frontend or rebuild on every application start. Visible interface text is Portuguese; identifiers/comments/logs/developer docs remain English. Use original local SVG assets and the exact palette with measured contrast. Follow [the browser/security/operation contract](docs/FRONTEND.md).
 
 Keep opaque bounded server-side sessions, HttpOnly SameSite=Strict cookies, Secure under HTTPS, same-origin/synchronizer CSRF checks and current account/version/role checks. The default fails closed for HTTP. Development HTTP requires explicit browser.allow_loopback_http plus a matching loopback origin and peer; never silently enable it for existing configuration or production. Never trust arbitrary proxy headers. Preserve bearer precedence and existing /token clients. All browser bodies (including CSRF-bearing responses) are wholly omitted from logs/audits; never persist browser secrets in web storage or source. Cookie catalogue mutations use existing routes, authorization, repositories and transactional auditing. Static shells/assets are outside database auditing; API mutations remain audited. Sessions are process-local and cleared on restart/shutdown.
 
@@ -543,23 +731,23 @@ Maintain scenarios 19.1-19.5 in the single catalogue and regenerate the manual p
 
 ## Angular refinement development rules
 
-Reuse shared catalogue layouts, typed resource definitions, field rendering, confirmation, pagination and selection cards. Keep UI labels separate from API keys: Nome fantasia maps to platform_name/display_name_*; never confuse it with immutable fantasy_name_<table>. Technical suggestions are effective validated values, never submitted placeholders. Preserve manual/original names, request sequencing, keyboard completion without POST, changed-field PUT semantics, immediate success reset and non-secret drafts on failure. Consultations fetch one ten-item page, use generated public filter/order metadata, escape literal ILIKE wildcards and require confirmation for individual DELETE. No bulk frontend writes.
+Reuse shared catalogue layouts, typed resource definitions, field rendering, confirmation, pagination and selection cards. Keep UI labels separate from API keys: Display name maps to platform_name/display_name_*; never confuse it with immutable fantasy_name_<table>. Technical suggestions are effective validated values, never submitted placeholders. Preserve manual/original names, request sequencing, keyboard completion without POST, changed-field PUT semantics, immediate success reset and non-secret drafts on failure. Consultations fetch one ten-item page, use generated public filter/order metadata, escape literal ILIKE wildcards and require confirmation for individual DELETE. No bulk frontend writes.
 
-Browser sessions have explicit 7200-second idle and 43200-second absolute deadlines, independent of bearer lifetime. Renew only accepted authenticated user activity; passive background checks never renew and absolute expiry never slides. Test with controlled clocks. Approved ports are 6969 application/API, 6669 normal PostgreSQL host, 2469 Angular preview and owner-selected 2424 disposable PostgreSQL host; container PostgreSQL remains 5432. Require operator-selected QA ports, never allocate a silent fallback. Preserve the round mark, single Ouroboros wordmark, Portuguese accessible eye control and semantic required fields with sparse #E6BD68 accent. See docs/ANGULAR.md and docs/FRONTEND.md for current workflows; historical delivery sections describe their stated earlier revision only.
+Browser sessions have explicit 7200-second idle and 43200-second absolute deadlines, independent of bearer lifetime. Renew only accepted authenticated user activity; passive background checks never renew and absolute expiry never slides. Test with controlled clocks. Approved ports are 6969 application/API, 6669 normal PostgreSQL host, 2469 Angular preview and owner-selected 2424 disposable PostgreSQL host; container PostgreSQL remains 5432. Require operator-selected QA ports, never allocate a silent fallback. Preserve the round mark, single Ouroboros wordmark, English accessible eye control and semantic required fields with sparse #E6BD68 accent. See docs/ANGULAR.md and docs/FRONTEND.md for current workflows; historical delivery sections describe their stated earlier revision only.
 
 The owner additionally selected **4242** for the second disposable PostgreSQL cluster used concurrently by the derived-project isolation test. Set **OUROBOROS_QA_DERIVED_DB_PORT=4242**. This is QA-only; never substitute it for normal 6669 or HTTP/Angular 2469. The hosted workflow requires all three QA port inputs from its operator.
 
 ## Phase-one registration control rules
 
-Use the current [registration UI contract](docs/REGISTRATION_UI.md). Only the home-return link receives scoped enlarged navigation styling. Keep required-field legend placement, #E6BD68 markers, existing routes and disabled future workflows. Registration labels use Cadastrar item. Shared platform boolean checkboxes start unanswered and require explicit true/false, with a clear reset; never coerce unanswered to false.
+Use the current [registration UI contract](docs/REGISTRATION_UI.md). Only the home-return link receives scoped enlarged navigation styling. Keep required-field legend placement, #E6BD68 markers, existing routes and disabled future workflows. Registration labels use Create item. Shared platform boolean checkboxes start unanswered and require explicit true/false, with a clear reset; never coerce unanswered to false.
 
-Separate exact decimal-comma parsing/API strings from two-place pt-PT monetary display. Use installed Angular formatCurrency for ordinary display, with exact decimal-string arithmetic/fallback where Number would lose precision. Do not rewrite input while typing or round stored/API values through floating point; disclose extra precision. Omit blank POST price_amount; preserve PUT omission versus explicit null clearing. Keep optional currency null, explicit zero, only configured EUR/USD/BRL choices and legacy code preservation. New access selections are only application or website singleton arrays; preserve multi/link legacy arrays until explicit replacement. Site alone reveals the URL; retain hidden drafts but omit them on non-Site POST and explicitly clear persisted URLs when changing access on PUT.
+Separate exact decimal-comma parsing/API strings from two-place pt-PT monetary display. Use installed Angular formatCurrency for ordinary display, with exact decimal-string arithmetic/fallback where Number would lose precision. Do not rewrite input while typing or round stored/API values through floating point; disclose extra precision. Omit blank POST price_amount; preserve PUT omission versus explicit null clearing. Keep optional currency null, explicit zero, only configured EUR/USD/BRL choices and legacy code preservation. New access selections are only application or website singleton arrays; preserve multi/link legacy arrays until explicit replacement. Website alone reveals the URL; retain hidden drafts but omit them on non-Site POST and explicitly clear persisted URLs when changing access on PUT.
 
 Autocomplete is now an anchored top-twenty first-page dropdown without paging/load-more or a permanent no-results block, superseding the earlier paginated autocomplete behavior only. Preserve debounce, stale-result guards, literal substring predicates, deterministic ordering, keyboard precedence and existing edit confirmation. Consultation pagination remains unchanged. Classifications must retrieve the complete tier/name order in bounded pages before exposing positions as complete. Create defaults to implicit append; edit preselects current tier with 1..N moves. Failures/count drift require retry; only backend transactions shift other rows. No new endpoints, enums, migrations, fields or dependencies are introduced by these UI rules.
 
 ## Phase-one cancellation, consultation and search-memory rules
 
-Use shared create/edit forms with exact Cadastrar/Salvar edição actions, a Cancelar action and actual baseline dirty tracking. Guard route exits, cancellation, resource changes and logout with one cancel-first discard prompt. Use native beforeunload only for browser unload, with its documented browser limits. Confirmed successes and clean/restored originals never prompt. Default dialog focus and prominent styling belong to cancellation; affirmative buttons are explicit secondary actions without implicit form submission. Preserve direct ordinary saves and no automatic mutation replay.
+Use shared create/edit forms with exact Create/Save changes actions, a Cancel action and actual baseline dirty tracking. Guard route exits, cancellation, resource changes and logout with one cancel-first discard prompt. Use native beforeunload only for browser unload, with its documented browser limits. Confirmed successes and clean/restored originals never prompt. Default dialog focus and prominent styling belong to cancellation; affirmative buttons are explicit secondary actions without implicit form submission. Preserve direct ordinary saves and no automatic mutation replay.
 
 Keep consultation at ten items per page, independent of twenty-name autocomplete. No create button belongs in consultation. Selected public filter fields render compact shared value controls beside the fixed primary Search/Clear column; picker overlays never displace Search. Removing a field removes its predicate. Retain up to five successful applied criteria sets per resource in session-scoped service memory, never results or credentials. Clear on logout/expiry/new sign-in, offer reapply-at-page-one and clear history. Preserve resource, successful criteria, ordering, page and rendered scroll on return from individual edits. No persistence endpoint, Works catalogue or later-phase workflow is added. The exact #E6BD68 accent is decorative on light surfaces; keep dark readable labels/legend and semantic required state rather than claiming the accent itself meets text contrast. See docs/REGISTRATION_UI.md for measured contrast, current behavior and verification.
 # Frontend delivery verification rule
@@ -573,13 +761,43 @@ Platform registration uses two-state false-initialized booleans and requires use
 
 ## Shared labels and contextual help — Change 01
 
-Use `FieldLabel` in `frontend/src/app/shared/field-label.ts` for field-label presentation and help. All fantasy-name fields in create/edit and search use `FANTASY_NAME_LABEL` and `FANTASY_NAME_HELP_TEXT`; do not duplicate their wording in templates. Required markers precede labels with a space and use bold #DC3545. Derive their visibility from existing requirements; this visual rule does not introduce validation requirements. Preserve field IDs and required/invalid semantics. Remove redundant optionality wording, move explanatory field help to associated tooltip descriptions, and retain visible errors, progress, confirmations and actual data. Help buttons are non-submit, keyboard reachable, open on hover/focus/touch and close on Escape/outside click without submitting or dismissing a parent dialog. Keep exact fantasy-name help distinct from filter syntax guidance. This supersedes older permanent-help and marker-color presentation instructions only; no API, schema, mutation or authentication behavior changes.
+Use `FieldLabel` in `modules/frontend/src/app/shared/field-label.ts` for field-label presentation and help. All fantasy-name fields in create/edit and search use `FANTASY_NAME_LABEL` and `FANTASY_NAME_HELP_TEXT`; do not duplicate their wording in templates. Required markers precede labels with a space and use bold #DC3545. Derive their visibility from existing requirements; this visual rule does not introduce validation requirements. Preserve field IDs and required/invalid semantics. Remove redundant optionality wording, move explanatory field help to associated tooltip descriptions, and retain visible errors, progress, confirmations and actual data. Help buttons are non-submit, keyboard reachable, open on hover/focus/touch and close on Escape/outside click without submitting or dismissing a parent dialog. Keep exact fantasy-name help distinct from filter syntax guidance. This supersedes older permanent-help and marker-color presentation instructions only; no API, schema, mutation or authentication behavior changes.
 
-Tooltip/currency visual correction: keep the information glyph small, borderless and raised immediately after the label text, with an invisible enlarged hit area. Description fields have no help icon/tooltip; price uses centralized `PRICE_HELP_TEXT`. Use the existing currency component with a normal dropdown trigger and an anchored panel containing search followed by plain listbox rows; no duplicate placeholder or option buttons. Production uses `style-src 'self'`, so put these scoped styles in `frontend/styles/shared-fields.css`, included in the external Angular stylesheet bundle. Do not use Angular component `styles`/`styleUrl` injection here or weaken CSP to fix presentation. Verify external CSS delivery under the actual policy; JSDOM component tests alone do not establish visual behavior.
+Tooltip/currency visual correction: keep the information glyph small, borderless and raised immediately after the label text, with an invisible enlarged hit area. Description fields have no help icon/tooltip; price uses centralized `PRICE_HELP_TEXT`. Use the existing currency component with a normal dropdown trigger and an anchored panel containing search followed by plain listbox rows; no duplicate placeholder or option buttons. Production uses `style-src 'self'`, so put these scoped styles in `modules/frontend/styles/shared-fields.css`, included in the external Angular stylesheet bundle. Do not use Angular component `styles`/`styleUrl` injection here or weaken CSP to fix presentation. Verify external CSS delivery under the actual policy; JSDOM component tests alone do not establish visual behavior.
 
-Soft Amber (`--soft-amber: #D99A45`) is an additive shared palette token for information glyphs; preserve all other palette tokens and required-marker red #DC3545. Keep the existing glyph size/position and interactions. The floating tooltip belongs above and to the right of its glyph, with a rightward offset rather than centered placement. Price errors use the approved Portuguese “centavos” wording without changing validation/formatting.
+Soft Amber (`--soft-amber: #D99A45`) is an additive shared palette token for information glyphs; preserve all other palette tokens and required-marker red #DC3545. Keep the existing glyph size/position and interactions. The floating tooltip belongs above and to the right of its glyph, with a rightward offset rather than centered placement. Price errors use English cents wording without changing validation or decimal-comma formatting.
 ## Description limits and classification position controls
 
-Follow [DESCRIPTION_AND_TIERS.md](docs/DESCRIPTION_AND_TIERS.md). `app/text_limits.json` is authoritative for the description limit; frontend constants are generated before npm build/test/watch. Apply the Unicode 16 extended-grapheme limit only to the three `description_` fields, including create/array/update/bulk inputs; never extend it to observations/synopsis. Pin both segmentation implementations and verify shared official conformance vectors before changing versions. Preserve historical oversized output and unrelated omitted-description edits; never silently truncate or migrate normal TEXT data. Reuse DescriptionInput with live counter, optional/no-tooltip presentation, whole-edit overflow prevention and deferred IME commit. Inspect normal historical lengths only with existing interactive credentials, never extracted secrets.
+Follow [DESCRIPTION_AND_TIERS.md](docs/DESCRIPTION_AND_TIERS.md). `shared/text_limits.json` is authoritative for the description limit; frontend constants are generated before npm build/test/watch. Apply the Unicode 16 extended-grapheme limit only to the three `description_` fields, including create/array/update/bulk inputs; never extend it to observations/synopsis. Pin both segmentation implementations and verify shared official conformance vectors before changing versions. Preserve historical oversized output and unrelated omitted-description edits; never silently truncate or migrate normal TEXT data. Reuse DescriptionInput with live counter, optional/no-tooltip presentation, whole-edit overflow prevention and deferred IME commit. Inspect normal historical lengths only with existing interactive credentials, never extracted secrets.
 
 Use the same SearchableDropdown for currency and numeric classification positions. Automatic append is an empty UI value and omitted POST tier; displayed N is explanatory, not transaction authority. Keep persisted edit tier and backend transactional shifts. Paginate only the current-order view at ten rows, retaining its approved items and total while dropdown choices cover the complete verified order. Preserve deterministic ordering and failure handling. These rules supersede earlier position-name options and unlimited description input instructions only.
+
+## Exact-byte migration integrity
+
+Applied migrations are immutable bytes, including BOM and LF/CRLF. Preserve them through `.gitattributes` (`modules/database/sql/migrations/*.sql -text`); never normalize checksums in the migrator or rewrite the registry. On mismatch inspect branch/HEAD, raw SHA-256 and original backups. Restore only original bytes whose raw hash matches the authenticated registry, retaining the prior local file. Necessary functional changes belong in a new numbered migration. Use the existing private interactive credentials for normal registry/startup checks; never extract saved secrets. `modules/api/scripts/diagnose_migrations.py --database` is SELECT-only. See [migration recovery evidence](docs/MIGRATION_INTEGRITY.md). An uncommitted restoration is replaced by reset --hard when HEAD still contains different bytes; attributes alone cannot change the bytes stored in HEAD. Publication requires the owner's separate staging/commit authorization.
+
+## Tag registration submenu and category creation
+
+Keep the main ResourceTabs and consultation Resource definitions limited to platforms, tags and work_classifications. RegistrationNavigation owns main/secondary presentation only; RegistrationResource/registrationDefinitions may add tag_categories for creation. Main Tag selects the existing Tag form immediately; only that main section shows the smaller Tag/Category submenu. All switches go through the existing unsaved-change guard. Reuse the shared form, fields, technical suggestion, description counter/generated grapheme limit, API/session/CSRF/error handling, duplicate prevention and success reset. Category creation accepts only tag_category_name, display_name_tag_categories and optional description_tag_categories; no metadata or relationship inputs. This extends the existing frontend description presentation to the category field already supported by the backend, without changing its validation contract. Category creation uses POST /tag_categories; optional category selection during new Tag creation may also read categories and use the existing tag-category relationship read/create/individual-delete routes internally. Keep category editing, relationship pages and Tag Relationship outside scope. Keep the success repeat-create button horizontally centered.
+
+Navigation-card images and existing buttons must reuse one destination or handler. Use separate accessible semantic image links for available actions; retain noninteractive images for disabled future workflows. Preserve authentication, permission checks, layout and all existing buttons. Put styles in external shared CSS. See [Tag/category UI and verification](docs/TAG_CATEGORY_UI.md). Never delete/reset leftover user files to force tests to pass; distinguish incompatible pre-existing test remnants, scoped test results and actual browser evidence.
+
+## Shared submenu distribution and entity-specific registration titles
+
+Use the reusable `equal-width-options` class in external shared CSS for equal secondary-navigation areas with centered button text. With Tag and Category, each receives half of the usable option space; retain the existing gap, padding, tokens and selected indicator. Keep the main ResourceTabs distribution unchanged. Centralize creation headings in the typed `registrationTitles` configuration in catalogue/resources.ts. Registration derives its heading reactively from the actual selected form, preserving the existing edit-title rule. Every future registration entity must supply a specific creation heading rather than a generic Create item page title. Navigation emits selections; title configuration owns wording; CatalogueLayout retains heading presentation. Never duplicate title conditionals or change subtitles as part of this pattern.
+
+## Shared multi-category selection for new Tags
+
+Shared MultiSelect option labels must occupy the full row width and contain its padding, with explicit matching checkbox id/label for attributes. Use only the native checkbox change event for selection; never add independent click toggles on the row or label. This makes text, whitespace and direct checkbox clicks activate exactly once while preserving keyboard and disabled semantics.
+
+Keep shared multi-select list items as zero-padding flex rows with stretched labels that own the inner spacing and fill the available width/height. Scope these rules to the multi-select menu so generic single-select item styles cannot leave inactive row space or change other dropdowns.
+
+Selected options appear below MultiSelect as wrapping removable chips, replacing the plain selection paragraph. Derive chips from the existing selection model and deduplicated options, using resource-configured display names (`display_name_tag_categories` for categories); never create a parallel selection store. Reuse shared chip styles and non-submit removal buttons labelled `Remove [display name]`, preserving keyboard focus and disabled behavior. Removal updates only the form selection, checkboxes and existing count; persistence remains with the owning form. Empty selections render no chips. Select All, Clear All and loaded selections update the same presentation automatically. See [multiple category selection](docs/TAG_CATEGORIES_SELECTION.md) for the presentation contract. Individual chip removal is distinct from a whole-selection reset control.
+
+Use MultiSelect with native labelled checkboxes and the existing searchable-dropdown styles. Centralize label filtering and ID deduplication in shared/select-options.ts; keep selections controlled by the form. Select All includes every completely loaded option even with a search active; Clear All clears all selections. Show this scope in the panel, retain selections across search/open/close, and provide no X/reset control or independent storage. Read category options in bounded deterministic pages through readCataloguePages; reject partial/count-drifting/duplicate responses and ignore stale loads. Extend existing API allowlists narrowly; never add a category array to POST /tags.
+
+TagCategoryRegistration is component-scoped and orchestrates the existing separate tag and relationship transactions. Keep the ordinary no-category creation path unchanged. Retain a confirmed Tag ID across relationship failures, reconcile before deliberate retry, create only missing pairs and apply text corrections to that known Tag. Clear All/corrections may remove only relationships attempted by this unfinished creation flow, never blanket-delete links. Preserve fields/errors and disclose partial committed state; never claim atomic creation across these endpoints. Unknown Tag-create outcomes require manual verification rather than another blind POST. Include selected IDs/pending state in the existing dirty guard, clear page-local state on confirmed discard/success/new registration and never silently delete a partly saved Tag. See [multiple category selection](docs/TAG_CATEGORIES_SELECTION.md).
+
+## Local speech recording and processing limits
+
+Speech runtime limits are configured in the local `modules/assistance/config.json`, using `modules/assistance/config.example.json` as the public template. This separate AI file overrides legacy transcription settings in `modules/api/config.json`; keep credentials in their existing secret locations. The browser reads recording, upload and request budgets from the authenticated transcription-options endpoint. Preserve the complete waveform, consume all faster-whisper windows in order and return text only after complete success. Discarding a recording must detach callbacks before stopping capture and must never submit audio or change the editable text. Audio meters use actual microphone samples and release their own Web Audio resources without owning the recording tracks.

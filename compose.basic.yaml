@@ -1,0 +1,4 @@
+name: ouroboros
+include:
+  - path: modules/database/compose.yaml
+  - path: modules/api/compose.yaml

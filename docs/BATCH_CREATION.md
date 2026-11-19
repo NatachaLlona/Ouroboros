@@ -41,7 +41,7 @@ The response above illustrates /test with display_timezone=UTC; tag and other ca
 
 Each object uses the existing resource create schema. Unknown/immutable fields, invalid types, required fields, source-zone consistency, foreign keys, XOR choices, same-work relationships and existing uniqueness constraints retain their rules. No new uniqueness rule is introduced. There are no implicit references between items and no cross-table creation: every referenced ID must already exist.
 
-Empty arrays, arrays above the configured maximum, nested arrays and non-object elements return standardized 422 VALIDATION_ERROR. Schema errors identify zero-based item locations, for example `error.details[0].loc = ["body", 1, "value"]` for the second item. Safe database/domain failures identify the active item where possible; relationship/uniqueness conflicts remain 409 RELATIONSHIP_CONFLICT and invalid resulting records remain 422. Authority/connection/commit failures may not identify an individual item. Rejected values, raw SQL and database exception messages are omitted.
+Empty arrays, arrays above the configured maximum, nested arrays and non-object elements return standardized 422 VALIDATION_ERROR. Schema errors identify zero-based item locations, for example `error.details[0].loc = ["body", 1, "value"]` for the second item. Safe modules/database/domain failures identify the active item where possible; relationship/uniqueness conflicts remain 409 RELATIONSHIP_CONFLICT and invalid resulting records remain 422. Authority/connection/commit failures may not identify an individual item. Rejected values, raw SQL and database exception messages are omitted.
 
 The entire array uses one authorized business transaction and connection. All inserts and mandatory audit evidence commit together or all roll back. Schema validation completes before business writes. Current role/scopes/account version are rechecked under the existing membership/actor locks once per array. Items execute sequentially, using a reused parameterized INSERT ... RETURNING statement and cursor; ordinary items need no follow-up SELECT or per-item connection. This deliberate per-item insert approach provides database failure indexes. Existing row audit triggers still process each affected row. Sequence gaps after rollback are expected and are never reset.
 
@@ -49,7 +49,7 @@ Classification arrays also hold the existing list lock and defer tier uniqueness
 
 ## Configuration and operations
 
-The ignored local .app.config accepts backward-compatible defaults under api. The sanitized example documents:
+The ignored local modules/api/config.json accepts backward-compatible defaults under api. The sanitized example documents:
 
 ```json
 {

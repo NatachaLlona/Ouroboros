@@ -1,5 +1,41 @@
 ## 🧭 **Read this first**
 
+The Basic deployment uses root provisioning.jsonc, modules/database/config.jsonc
+and modules/api/config.jsonc, with their versioned examples. Each module's code,
+dependencies and resources live under modules/. See API.md for trusted HTTPS
+certificate preparation and the existing-credential startup flow.
+
+### Current Basic runtime and independent suites
+
+`python start.py --with-api` starts PostgreSQL and HTTPS API in Compose project
+ouroboros. Swagger is https://localhost:6969/docs. `--database-only` starts only
+PostgreSQL. The shared persistent database volume, credentials and Basic plan
+survive restarts. Frontend and Assistance are outside this runtime profile.
+
+Run the central suite or one module from PowerShell at the repository root.
+
+```powershell
+.\.venv\Scripts\python.exe qa/run.py --suite central
+.\.venv\Scripts\python.exe modules/database/qa/run.py
+.\.venv\Scripts\python.exe modules/api/qa/run.py
+.\.venv-speech\Scripts\python.exe modules/assistance/qa/run.py
+.\.venv\Scripts\python.exe modules/frontend/qa/run.py
+```
+
+Install each module's declared requirements into the selected interpreter.
+Assistance QA requires its native speech dependencies. Frontend QA uses the
+module's npm dependencies and compatible Node toolchain. With all verification
+dependencies installed in one environment, `python qa/run.py --suite all` runs
+the suites sequentially and writes sanitized summary, JSON and JUnit reports.
+Historical Docker integration scenarios require their explicit disposable-data
+opt-in. Every reported skip remains visible.
+
+### Historical integer-ID catalogue scenarios
+
+The following catalogue scenarios describe the historical API and its disposable
+fixtures. Their authentication, resource names and configuration differ from
+the current registered Database v1 Basic API documented in API.md.
+
 For catalogue CRUD scenarios **14.1–14.7**, use the [resource/filter/permission matrix](CATALOGUE_API.md) and new canonical Postman folders. Administrator creates supervisor explicitly; standard still has no catalogue access. All collection GETs now show ordering enums. DELETE examples are skipped by default: only in disposable data, explicitly select the request, set the private local catalogue_destructive_opt_in=isolated, and for DELETE all change confirm=false to true. Never run that flow against normal records. POST/PUT/GET expose the same complete record; copy a GET body to PUT with unchanged metadata and server-controlled added_at. Troubleshooting and exact status expectations are in the CRUD guide.
 
 This guide is for a Windows tester with no prior Ouroboros, Python, Docker, OAuth2 or Git experience. **Use a separate QA folder and database. Never test against the owner's normal installation.** A green automated report verifies code/HTTP checks, not the appearance or behavior of a desktop interface. Record manual evidence separately. Expected **400, 401, 403, 409 and 422 are PASS** when the case asks for them.
@@ -20,7 +56,7 @@ An **API** accepts requests at URLs. **Swagger** is the interactive web page at 
 
 1. Ask the developer for the exact revision/source package being tested. Record that public revision with your evidence. Obtain access to the private repository if cloning it. Do not download another developer's configuration, secrets or database volume.
 2. Open PowerShell. A terminal is a window where you enter the commands shown below. Open Docker Desktop and wait until its Engine is running in **Linux containers** mode.
-3. Put the supplied source in a **new** folder, such as `C:\Dev\Ouroboros-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Ouroboros-QA`. Do not type that placeholder literally. Do not copy `.app.config`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
+3. Put the supplied source in a **new** folder, such as `C:\Dev\Ouroboros-QA`. If using Git, replace `REPOSITORY_URL` with the URL supplied by the developer: `git clone REPOSITORY_URL C:\Dev\Ouroboros-QA`. Do not type that placeholder literally. Do not copy `modules/api/config.json`, `.secrets`, logs, reports, `.venv`, private Postman environments or Docker volumes.
 4. Enter these commands from the new folder. Stop and ask for help if any command shows an error; a missing program is **BLOCKED preparation**, not a successful test.
 
 ```powershell
@@ -30,12 +66,12 @@ docker version
 docker compose version
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-if (Test-Path -LiteralPath .app.config) { throw 'Use a fresh QA folder; existing configuration must not be overwritten' }
-Copy-Item -LiteralPath .app.config.example -Destination .app.config -ErrorAction Stop
-notepad .app.config
+if (Test-Path -LiteralPath modules/api/config.json) { throw 'Use a fresh QA folder; existing configuration must not be overwritten' }
+Copy-Item -LiteralPath modules/api/config.example.json -Destination modules/api/config.json -ErrorAction Stop
+notepad modules/api/config.json
 ```
 
-**Only copy the example when `.app.config` does not exist.** If the folder already contains one, do not overwrite it; use a new QA folder. In Notepad, retain all other JSON fields and change only these choices. Commas, quotes and braces must remain valid JSON. No password goes into this file.
+**Only copy the example when `modules/api/config.json` does not exist.** If the folder already contains one, do not overwrite it; use a new QA folder. In Notepad, retain all other JSON fields and change only these choices. Commas, quotes and braces must remain valid JSON. No password goes into this file.
 
 If installing PyYAML on the local Python 3.15 reports a missing C++ compiler, its optional native extension is not needed for these checks. Use the supported pure-Python build (or use Python 3.12 as CI does):
 
@@ -88,7 +124,7 @@ If instead you see **promote/create**, this database already contains API users 
 
 ### 📮 **Import Postman once and configure local values**
 
-1. Postman Desktop → **Import → Files** → select **postman/Ouroboros.postman_collection.json** from this QA folder. This is the sole canonical **Collection v2.1**. Do not import the YAML directory; three historical List all entries YAML copies contain old assertions. Do not delete personal YAML/customizations.
+1. Postman Desktop → **Import → Files** → select **modules/api/postman/Ouroboros.postman_collection.json** from this QA folder. This is the sole canonical **Collection v2.1**. Do not import the YAML directory; three historical List all entries YAML copies contain old assertions. Do not delete personal YAML/customizations.
 2. To update an older import, retain your private environment/custom requests first, then choose replacement if offered. Otherwise archive/remove only the identified old imported collection and import this JSON once. Avoid two same-named active imports.
 3. Create a **private local environment**, select it, and set `base_url=http://localhost:6969`. Set credentials only locally and mark passwords sensitive. A placeholder such as `{{admin_username}}` must resolve before sending. Do not share/sync/export secrets.
 4. Basic requests 01–08 use `api_username`/`api_password`, captured `access_token` and `test_id`. Run 02 then 03 before filters. Request 04 has **Params** `id` and `value` unchecked: neither = unfiltered page, one = that filter, both = AND. Keep `%Ouroboros%` raw in Params; the transmitted URL must have `%25Ouroboros%25`, not `%2525`.
@@ -110,7 +146,7 @@ Expected negatives are 403 for standard callers, 401 without authentication or a
 Press **Ctrl+C** in the application terminal to stop the API; PostgreSQL remains running. Restart using the same command and QA master password. To stop/start **only this QA database**, open a second PowerShell terminal in your QA folder:
 
 ```powershell
-$qaConfig = Get-Content -Raw -Encoding UTF8 .app.config | ConvertFrom-Json
+$qaConfig = Get-Content -Raw -Encoding UTF8 modules/api/config.json | ConvertFrom-Json
 $qaProject = $qaConfig.infrastructure.project_name
 $env:OUROBOROS_DB_NAME = $qaConfig.database.name
 $env:OUROBOROS_DB_USER = $qaConfig.database.user
@@ -167,7 +203,7 @@ After a maintainer publishes the workflow to the repository's default branch, op
 | `python` not recognized | Install Python, enable PATH, reopen PowerShell; preparation remains BLOCKED |
 | Package installation fails | Confirm internet access and correct virtual-environment path; do not substitute a global Python installation |
 | Docker/Engine unavailable | Start Docker Desktop, wait for Linux Engine; follow its Windows/WSL2 instructions |
-| JSON configuration error / identity blank | Reopen only QA `.app.config`, repair JSON / choose unique project identity |
+| JSON configuration error / identity blank | Reopen only QA `modules/api/config.json`, repair JSON / choose unique project identity |
 | Foreign workspace/volume ownership error | Stop; choose fresh QA configuration/secrets/identity. Never adopt or delete the other volume |
 | API port occupied | Choose another free API port; update Postman base_url |
 | Database authentication error | Reuse the master password originally chosen for this QA volume; initialization variables do not reset an existing role |
@@ -190,7 +226,7 @@ These are **public suggestions for a disposable local QA installation only**, ne
 | Administrator after own-password change | admin | AdminPassword-Updated-2026! |
 | Standard after own-password change | default | DefaultPassword-Updated-2026! |
 
-The main URLs are **http://localhost:6969/docs**, API port **6969**, PostgreSQL host **6669**, internal **5432**. Automated tests still choose random credentials and free ports. Never insert these examples into .app.config, source defaults, the initialization code or the versioned Postman JSON. These explicitly requested public examples are an exception to documentation's usual credential placeholders; real credentials remain prohibited everywhere versioned.
+The main URLs are **http://localhost:6969/docs**, API port **6969**, PostgreSQL host **6669**, internal **5432**. Automated tests still choose random credentials and free ports. Never insert these examples into modules/api/config.json, source defaults, the initialization code or the versioned Postman JSON. These explicitly requested public examples are an exception to documentation's usual credential placeholders; real credentials remain prohibited everywhere versioned.
 
 After all role cases, use the **Own password changes** folder (40–60). Put admin_username/admin_password and standard_username/standard_password in your private environment using the examples above. Set admin_new_password and standard_new_password there too. Keep all captured password_*_token variables in collection scope, never shadowed by empty environment values. Run 40–57 in order; 42 deliberately uses the different administrator password as incorrect confirmation for default. If you chose different local passwords, ensure that incorrect confirmation is actually different.
 
@@ -224,7 +260,7 @@ Use fresh disposable credentials of 15?1024 Unicode characters for every newly c
 
 ## First frontend QA
 
-Follow [the explicit browser configuration and setup](FRONTEND.md) and scenarios 19.1?19.5. Use owned disposable QA for all example writes; never create demo records in normal data. Add only non-secret browser origin/development fields to an existing QA configuration; do not overwrite private settings. Build/test Angular first using npm ci, npm run build and npm test under frontend/. Open the public home, test the modal and create one platform, Unicode tag and work classification with omitted/explicit tier using disposable API accounts. Verify persisted backend ordering. See [Angular commands and isolated browser preview](ANGULAR.md). Record actual keyboard/mobile/UI screenshots separately from automation. Never screenshot a visible password, cookie, CSRF value or private temporary preview fixture.
+Follow [the explicit browser configuration and setup](FRONTEND.md) and scenarios 19.1?19.5. Use owned disposable QA for all example writes; never create demo records in normal data. Add only non-secret browser origin/development fields to an existing QA configuration; do not overwrite private settings. Build/test Angular first using npm ci, npm run build and npm test under modules/frontend/. Open the public home, test the modal and create one platform, Unicode tag and work classification with omitted/explicit tier using disposable API accounts. Verify persisted backend ordering. See [Angular commands and isolated browser preview](ANGULAR.md). Record actual keyboard/mobile/UI screenshots separately from automation. Never screenshot a visible password, cookie, CSRF value or private temporary preview fixture.
 
 ## Operator-selected refinement QA ports
 

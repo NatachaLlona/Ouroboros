@@ -1,0 +1,6 @@
+{
+  "name": "ouroboros",
+  "user": "postgres",
+  "port": 6669,
+  "startup_timeout": 120
+}

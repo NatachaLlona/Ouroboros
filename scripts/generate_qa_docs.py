@@ -1,4 +1,10 @@
 """Render or verify the QA plan from its single structured catalogue."""
+
+import sys as _sys
+from pathlib import Path as _Path
+_repository = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_repository))
+_sys.path.insert(0, str(_repository / "modules"))
 import argparse
 from qa_catalog import ROOT, load_catalog, render_plan, validate_catalog
 

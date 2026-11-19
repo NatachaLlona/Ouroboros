@@ -43,18 +43,18 @@ jobs:
         with:
           node-version: '24.15.0'
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Build and test Angular production client
-        working-directory: frontend
+          cache-dependency-path: modules/frontend/package-lock.json
+      - name: Build Angular production client
+        working-directory: modules/frontend
         run: |
           npm ci --no-fund
           npm run build
-          npm test
       - name: Verify Python and Docker prerequisites
         run: python scripts/run_checks.py --preflight-only
-      - name: Run catalogue scenarios in isolated infrastructure
-        if: always()
-        run: python scripts/run_checks.py
+      - name: Build Basic API verification image
+        run: docker build -f modules/api/Service.Dockerfile -t ouroboros-api-v1:verification .
+      - name: Run central and module QA suites
+        run: python qa/run.py --suite all
       - name: Publish sanitized summary
         if: always()
         shell: bash

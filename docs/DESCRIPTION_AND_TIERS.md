@@ -2,7 +2,7 @@
 
 ## One application policy
 
-`app/text_limits.json` is the single application configuration source. It initially specifies `description_max_length: 4000` and grapheme Unicode version **16.0.0**. The backend loads it through `app/text_limits.py`. `frontend/scripts/generate-text-limits.mjs` generates the public `DESCRIPTION_MAX_LENGTH` and Unicode-version constants; npm build, test and watch generate them before compiling. Components and validators consume the generated constant, never a local numeric limit. Change the JSON, rebuild the frontend and restart the API to deploy a new limit consistently. `node frontend/scripts/generate-text-limits.mjs --check` detects stale generated configuration.
+`shared/text_limits.json` is the single application configuration source. It initially specifies `description_max_length: 4000` and grapheme Unicode version **16.0.0**. The backend loads it through `shared/text_limits.py`. `modules/frontend/scripts/generate-text-limits.mjs` generates the public `DESCRIPTION_MAX_LENGTH` and Unicode-version constants; npm build, test and watch generate them before compiling. Components and validators consume the generated constant, never a local numeric limit. Change the JSON, rebuild the frontend and restart the API to deploy a new limit consistently. `node modules/frontend/scripts/generate-text-limits.mjs --check` detects stale generated configuration.
 
 Both implementations use Unicode 16 extended grapheme clusters under [UAX #29 revision 45](https://www.unicode.org/reports/tr29/tr29-45.html): Python [uniseg 0.10.1](https://pypi.org/project/uniseg/0.10.1/) and JavaScript [unicode-segmenter 0.14.5](https://github.com/cometkim/unicode-segmenter/tree/unicode-segmenter%400.14.5). Versions are pinned deliberately; browser ICU/Intl versions do not control application counting. Shared `qa/grapheme-vectors.json` contains **1,093 official Unicode 16 conformance cases**, source/license references included. Both test suites verify every segmentation boundary against this same fixture. Refresh deliberately with `scripts/update_grapheme_vectors.py` when changing the segmentation policy and both dependencies together.
 
@@ -18,7 +18,7 @@ No normal description was inspected or changed during implementation. Whether no
 
 ```powershell
 cd C:\Dev\Ouroboros
-.\.venv\Scripts\python.exe scripts/inspect_description_lengths.py
+.\.venv\Scripts\python.exe modules/api/scripts/inspect_description_lengths.py
 ```
 
 Enter the existing API username/password only in that terminal. The script uses ordinary bearer authentication and read-only paginated API calls, prints counts plus oversized IDs/lengths, and never prints descriptions, credentials or tokens. It does not extract saved secrets or automatically fix/delete/truncate anything. The scan is not a transaction snapshot; rerun if records change concurrently.
@@ -33,7 +33,7 @@ The editor uses grapheme validation rather than native maxlength (which would co
 
 `SearchableDropdown` is the same component used by currency, with configurable choices and labels. Its currency defaults and API mappings are preserved. Classification uses the exact standardized position help from `TIER_HELP_TEXT`.
 
-Create selects **Inserir na última posição (N)** first, with N equal to the validated total plus one. Its value is empty and serialization **omits tier**; the backend computes the actual append position in its transaction, so the browser's displayed N is never an authority. Other options are only ascending numeric positions, searchable by number, without classification names. Edit initially selects the persisted tier and offers existing 1..N moves. Membership/actor/list/record locks, deferred uniqueness, shifts and same-transaction audit evidence remain unchanged.
+Create selects **Insert at the last position (N)** first, with N equal to the validated total plus one. Its value is empty and serialization **omits tier**; the backend computes the actual append position in its transaction, so the browser's displayed N is never an authority. Other options are only ascending numeric positions, searchable by number, without classification names. Edit initially selects the persisted tier and offers existing 1..N moves. Membership/actor/list/record locks, deferred uniqueness, shifts and same-transaction audit evidence remain unchanged.
 
 The existing complete-order loader still reads bounded API pages, sorts/verifies tier continuity and refuses incomplete or changing counts. Dropdown choices always cover that complete order. The approved order-item appearance is unchanged; a separate local view paginates the already validated order into **10 records**, with previous/next, page count and the existing total. Changing the order-list page cannot restrict the dropdown. Reload resets the view to page one. No public consultation paging behavior changed.
 
@@ -45,13 +45,13 @@ Current result reports are `reports/description_tier_tests.txt`, `reports/descri
 
 ```powershell
 cd C:\Dev\Ouroboros
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r modules/api/requirements.txt
 $env:PATH="$PWD\.tools\node-v24.15.0-win-x64;$env:PATH"
 npm.cmd --prefix frontend ci --no-fund --no-audit
 npm.cmd --prefix frontend run build
 .\.venv\Scripts\python.exe start.py
 ```
 
-Use existing startup credentials privately. Main app/API: http://localhost:6969/; classification registration: /cadastros; Swagger: /docs. Normal PostgreSQL remains 6669, container 5432. QA uses approved 2469 HTTP, 2424 PostgreSQL and 4242 concurrent derived PostgreSQL; no additional listeners are selected.
+Use existing startup credentials privately. Main app/API: http://localhost:6969/; classification registration: /registrations; Swagger: /docs. Normal PostgreSQL remains 6669, container 5432. QA uses approved 2469 HTTP, 2424 PostgreSQL and 4242 concurrent derived PostgreSQL; no additional listeners are selected.
 
 Manual browser review remains separate: create/edit every existing description form, inspect lower-right counter and unchanged item appearance at desktop/mobile widths, compose with a real IME, paste combined accents/emoji at the boundary, search/select positions and navigate order pages. Verify automatic append while another disposable client inserts first. Use disposable data for writes. Physical keyboard/touch/IME, screen-reader output, live Swagger controls and normal-data inspection must not be inferred from DOM/schema tests.
